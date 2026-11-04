@@ -58,6 +58,25 @@ foreach ($pair in @(
     $ratio = Get-OptimizerUxContrast -Foreground $pair[0] -Background $pair[1]
     Assert-OptimizerUx ($ratio -ge 4.5) ("Insufficient text contrast: {0} on {1} ({2:N2})" -f $pair[0],$pair[1],$ratio)
 }
+
+# Dynamic resource references must resolve; this guards against blank text on theme changes.
+$rawLayout = $layout.OuterXml
+$keys = @($layout.SelectNodes('//*[@x:Key]', $ns) | ForEach-Object {
+    $_.GetAttribute('Key','http://schemas.microsoft.com/winfx/2006/xaml')
+})
+$repeated = @($keys | Group-Object | Where-Object Count -gt 1)
+Assert-OptimizerUx ($repeated.Count -eq 0) 'Duplicate theme resource keys.'
+$dynamicReferences = [regex]::Matches($rawLayout,'\{DynamicResource (Ui[A-Za-z0-9]+)\}')
+foreach ($reference in $dynamicReferences) {
+    $key = $reference.Groups[1].Value
+    Assert-OptimizerUx ($keys -contains $key) "Theme resource is undefined: $key"
+}
+foreach ($required in @('PreferenceHighContrast','PreferenceTextScale','PreferenceApplyButton','PreferenceResetButton')) {
+    Assert-OptimizerUx ($names -contains $required) "Missing preferences UI control: $required"
+}
+$settingsTab = @($layout.SelectNodes("//*[local-name()='TabItem']") | Where-Object { $_.GetAttribute('Header') -eq 'Preferências' })
+Assert-OptimizerUx ($settingsTab.Count -eq 1) 'Preferences must have exactly one main tab.'
+Assert-OptimizerUx ($dynamicReferences.Count -ge 90) 'Theme resources not used consistently.'
 $gui = Get-Content -LiteralPath (Join-Path $root 'Otimizador-GUI.ps1') -Raw -Encoding UTF8
 foreach ($marker in @('function Open-OptimizerSection','Update-SidebarSelection','[Windows.Input.Key]::B','NavBench.RaiseEvent','WorkbenchTabs.SelectedIndex')) {
     Assert-OptimizerUx ($gui.Contains($marker)) "Missing functional keyboard/navigation binding: $marker"
