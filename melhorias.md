@@ -13,7 +13,9 @@
 
 **Arquivos alterados nesta frente:** `Otimizador-GUI.ps1`, `UI/MainWindow.xaml`, `melhorias.md` e documentação pontual. **Não alterar** `Modules/Optimizer.Core.psm1`, `Tests/Core.Smoke.ps1` ou outros módulos do agente. Novos botões de verificação e reparo usam confirmação + UAC; diagnósticos locais não modificam o Windows, consultas externas somente após confirmação.
 
-**Status:** em implementação. Se outro agente atualizar a interface simultaneamente, revisar o diff e conciliar, nunca substituir trabalhos publicados. Coordenação também na issue #5.
+**Status: CONCLUÍDO E INTEGRADO NA MAIN** — [PR #8](https://github.com/leonccunha21/windows-pc-optimizer/pull/8), commit `065b0429`. Inventários, rede, histórico de falhas e verificações SFC/DISM/CHKDSK conectados a **Manutenção → Bancada**, além de CSV na Limpeza. Integração de WPF com consulta real de processos e testes do núcleo passaram em Windows/Ubuntu e PowerShell 5.1; novos reparos elevados e testes externos **não foram executados automaticamente no CI**.
+
+**Pendências da rodada:** validação visual manual em resoluções/DPI distintos; testes de execução elevada de cada ferramenta em bancada; avaliação de acessibilidade e temas de alto contraste; assinatura Authenticode e Release por tag em ambiente real. Coordenação também na issue #5.
 
 ---
 
