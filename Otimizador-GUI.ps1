@@ -248,6 +248,44 @@ $timer.Add_Tick({
         if (-not $ValidateUI) { [void][Windows.MessageBox]::Show($window, $_.Exception.Message, 'Operação não concluída', 'OK', 'Warning') }
     } finally { $script:worker.Dispose(); $script:worker = $null; Set-Busy $false }
 })
+
+# Sidebar navigation shares the existing Pages/MaintenanceTabs selection, not a second page state.
+function Update-SidebarSelection {
+    $current = 'NavOverview'
+    switch ([int]$ui.Pages.SelectedIndex) {
+        0 { $current = 'NavOverview' }
+        1 { $current = 'NavCleanup' }
+        2 { $current = 'NavDiagnose' }
+        3 { $current = 'NavHealth' }
+        4 {
+            $current = if ([int]$ui.MaintenanceTabs.SelectedIndex -eq 4) { 'NavBench' } else { 'NavMaintenance' }
+        }
+        5 { $current = 'NavReport' }
+    }
+    foreach ($name in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport')) {
+        $ui[$name].Background = if ($name -eq $current) { [Windows.Media.Brushes]::Teal } else { [Windows.Media.Brushes]::Transparent }
+    }
+}
+function Open-OptimizerSection([int]$PageIndex, [int]$MaintenanceIndex = -1) {
+    if ($PageIndex -eq 4 -and $MaintenanceIndex -ge 0) { $ui.MaintenanceTabs.SelectedIndex = $MaintenanceIndex }
+    $ui.Pages.SelectedIndex = $PageIndex
+    Update-SidebarSelection
+}
+foreach ($navigation in @(
+    @('NavOverview',0,-1),@('NavDiagnose',2,-1),@('NavHealth',3,-1),
+    @('NavCleanup',1,-1),@('NavMaintenance',4,0),@('NavBench',4,4),
+    @('NavReport',5,-1)
+)) {
+    $ui[$navigation[0]].Tag = @([int]$navigation[1],[int]$navigation[2])
+    $ui[$navigation[0]].Add_Click({
+        param($navigationSender)
+        $target = @($navigationSender.Tag)
+        Open-OptimizerSection -PageIndex ([int]$target[0]) -MaintenanceIndex ([int]$target[1])
+    })
+}
+$ui.Pages.Add_SelectionChanged({ Update-SidebarSelection })
+$ui.MaintenanceTabs.Add_SelectionChanged({ Update-SidebarSelection })
+Update-SidebarSelection
 $ui.ScanButton.Add_Click({ Start-Work 'Scan' $null })
 $ui.GoClean.Add_Click({ $ui.Pages.SelectedIndex = 1; Start-Work 'Scan' $null })
 $ui.DiagnoseHome.Add_Click({ $ui.Pages.SelectedIndex = 2; Start-Work 'Diagnose' $null })
@@ -258,7 +296,7 @@ $ui.HealthAnalyzeButton.Add_Click({ Start-Work 'Health' $null })
 $ui.HealthHome.Add_Click({ $ui.Pages.SelectedIndex = 3; Start-Work 'Health' $null })
 $ui.HealthShortcut.Add_Click({ $ui.Pages.SelectedIndex = 3 })
 $ui.MaintenanceShortcut.Add_Click({ $ui.Pages.SelectedIndex = 4 })
-$ui.WorkbenchShortcut.Add_Click({ $ui.Pages.SelectedIndex = 4; $ui.MaintenanceTabs.SelectedIndex = 4 })
+$ui.WorkbenchShortcut.Add_Click({ Open-OptimizerSection -PageIndex 4 -MaintenanceIndex 4; $ui.WorkbenchTabs.SelectedIndex = 0 })
 
 # Independent technician modules: only explicit commands are run; all inventory stays read-only.
 foreach ($entry in @(
@@ -445,6 +483,14 @@ $window.Add_PreviewKeyDown({
     } elseif ($keyArgs.Key -eq [Windows.Input.Key]::Escape -and $ui.CancelButton.IsEnabled) {
         $keyArgs.Handled = $true; $script:state.Cancel = $true; $ui.CancelButton.IsEnabled = $false
         $ui.Status.Text = 'Interrompendo após o arquivo atual...'
+    } elseif ([Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control -and $keyArgs.Key -eq [Windows.Input.Key]::B) {
+        $keyArgs.Handled = $true
+        Open-OptimizerSection -PageIndex 4 -MaintenanceIndex 4
+        $ui.WorkbenchTabs.SelectedIndex = 0
+    } elseif ([Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control -and $keyArgs.Key -in @([Windows.Input.Key]::D1,[Windows.Input.Key]::D2,[Windows.Input.Key]::D3,[Windows.Input.Key]::D4,[Windows.Input.Key]::D5,[Windows.Input.Key]::D6)) {
+        $keyArgs.Handled = $true
+        $keyMap = @{D1=0;D2=2;D3=3;D4=1;D5=4;D6=5}
+        Open-OptimizerSection -PageIndex ([int]$keyMap[$keyArgs.Key.ToString()])
     } elseif ($keyArgs.Key -eq [Windows.Input.Key]::E -and [Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control -and $ui.ExportButton.IsEnabled) {
         $keyArgs.Handled = $true
         $ui.Pages.SelectedIndex = 5
@@ -493,6 +539,17 @@ if ($ValidateUI) {
         $stream = [IO.File]::Create($PreviewPath)
         try { $encoder.Save($stream) } finally { $stream.Dispose() }
     }
+    foreach ($required in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport','WorkbenchTabs')) {
+        if ($null -eq $ui[$required]) { throw "Navegação não encontrada: $required" }
+    }
+    $ui.NavBench.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+    if ($ui.Pages.SelectedIndex -ne 4 -or $ui.MaintenanceTabs.SelectedIndex -ne 4) { throw 'Sidebar did not open the workbench.' }
+    $ui.WorkbenchTabs.SelectedIndex = 3
+    if ([string]$ui.WorkbenchTabs.SelectedItem.Header -ne 'Reparos') { throw 'Workbench tab selection failed.' }
+    $ui.NavReport.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+    if ($ui.Pages.SelectedIndex -ne 5) { throw 'Sidebar report navigation failed.' }
+    $ui.NavOverview.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+    if ($ui.Pages.SelectedIndex -ne 0) { throw 'Sidebar overview navigation failed.' }
     # Exercise real runspace + Dispatcher flow using only a disposable profile.
     $fixture = Join-Path ([IO.Path]::GetTempPath()) ('optimizer-ui-' + [guid]::NewGuid().ToString('N'))
     $previousLocalAppData = $env:LOCALAPPDATA
@@ -534,7 +591,7 @@ if ($ValidateUI) {
         if ($null -eq $ui[$required]) { throw "Controle ausente na interface: $required" }
     }
     if (@($ui.OptimizationGrid.Items).Count -lt 5) { throw 'Catálogo de otimizações não foi carregado.' }
-    Write-Output 'WPF layout, bindings, asynchronous scan and cleanup passed.'
+    Write-Output 'WPF layout, accessible sidebar navigation, workbench tabs and async scan/cleanup passed.'
     return
 }
 try { [void]$window.ShowDialog() } finally { $timer.Stop(); if ($null -ne $script:worker) { $script:worker.Dispose() } }

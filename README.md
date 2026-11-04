@@ -13,7 +13,7 @@ Interface desktop em português para o dia a dia de manutenção de computadores
 
 Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil analisado. Em computadores gerenciados, respeite a política de execução da organização. Não execute o BAT dentro do ZIP. Windows 10/11 com interface desktop; a compatibilidade do aplicativo não altera o ciclo de suporte do Windows.
 
-## O que a edição 4.3 oferece
+## O que a edição 4.4 oferece
 
 | Área | Recursos |
 |---|---|
@@ -27,6 +27,14 @@ Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil 
 | Relatório | Cliente/OS, observações, diagnóstico e resultado; HTML imprimível em PDF ou JSON sem caminhos de arquivos excluídos |
 
 Análise e limpeza rodam em um runspace separado. A janela permanece disponível e permite solicitar interrupção entre arquivos. A consulta de hardware termina antes de fechar a janela. Relatórios são salvos apenas por escolha do usuário; não há histórico persistente automático com dados de clientes.
+
+## Interface e acessibilidade
+
+A partir da edição 4.4, a barra lateral é **navegável por clique** e indica a área ativa, em vez de apenas descrever um roteiro. Em **Manutenção → Bancada**, as ferramentas foram separadas em quatro guias: **Inventário**, **Rede**, **Histórico** e **Reparos**. A reorganização não altera as regras de segurança dos módulos.
+
+Atalhos para navegar: **Ctrl+1** Visão geral, **Ctrl+2** Diagnóstico, **Ctrl+3** Saúde, **Ctrl+4** Limpeza, **Ctrl+5** Manutenção, **Ctrl+6** Relatório e **Ctrl+B** Bancada. Permanecem **F5** para análise de limpeza, **Esc** para solicitar interrupção e **Ctrl+E** para relatório.
+
+Todos os botões visíveis receberam rótulos de automação, e a navegação lateral possui destaque para foco de teclado. As principais combinações de texto/fundo foram ajustadas para contraste mínimo de 4,5:1; uma validação estática é executada no CI. Isso **não equivale a certificação completa de acessibilidade**: leitor de tela, temas de alto contraste e resoluções com DPI acima de 100% ainda exigem testes manuais no Windows.
 
 ## Saúde e manutenção
 
