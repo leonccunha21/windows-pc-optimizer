@@ -3,6 +3,7 @@ param([switch]$ValidateUI, [string]$PreviewPath)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Preferences.psm1') -Force
 [xml]$layout = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'UI\MainWindow.xaml') -Raw -Encoding UTF8
 $reader = New-Object System.Xml.XmlNodeReader $layout
 $window = [Windows.Markup.XamlReader]::Load($reader)
@@ -25,6 +26,129 @@ try {
     $principal = New-Object Security.Principal.WindowsPrincipal($identity)
     $script:isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 } catch { Write-Verbose 'Não foi possível verificar elevação.' }
+
+
+# Non-sensitive display settings, never stored alongside customer data or diagnostics.
+$script:themeNormal = @{}
+$script:fontDefaults = @{}
+foreach ($resourceKey in @($window.Resources.Keys)) {
+    $resourceName = [string]$resourceKey
+    if ($resourceName -like 'UiColor*' -or $resourceName -eq 'UiCardBrush') {
+        $script:themeNormal[$resourceName] = [string]$window.Resources[$resourceName].Color
+    }
+    if ($resourceName -like 'UiFont*') {
+        $script:fontDefaults[$resourceName] = [double]$window.Resources[$resourceName]
+    }
+}
+$script:highContrastColors = @{
+    UiColor102638='#000000'
+    UiColorF3F6FA='#050505'
+    UiColor192C42='#FFFFFF'
+    UiColor117B6D='#004F78'
+    UiColor38BDF8='#FFFF00'
+    UiColorE2EDF5='#FFFFFF'
+    UiColor5BD7C4='#FFDD55'
+    UiColorF5D579='#FFFF00'
+    UiColorE1E8F0='#F2F2F2'
+    UiColorC7D5E2='#FFFFFF'
+    UiColorE7EDF3='#777777'
+    UiColorF7FAFC='#1D1D1D'
+    UiColorE7EDF4='#242424'
+    UiColor526B80='#EEEEEE'
+    UiColor13283C='#000000'
+    UiColor23C6AA='#FFFF00'
+    UiColor86A6C0='#FFFFFF'
+    UiColor9BB5C7='#FFFFFF'
+    UiColor0E887A='#005A85'
+    UiColor203C50='#161616'
+    UiColor6DE0D0='#FFFF00'
+    UiColorD2E2EC='#FFFFFF'
+    UiColor67DDC6='#FFFF00'
+    UiColorC0392B='#981B1B'
+    UiColorE2F3EE='#191919'
+    UiColor40566C='#214C70'
+    UiColorFFF5DF='#282213'
+    UiColor99601E='#735013'
+    UiColorDCE6EF='#666666'
+    UiCardBrush='#101010'
+}
+function Set-OptimizerVisualPreferences {
+    param([Parameter(Mandatory)][object]$Preferences)
+    if (-not (Test-OptimizerPreferenceValues -Preferences $Preferences)) {
+        throw 'Preferências de interface inválidas.'
+    }
+    $systemContrast = [bool][Windows.SystemParameters]::HighContrast
+    $contrast = [bool]$Preferences.HighContrast -or $systemContrast
+    foreach ($key in $script:themeNormal.Keys) {
+        $color = $script:themeNormal[$key]
+        if ($contrast -and $script:highContrastColors.ContainsKey($key)) {
+            $color = $script:highContrastColors[$key]
+        }
+        $window.Resources[$key] = [Windows.Media.SolidColorBrush]::new(
+            [Windows.Media.ColorConverter]::ConvertFromString($color)
+        )
+    }
+    $factor = [double]$Preferences.TextScale / 100.0
+    $window.FontSize = [double](13.0 * $factor)
+    foreach ($key in $script:fontDefaults.Keys) {
+        $window.Resources[$key] = [double]($script:fontDefaults[$key] * $factor)
+    }
+    $window.Resources['UiRowHeight'] = [double](38 * $factor)
+    $script:activePreferences = [pscustomobject]@{
+        SchemaVersion=1
+        HighContrast=[bool]$Preferences.HighContrast
+        TextScale=[int]$Preferences.TextScale
+    }
+    $ui.PreferenceHighContrast.IsChecked = $contrast
+    $ui.PreferenceHighContrast.IsEnabled = -not $systemContrast
+    $target = [string]$Preferences.TextScale
+    foreach ($option in $ui.PreferenceTextScale.Items) {
+        if ([string]$option.Tag -eq $target) {
+            $ui.PreferenceTextScale.SelectedItem = $option
+            break
+        }
+    }
+    $ui.PreferenceStatus.Text = if ($systemContrast) {
+        'O Alto Contraste do Windows está ativo; ele tem prioridade nesta janela.'
+    } else {
+        'Leitura ajustada. Escolha Aplicar e salvar para gravar o ajuste.'
+    }
+    Update-SidebarSelection
+}
+function Save-OptimizerVisualPreferencesFromUI {
+    $selected = $ui.PreferenceTextScale.SelectedItem
+    if ($null -eq $selected) { throw 'Escolha uma ampliação de texto.' }
+    $values = [pscustomobject]@{
+        SchemaVersion=1
+        HighContrast=([bool]$ui.PreferenceHighContrast.IsChecked)
+        TextScale=[int]([string]$selected.Tag)
+    }
+    $saved = Save-OptimizerPreferences -Preferences $values
+    Set-OptimizerVisualPreferences -Preferences $saved
+    $ui.PreferenceStatus.Text = 'Preferências salvas neste perfil do Windows.'
+}
+$ui.PreferenceApplyButton.Add_Click({
+    try { Save-OptimizerVisualPreferencesFromUI }
+    catch {
+        $ui.PreferenceStatus.Text = 'Não foi possível salvar: ' + $_.Exception.Message
+        if (-not $ValidateUI) { [void][Windows.MessageBox]::Show($window,$_.Exception.Message,'Preferências','OK','Warning') }
+    }
+})
+$ui.PreferenceResetButton.Add_Click({
+    try {
+        $saved = Save-OptimizerPreferences -Preferences (Get-OptimizerPreferenceDefaults)
+        Set-OptimizerVisualPreferences -Preferences $saved
+        $ui.PreferenceStatus.Text = 'Preferências padrão restauradas neste perfil.'
+    } catch {
+        $ui.PreferenceStatus.Text = 'Não foi possível restaurar: ' + $_.Exception.Message
+    }
+})
+try {
+    Set-OptimizerVisualPreferences -Preferences (Read-OptimizerPreferences)
+} catch {
+    Set-OptimizerVisualPreferences -Preferences (Get-OptimizerPreferenceDefaults)
+    $ui.PreferenceStatus.Text = 'Preferências indisponíveis; modo padrão aplicado.'
+}
 
 function Set-Busy([bool]$Busy) {
     foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','OptimizationRunButton','HealthShortcut','MaintenanceShortcut','WorkbenchShortcut','InvProcessesButton','InvStartupButton','InvSoftwareButton','InvNetworkButton','InvUpdatesButton','InvStorageButton','NetworkSnapshotButton','NetworkRevealButton','NetworkProbeButton','EventsAnalyzeButton','SfcVerifyButton','DismScanButton','ChkdskScanButton','SfcRepairButton','DismRepairButton')) { $ui[$name].IsEnabled = -not $Busy }
