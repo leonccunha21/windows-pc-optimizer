@@ -325,8 +325,8 @@ foreach ($buttonName in $repairModes.Keys) {
         try {
             $executable = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
             $repairScript = Join-Path $PSScriptRoot 'Modules\Repair.Tools.ps1'
-            $args = '-NoProfile -NoExit -File "{0}" -Mode {1}' -f $repairScript.Replace('"',''),$mode
-            Start-Process -FilePath $executable -ArgumentList $args -Verb RunAs -ErrorAction Stop | Out-Null
+            $launchArgs = '-NoProfile -NoExit -File "{0}" -Mode {1}' -f $repairScript.Replace('"',''),$mode
+            Start-Process -FilePath $executable -ArgumentList $launchArgs -Verb RunAs -ErrorAction Stop | Out-Null
             $ui.Status.Text = 'Console técnico aberto: ' + $mode
         } catch {
             [void][Windows.MessageBox]::Show($window,$_.Exception.Message,'Falha ao iniciar console','OK','Warning')
@@ -515,7 +515,14 @@ if ($ValidateUI) {
             $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
             Start-Sleep -Milliseconds 20
         }
-        if ($null -ne $script:worker -or (Test-Path $sample) -or $script:cleanup.RemovedCount -ne 1 -or $ui.CleanButton.IsEnabled) { throw 'UI cleanup/result integration failed.' }
+        if ($null -ne $script:worker -or (Test-Path $sample) -or $script:cleanup.RemovedCount -ne 1 -or $ui.CleanButton.IsEnabled -or -not $ui.ExportResultsButton.IsEnabled) { throw 'UI cleanup/result integration failed.' }
+        Start-Work 'Inspect' @{Area='Processes'}
+        $deadline = [DateTime]::UtcNow.AddSeconds(20)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or @($ui.WorkbenchGrid.ItemsSource).Count -lt 1) { throw 'WPF integrated technician inventory/runspace failed.' }
     } finally {
         $env:LOCALAPPDATA = $previousLocalAppData
         $timer.Stop()
@@ -523,7 +530,7 @@ if ($ValidateUI) {
         $window.Close()
         if (Test-Path $fixture) { Remove-Item -LiteralPath $fixture -Recurse -Force }
     }
-    foreach ($required in @('CloseButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','HealthAnalyzeButton','BatteryReportButton')) {
+    foreach ($required in @('CloseButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','HealthAnalyzeButton','BatteryReportButton','WorkbenchShortcut','WorkbenchGrid','InvProcessesButton','InvSoftwareButton','NetworkGrid','NetworkSnapshotButton','NetworkProbeButton','EventsGrid','EventsAnalyzeButton','SfcVerifyButton','ExportResultsButton')) {
         if ($null -eq $ui[$required]) { throw "Controle ausente na interface: $required" }
     }
     if (@($ui.OptimizationGrid.Items).Count -lt 5) { throw 'Catálogo de otimizações não foi carregado.' }
