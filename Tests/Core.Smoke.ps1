@@ -84,7 +84,7 @@ try {
     Export-OptimizerReport -Path $plainReport -Customer 'João & Cia' -Notes 'Teste <ok>' -Cleanup $null
     $markup=Get-Content -LiteralPath $plainReport -Raw
     Assert-True ($markup -match '<head>' -and $markup -match '<body>' -and $markup -match '</body>') 'HTML report has head and body'
-    Assert-True ($markup -match 'João &amp; Cia' -and $markup -match '&lt;ok&gt;') 'HTML report escapes personal text with accents'
+    Assert-True ($markup -match '&amp; Cia' -and $markup -match '&lt;ok&gt;' -and [System.Net.WebUtility]::HtmlDecode($markup) -match 'João & Cia') 'HTML report escapes personal text with accents'
     $jsonPath=Join-Path $testRoot 'relatorio.json'
     Export-OptimizerReport -Path $jsonPath -Customer 'João' -Notes 'Registro' -Diagnostics @([pscustomobject]@{Area='Disco';Item='Teste';Value='OK'}) -Cleanup $result -Format JSON
     $json=Get-Content -LiteralPath $jsonPath -Raw | ConvertFrom-Json
