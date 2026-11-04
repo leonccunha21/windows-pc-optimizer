@@ -12,7 +12,7 @@ $names = @($layout.SelectNodes('//*[@x:Name]', $ns) | ForEach-Object {
 })
 $dupes = @($names | Group-Object | Where-Object Count -gt 1)
 Assert-OptimizerUx ($dupes.Count -eq 0) 'Duplicate x:Name values block WPF binding.'
-foreach ($required in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport','Pages','MaintenanceTabs','WorkbenchTabs','WorkbenchGrid','NetworkGrid','EventsGrid')) {
+foreach ($required in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport','NavSettings','Pages','MaintenanceTabs','WorkbenchTabs','WorkbenchGrid','NetworkGrid','EventsGrid')) {
     Assert-OptimizerUx ($names -contains $required) "Missing UI navigation control: $required"
 }
 $workbench = $layout.SelectSingleNode("//*[@x:Name='WorkbenchTabs']", $ns)
@@ -25,7 +25,7 @@ $unnamed = @($buttons | Where-Object {
     $_.GetAttribute('Content') -and -not $_.GetAttribute('AutomationProperties.Name')
 })
 Assert-OptimizerUx ($unnamed.Count -eq 0) 'Some buttons lack accessible AutomationProperties.Name.'
-$navButtonNames = @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport')
+$navButtonNames = @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport','NavSettings')
 foreach ($name in $navButtonNames) {
     $btn = $layout.SelectSingleNode("//*[@x:Name='$name']", $ns)
     Assert-OptimizerUx ($btn.GetAttribute('Style') -match 'SidebarNavButton') "Missing keyboard-focusable navigation style: $name"

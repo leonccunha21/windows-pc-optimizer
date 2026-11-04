@@ -43,6 +43,13 @@ jobs:
           Import-Module PSScriptAnalyzer -ErrorAction Stop
           $issues = @(@('Modules/Optimizer.Core.psm1','Otimizador-GUI.ps1') | ForEach-Object { Invoke-ScriptAnalyzer -Path $_ -Settings ./PSScriptAnalyzerSettings.psd1 -Severity Warning,Error })
           if ($issues.Count) { $issues | Format-Table -AutoSize | Out-String | Write-Host; throw 'PSScriptAnalyzer findings require triage.' }
+      - name: Preferences safety smoke
+        shell: pwsh
+        run: ./Tests/Preferences.Smoke.ps1
+      - name: Preferences Windows PowerShell 5.1 smoke
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./Tests/Preferences.Smoke.ps1
       - name: UI structure and accessibility smoke
         shell: pwsh
         run: ./Tests/UI.UX.Smoke.ps1
