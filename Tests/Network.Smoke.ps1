@@ -11,6 +11,13 @@ foreach ($hostValue in @('',' ','http://example.com','example.com;whoami','examp
     Assert-Network (-not (Test-OptimizerEndpointInput -HostName $hostValue)) "Invalid host accepted: $hostValue"
 }
 Assert-Network (-not (Test-OptimizerEndpointInput -HostName (('a'*64) + '.com'))) 'Overlong DNS label accepted.'
+# All network probes require a user-provided target; invalid input must fail before any traffic.
+$rejected = $false
+try { Invoke-OptimizerConnectivityCheck -ErrorAction Stop | Out-Null } catch { $rejected = $true }
+Assert-Network $rejected 'Outbound testing accepted a missing destination.'
+$rejected = $false
+try { Invoke-OptimizerConnectivityCheck -Target 'https://example.com' -ErrorAction Stop | Out-Null } catch { $rejected = $true }
+Assert-Network $rejected 'Outbound testing accepted an untrusted URL.'
 $off = Get-OptimizerAdapterAdvice -AdapterStatus Disconnected
 Assert-Network ($off.Level -eq 'Info' -and $off.Finding -match 'não ativa') 'Disconnected advice incorrect.'
 $apipa = Get-OptimizerAdapterAdvice -AdapterStatus Up -IPv4Address '169.254.10.2'

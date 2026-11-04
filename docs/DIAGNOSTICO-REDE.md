@@ -7,11 +7,11 @@ Ferramenta separada para uso de técnicos, desenhada para integrar posteriorment
 - Inventário local de adaptadores, estados, velocidades de link, presença de IPv4, gateway, servidores DNS, perfis e rotas padrão. Dados coletados de comandos nativos, sem alterar configurações.
 - Avaliação orientativa para cabo/Wi-Fi desconectado, IPv4 ausente, APIPA (possível problema DHCP), gateway ausente e DNS ausente. Nenhum resultado isolado certifica acesso à Internet ou falha física.
 - Testes remotos **opt-in**: resolução DNS e conexão TCP apenas ao hostname/IP escolhido pelo técnico.
-- Endereços locais são ocultos por padrão; não há coleta de MAC address, histórico, telemetria ou armazenamento automático.
+- Endereços locais e nomes de perfis Wi-Fi/rede são ocultos por padrão; não há coleta de MAC address, histórico, telemetria ou armazenamento automático.
 
 ## Executar agora
 
-No Windows PowerShell 5.1, dentro do repositório:
+No Windows PowerShell 5.1, dentro do repositório. Também é possível dar dois cliques em **Tools/Executar-Diagnostico-Rede.bat**:
 
     powershell.exe -NoProfile -File .\Tools\Diagnostico-Rede.ps1
     powershell.exe -NoProfile -File .\Tools\Diagnostico-Rede.ps1 -IncludeAddresses

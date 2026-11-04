@@ -100,7 +100,8 @@ function Get-OptimizerNetworkSnapshot {
         try {
             foreach ($connectionProfile in @(Get-NetConnectionProfile -ErrorAction Stop)) {
                 if ($State.Cancel) { break }
-                & $add 'Perfis' ([string]$connectionProfile.Name) ([string]$connectionProfile.NetworkCategory) 'Info'
+                $profileName = if ($IncludeAddresses) { [string]$connectionProfile.Name } else { 'Nome do perfil oculto' }
+                & $add 'Perfis' $profileName ([string]$connectionProfile.NetworkCategory) 'Info'
             }
         } catch { & $add 'Perfis' 'Estado' 'Consulta indisponível.' 'Info' }
     }
