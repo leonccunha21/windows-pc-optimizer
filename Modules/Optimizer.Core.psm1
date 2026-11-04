@@ -167,7 +167,7 @@ function Export-OptimizerReport {
 <!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Relatório de manutenção</title>
 <style>body{font:15px 'Segoe UI',sans-serif;color:#192c42;max-width:950px;margin:48px auto;padding:0 24px}h1{color:#116b60}header{border-bottom:3px solid #20b89e;padding-bottom:20px}table{border-collapse:collapse;width:100%}td,th{padding:12px;text-align:left;border-bottom:1px solid #dce5ed}th{background:#edf5f6}p{line-height:1.7;white-space:pre-wrap}.note{color:#526578} @media print{body{margin:0}}</style>
 <header><h1>PC Optimizer • Relatório de manutenção</h1><p>Atendimento: $(& $encode $Customer)<br>Emitido em: $(Get-Date -Format 'dd/MM/yyyy HH:mm')</p></header>
-<h2>Resultado da sessão</h2><p>$(& $encode $summary)</p>
+<h2>Resultado da última limpeza</h2><p>$(& $encode $summary)</p>
 <h2>Equipamento</h2><table><tr><th>Área</th><th>Item</th><th>Resultado</th></tr>$($rows -join '')</table>
 <h2>Observações do técnico</h2><p>$(& $encode $Notes)</p>
 <p class="note">Consulta pontual. O status de disco informado pelo Windows não substitui um teste SMART completo. Este relatório não certifica ausência de defeitos ou malware. Caminhos pessoais e números de série não são incluídos.</p></html>

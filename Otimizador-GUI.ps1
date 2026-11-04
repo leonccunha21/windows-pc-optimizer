@@ -1,5 +1,5 @@
 ﻿#Requires -Version 5.1
-param([switch]$ValidateUI)
+param([switch]$ValidateUI, [string]$PreviewPath)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1') -Force
@@ -73,7 +73,7 @@ $timer.Add_Tick({
     } catch {
         $ui.Status.Text = 'Falha: ' + $_.Exception.Message
         if ($script:operation -eq 'Clean') { $script:scan = $null }
-        [void][Windows.MessageBox]::Show($window, $_.Exception.Message, 'Operação não concluída', 'OK', 'Warning')
+        if (-not $ValidateUI) { [void][Windows.MessageBox]::Show($window, $_.Exception.Message, 'Operação não concluída', 'OK', 'Warning') }
     } finally { $script:worker.Dispose(); $script:worker = $null; Set-Busy $false }
 })
 $ui.ScanButton.Add_Click({ Start-Work 'Scan' $null })
@@ -126,5 +126,50 @@ $window.Add_Closing({
     param($sender, $eventArgs)
     if ($null -ne $script:worker) { $eventArgs.Cancel = $true; $script:state.Cancel = $true; $ui.Status.Text = 'Aguarde a operação terminar antes de fechar. A interrupção foi solicitada.' }
 })
-if ($ValidateUI) { $window.Close(); Write-Output 'WPF layout and event bindings loaded successfully'; return }
+if ($ValidateUI) {
+    if ($PreviewPath) {
+        $surface = $window.Content
+        $surface.Measure((New-Object Windows.Size(1160, 760)))
+        $surface.Arrange((New-Object Windows.Rect(0, 0, 1160, 760)))
+        $surface.UpdateLayout()
+        $bitmap = New-Object Windows.Media.Imaging.RenderTargetBitmap(1160, 760, 96, 96, [Windows.Media.PixelFormats]::Pbgra32)
+        $bitmap.Render($surface)
+        $encoder = New-Object Windows.Media.Imaging.PngBitmapEncoder
+        $encoder.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($bitmap))
+        $stream = [IO.File]::Create($PreviewPath)
+        try { $encoder.Save($stream) } finally { $stream.Dispose() }
+    }
+    # Exercise real runspace + Dispatcher flow using only a disposable profile.
+    $fixture = Join-Path ([IO.Path]::GetTempPath()) ('optimizer-ui-' + [guid]::NewGuid().ToString('N'))
+    $previousLocalAppData = $env:LOCALAPPDATA
+    try {
+        [void](New-Item -ItemType Directory -Path (Join-Path $fixture 'Temp') -Force)
+        $sample = Join-Path $fixture 'Temp/sample.tmp'
+        [IO.File]::WriteAllText($sample, 'UI test fixture')
+        (Get-Item $sample).LastWriteTimeUtc = [DateTime]::UtcNow.AddDays(-10)
+        $env:LOCALAPPDATA = $fixture
+        Start-Work 'Scan' $null
+        $deadline = [DateTime]::UtcNow.AddSeconds(20)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or $null -eq $script:scan -or @($script:scan.Files).Count -ne 1 -or -not $ui.CleanButton.IsEnabled) { throw 'UI scan/runspace integration failed.' }
+        Start-Work 'Clean' @{Scan=$script:scan; Ids=@('temp')}
+        $deadline = [DateTime]::UtcNow.AddSeconds(20)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or (Test-Path $sample) -or $script:cleanup.RemovedCount -ne 1 -or $ui.CleanButton.IsEnabled) { throw 'UI cleanup/result integration failed.' }
+    } finally {
+        $env:LOCALAPPDATA = $previousLocalAppData
+        $timer.Stop()
+        if ($null -ne $script:worker) { $script:worker.Stop(); $script:worker.Dispose(); $script:worker=$null }
+        $window.Close()
+        if (Test-Path $fixture) { Remove-Item -LiteralPath $fixture -Recurse -Force }
+    }
+    Write-Output 'WPF layout, bindings, asynchronous scan and cleanup passed.'
+    return
+}
 try { [void]$window.ShowDialog() } finally { $timer.Stop(); if ($null -ne $script:worker) { $script:worker.Dispose() } }

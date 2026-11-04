@@ -23,7 +23,10 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: ./Tests/Core.Smoke.ps1
-      - name: Load WPF layout and event bindings on Windows PowerShell 5.1
+      - name: Validate WPF layout and asynchronous workflow on Windows PowerShell 5.1
         if: runner.os == 'Windows'
         shell: powershell
-        run: powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI
+        run: |
+          powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI -PreviewPath "$env:TEMP/optimizer-preview.png"
+          if ($LASTEXITCODE -ne 0) { throw "WPF validation failed" }
+          Write-Output ('PREVIEW_BASE64=' + [Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:TEMP/optimizer-preview.png")))

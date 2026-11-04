@@ -72,7 +72,7 @@ try {
     Assert-True (-not (Test-OptimizerPath (Join-Path $link 'old.tmp') $cache)) 'Links cannot escape the allowed root'
     $scan=Get-OptimizerScan -Targets $targets
     Assert-True (@($scan.Files | Where-Object { $_.Path -like '*linked*' }).Count -eq 0) 'Scan does not traverse linked directories'
-    Remove-Item -LiteralPath $link -Force
+    [IO.Directory]::Delete($link)
     $report=Join-Path $testRoot 'report.html'
     Export-OptimizerReport -Path $report -Customer '<script>alert(1)</script>' -Notes '<img onerror=x>' -Diagnostics @([pscustomobject]@{Area='Test';Item='Value';Value='<b>data</b>'}) -Cleanup $result
     $html=Get-Content $report -Raw
@@ -84,6 +84,6 @@ try {
     Assert-True ($emptyScan.Bytes -eq 0 -and @($emptyScan.Files).Count -eq 0) 'Empty analysis returns zero without failing'
     Write-Output "All $script:passed safety checks passed."
 } finally {
-    if(Test-Path (Join-Path $testRoot 'cache/linked')) { Remove-Item -LiteralPath (Join-Path $testRoot 'cache/linked') -Force }
+    if(Test-Path (Join-Path $testRoot 'cache/linked')) { [IO.Directory]::Delete((Join-Path $testRoot 'cache/linked')) }
     Remove-Item -LiteralPath $testRoot -Recurse -Force
 }
