@@ -1,0 +1,6 @@
+# Logs
+*.log
+OtimizadorPC_log.txt
+
+# Temp
+*.tmp
