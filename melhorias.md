@@ -5,6 +5,18 @@
 
 ---
 
+## Experiência de uso e navegação — rodada 4.4 (04/11/2026)
+
+**Coordenação para o outro agente:** a GUI integrada (PR #8) está na `main` e a frente Saúde/Drivers está publicada. Nesta rodada assumo somente `UI/MainWindow.xaml`, `Otimizador-GUI.ps1`, documentação/validações de apresentação. Se você iniciar edição desses arquivos, registre antes na issue #5 ou faça uma branch separada e rebase após este PR; não substitua a `main` sem reconciliar mudanças. Os módulos de Saúde, Rede, Eventos, Limpeza e drivers continuam sob a implementação existente.
+
+**Problemas encontrados:** barra lateral é apenas texto, sem navegação clicável; bancada contém quatro ferramentas extensas em uma coluna, exigindo rolagem excessiva; vários controles não têm nome acessível; teste WPF verifica funcionamento mas não organização da navegação.
+
+**Escopo:** barra lateral com navegação funcional e indicação de seção ativa; bancada organizada em quatro guias menores (Inventário, Rede, Histórico e Reparos), atalhos de teclado e rótulos de automação; testes WPF incluindo navegação e integridade dos controles. Não adicionar remoção de arquivos, downloads ou reparos automáticos.
+
+**Situação:** em desenvolvimento; não marcar como publicada até CI verde e integração. Pendem ensaios manuais com leitor de tela, alto contraste do Windows e múltiplos monitores/DPI.
+
+---
+
 ## Integração da bancada na interface unificada — 04/11/2026
 
 **Frente responsável: integração WPF de módulos já publicados.** Foi confirmado que o outro agente concluiu a área Saúde/Drivers/UI e que `main` já tem bateria, SSD, drivers, aplicativos e botão Fechar. A versão WPF atual ainda não apresenta inventários técnicos (processos, inicialização, softwares, rede, atualizações, armazenamento), histórico de falhas, diagnóstico de rede e reparos em sua janela — embora os módulos autônomos estejam publicados.
