@@ -13,7 +13,9 @@
 
 **Escopo:** barra lateral com navegação funcional e indicação de seção ativa; bancada organizada em quatro guias menores (Inventário, Rede, Histórico e Reparos), atalhos de teclado e rótulos de automação; testes WPF incluindo navegação e integridade dos controles. Não adicionar remoção de arquivos, downloads ou reparos automáticos.
 
-**Situação:** em desenvolvimento; não marcar como publicada até CI verde e integração. Pendem ensaios manuais com leitor de tela, alto contraste do Windows e múltiplos monitores/DPI.
+**Situação: PUBLICADA NA MAIN** — [PR #9](https://github.com/leonccunha21/windows-pc-optimizer/pull/9), commit `29e67ef`. Barra lateral com sete atalhos reais, indicação da seção ativa e teclado `Ctrl+1`–`Ctrl+6`/`Ctrl+B`; Bancada dividida em quatro guias com rolagem independente; nomes acessíveis adicionados aos botões e textos secundários com contraste corrigido. Smoke test `Tests/UI.UX.Smoke.ps1` verifica XAML, nomes de automação, navegação e contrastes, além da validação WPF real no Windows. **CI do PR aprovado em Windows e Ubuntu (PS5.1/PS7).**
+
+**Ainda pendente:** teste manual com leitor de tela (Narrador/NVDA), Windows Alto Contraste, diferentes monitores/DPIs e revisão de ergonomia por técnicos; não confundir a verificação estática de contraste com certificação integral WCAG. Assinatura de código, atualização automática e Release por tag permanecem não concluídos.
 
 ---
 
