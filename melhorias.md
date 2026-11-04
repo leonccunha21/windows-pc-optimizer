@@ -54,6 +54,36 @@
 
 ---
 
+## Evolução 4.2 — integração real da bancada
+
+**Situação auditada:** a UI 4.0.1 disponibilizava limpeza e diagnóstico básico; as 48 opções do legado não estavam incorporadas à interface. Os atalhos não equivalem a ferramentas de reparo integradas.
+
+### Implementado na branch de integração
+- [x] Área "Bancada" própria e navegação lateral funcional (seis seções).
+- [x] Inventário de processos, inicialização, aplicativos instalados, rede, atualizações e discos, em consultas reais e somente leitura.
+- [x] Verificações SFC /verifyonly, DISM /ScanHealth e CHKDSK /scan: execução em janela separada, com consentimento explícito/UAC.
+- [x] Reparos SFC /scannow e DISM /RestoreHealth: execução em janela separada, com consentimento explícito/UAC.
+- [x] Exportação CSV da limpeza com aviso: contém caminhos de arquivos; HTML/JSON continuam sem esses caminhos.
+- [x] Menor ambiguidade entre diagnóstico integrado, reparo confirmado e simples atalho externo.
+- [x] Testes do inventário e lista restrita de comandos na pipeline.
+
+### Não implementado (não marcar como entregue)
+- [ ] Configuração externa validada e memória de preferências.
+- [ ] Alto contraste, navegação por leitor de tela e DPI validados em vários PCs.
+- [ ] Assinatura Authenticode e publicação real de GitHub Release.
+- [ ] Testes em bancada de todos os comandos e drivers, com logs e resultados de retorno.
+- [ ] Rotinas avançadas legadas: 48 entradas **não são integradas** à UI; algumas foram explicitamente bloqueadas por segurança.
+- [ ] Tradução PT-BR/EN-US e GIF da interface.
+- [ ] Logs estruturados/rotação do legado (mantido isolado e desaconselhado para uso automático).
+
+---
+
+## Nota de coordenação entre agentes
+
+A bancada 4.2 foi desenvolvida em paralelo à rodada de Saúde/Drivers. O agente responsável por Saúde/Drivers deve revisar a interface da `main` atualizada e preservar a nova aba de bancada; saúde do hardware e instalação de drivers **não** estão concluídas por esta integração.
+
+---
+
 ## Execução do backlog 4.0.1
 
 | Item | Situação após implementação |
