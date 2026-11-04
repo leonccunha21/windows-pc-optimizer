@@ -143,15 +143,9 @@ $ui.PreferenceResetButton.Add_Click({
         $ui.PreferenceStatus.Text = 'Não foi possível restaurar: ' + $_.Exception.Message
     }
 })
-try {
-    Set-OptimizerVisualPreferences -Preferences (Read-OptimizerPreferences)
-} catch {
-    Set-OptimizerVisualPreferences -Preferences (Get-OptimizerPreferenceDefaults)
-    $ui.PreferenceStatus.Text = 'Preferências indisponíveis; modo padrão aplicado.'
-}
 
 function Set-Busy([bool]$Busy) {
-    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','OptimizationRunButton','HealthShortcut','MaintenanceShortcut','WorkbenchShortcut','InvProcessesButton','InvStartupButton','InvSoftwareButton','InvNetworkButton','InvUpdatesButton','InvStorageButton','NetworkSnapshotButton','NetworkRevealButton','NetworkProbeButton','EventsAnalyzeButton','SfcVerifyButton','DismScanButton','ChkdskScanButton','SfcRepairButton','DismRepairButton')) { $ui[$name].IsEnabled = -not $Busy }
+    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','OptimizationRunButton','PreferenceApplyButton','PreferenceResetButton','HealthShortcut','MaintenanceShortcut','WorkbenchShortcut','InvProcessesButton','InvStartupButton','InvSoftwareButton','InvNetworkButton','InvUpdatesButton','InvStorageButton','NetworkSnapshotButton','NetworkRevealButton','NetworkProbeButton','EventsAnalyzeButton','SfcVerifyButton','DismScanButton','ChkdskScanButton','SfcRepairButton','DismRepairButton')) { $ui[$name].IsEnabled = -not $Busy }
     $ui.CleanButton.IsEnabled = -not $Busy -and $null -ne $script:scan -and -not $script:scan.Cancelled -and @($script:scan.Files).Count -gt 0
     $ui.DetailsButton.IsEnabled = -not $Busy -and ($null -ne $script:scan -or $null -ne $script:cleanup)
     $ui.ExportResultsButton.IsEnabled = -not $Busy -and $null -ne $script:cleanup
@@ -385,9 +379,10 @@ function Update-SidebarSelection {
             $current = if ([int]$ui.MaintenanceTabs.SelectedIndex -eq 4) { 'NavBench' } else { 'NavMaintenance' }
         }
         5 { $current = 'NavReport' }
+        6 { $current = 'NavSettings' }
     }
-    foreach ($name in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport')) {
-        $ui[$name].Background = if ($name -eq $current) { [Windows.Media.Brushes]::Teal } else { [Windows.Media.Brushes]::Transparent }
+    foreach ($name in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport','NavSettings')) {
+        $ui[$name].Background = if ($name -eq $current) { $window.Resources['UiColor0E887A'] } else { [Windows.Media.Brushes]::Transparent }
     }
 }
 function Open-OptimizerSection([int]$PageIndex, [int]$MaintenanceIndex = -1) {
@@ -398,7 +393,7 @@ function Open-OptimizerSection([int]$PageIndex, [int]$MaintenanceIndex = -1) {
 foreach ($navigation in @(
     @('NavOverview',0,-1),@('NavDiagnose',2,-1),@('NavHealth',3,-1),
     @('NavCleanup',1,-1),@('NavMaintenance',4,0),@('NavBench',4,4),
-    @('NavReport',5,-1)
+    @('NavReport',5,-1),@('NavSettings',6,-1)
 )) {
     $ui[$navigation[0]].Tag = @([int]$navigation[1],[int]$navigation[2])
     $ui[$navigation[0]].Add_Click({
@@ -410,6 +405,12 @@ foreach ($navigation in @(
 $ui.Pages.Add_SelectionChanged({ Update-SidebarSelection })
 $ui.MaintenanceTabs.Add_SelectionChanged({ Update-SidebarSelection })
 Update-SidebarSelection
+try {
+    Set-OptimizerVisualPreferences -Preferences (Read-OptimizerPreferences)
+} catch {
+    Set-OptimizerVisualPreferences -Preferences (Get-OptimizerPreferenceDefaults)
+    $ui.PreferenceStatus.Text = 'Preferências indisponíveis; modo padrão aplicado.'
+}
 $ui.ScanButton.Add_Click({ Start-Work 'Scan' $null })
 $ui.GoClean.Add_Click({ $ui.Pages.SelectedIndex = 1; Start-Work 'Scan' $null })
 $ui.DiagnoseHome.Add_Click({ $ui.Pages.SelectedIndex = 2; Start-Work 'Diagnose' $null })
@@ -611,9 +612,9 @@ $window.Add_PreviewKeyDown({
         $keyArgs.Handled = $true
         Open-OptimizerSection -PageIndex 4 -MaintenanceIndex 4
         $ui.WorkbenchTabs.SelectedIndex = 0
-    } elseif ([Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control -and $keyArgs.Key -in @([Windows.Input.Key]::D1,[Windows.Input.Key]::D2,[Windows.Input.Key]::D3,[Windows.Input.Key]::D4,[Windows.Input.Key]::D5,[Windows.Input.Key]::D6)) {
+    } elseif ([Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control -and $keyArgs.Key -in @([Windows.Input.Key]::D1,[Windows.Input.Key]::D2,[Windows.Input.Key]::D3,[Windows.Input.Key]::D4,[Windows.Input.Key]::D5,[Windows.Input.Key]::D6,[Windows.Input.Key]::D7)) {
         $keyArgs.Handled = $true
-        $keyMap = @{D1=0;D2=2;D3=3;D4=1;D5=4;D6=5}
+        $keyMap = @{D1=0;D2=2;D3=3;D4=1;D5=4;D6=5;D7=6}
         Open-OptimizerSection -PageIndex ([int]$keyMap[$keyArgs.Key.ToString()])
     } elseif ($keyArgs.Key -eq [Windows.Input.Key]::E -and [Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control -and $ui.ExportButton.IsEnabled) {
         $keyArgs.Handled = $true
@@ -663,7 +664,7 @@ if ($ValidateUI) {
         $stream = [IO.File]::Create($PreviewPath)
         try { $encoder.Save($stream) } finally { $stream.Dispose() }
     }
-    foreach ($required in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport','WorkbenchTabs')) {
+    foreach ($required in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport','NavSettings','WorkbenchTabs','PreferenceHighContrast','PreferenceTextScale','PreferenceApplyButton','PreferenceResetButton')) {
         if ($null -eq $ui[$required]) { throw "Navegação não encontrada: $required" }
     }
     $ui.NavBench.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
@@ -714,6 +715,14 @@ if ($ValidateUI) {
     foreach ($required in @('CloseButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','HealthAnalyzeButton','BatteryReportButton','WorkbenchShortcut','WorkbenchGrid','InvProcessesButton','InvSoftwareButton','NetworkGrid','NetworkSnapshotButton','NetworkProbeButton','EventsGrid','EventsAnalyzeButton','SfcVerifyButton','ExportResultsButton')) {
         if ($null -eq $ui[$required]) { throw "Controle ausente na interface: $required" }
     }
+    $savedDisplay = $script:activePreferences
+    Set-OptimizerVisualPreferences -Preferences ([pscustomobject]@{SchemaVersion=1;HighContrast=$true;TextScale=125})
+    if ($window.Resources['UiFont18'] -lt 22.4) { throw '125% font scale was not applied.' }
+    if ($window.Resources['UiColorF3F6FA'].Color.ToString() -ne '#FF050505') { throw 'High contrast palette not applied.' }
+    Set-OptimizerVisualPreferences -Preferences $savedDisplay
+    $ui.NavSettings.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+    if ($ui.Pages.SelectedIndex -ne 6) { throw 'Preferences sidebar navigation failed.' }
+    $ui.NavOverview.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
     if (@($ui.OptimizationGrid.Items).Count -lt 5) { throw 'Catálogo de otimizações não foi carregado.' }
     Write-Output 'WPF layout, accessible sidebar navigation, workbench tabs and async scan/cleanup passed.'
     return
