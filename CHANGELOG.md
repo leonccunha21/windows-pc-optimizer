@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Nova bancada técnica com inventários Windows realmente consultados (processos, inicialização, programas, rede, atualizações e discos).
+- Comandos nativos SFC, DISM e CHKDSK via console com confirmação e UAC, sem execução automática.
+- Exportação CSV detalhada de resultados após aviso de privacidade e navegação lateral funcional.
+- Testes do módulo técnico e da allowlist de reparos.
+
+### Changed
+- Nova organização visual "Oficina Pro", distinguindo consultas, reparos elevados e atalhos.
+
 ## [4.0.1] - 2026-11-04
 
 ### Added

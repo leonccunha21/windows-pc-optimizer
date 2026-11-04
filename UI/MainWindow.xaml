@@ -11,12 +11,12 @@
    <StackPanel><Border Background="#2ADCC2" CornerRadius="12" Width="52" Height="52" HorizontalAlignment="Left"><TextBlock Text="PC" Foreground="#102638" FontSize="23" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="PC Optimizer" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,17,0,5"/><TextBlock Text="OFICINA PRO / 4.2" FontSize="11" Foreground="#6AE3D0" FontWeight="SemiBold"/></StackPanel>
    <ScrollViewer Grid.Row="1" Margin="0,32,0,0" VerticalScrollBarVisibility="Auto"><StackPanel>
     <TextBlock Text="NAVEGAÇÃO" FontSize="10" Foreground="#87ACC1" Margin="0,0,0,15"/>
-    <Button x:Name="NavHome" Content="Visão geral" Margin="0,0,0,8" AutomationProperties.Name="Visão geral"/>
-    <Button x:Name="NavClean" Content="Limpeza segura" Margin="0,0,0,8" AutomationProperties.Name="Limpeza segura"/>
-    <Button x:Name="NavDiagnostic" Content="Diagnóstico" Margin="0,0,0,8" AutomationProperties.Name="Diagnóstico"/>
-    <Button x:Name="NavWorkbench" Content="Bancada técnica" Margin="0,0,0,8" AutomationProperties.Name="Bancada técnica"/>
-    <Button x:Name="NavTools" Content="Ferramentas Windows" Margin="0,0,0,8" AutomationProperties.Name="Ferramentas do Windows"/>
-    <Button x:Name="NavReport" Content="Relatório" Margin="0,0,0,8" AutomationProperties.Name="Relatório do atendimento"/>
+    <Button x:Name="NavHome" Content="Visão geral" Background="#203B50" Margin="0,0,0,8" AutomationProperties.Name="Visão geral"/>
+    <Button x:Name="NavClean" Content="Limpeza segura" Background="#203B50" Margin="0,0,0,8" AutomationProperties.Name="Limpeza segura"/>
+    <Button x:Name="NavDiagnostic" Content="Diagnóstico" Background="#203B50" Margin="0,0,0,8" AutomationProperties.Name="Diagnóstico"/>
+    <Button x:Name="NavWorkbench" Content="Bancada técnica" Background="#203B50" Margin="0,0,0,8" AutomationProperties.Name="Bancada técnica"/>
+    <Button x:Name="NavTools" Content="Ferramentas Windows" Background="#203B50" Margin="0,0,0,8" AutomationProperties.Name="Ferramentas do Windows"/>
+    <Button x:Name="NavReport" Content="Relatório" Background="#203B50" Margin="0,0,0,8" AutomationProperties.Name="Relatório do atendimento"/>
     <Border Background="#1B3B4F" CornerRadius="11" Padding="13" Margin="0,28,0,0"><StackPanel>
      <TextBlock Text="CONTROLE DO TÉCNICO" Foreground="#6AE3D0" FontWeight="Bold" FontSize="11"/>
      <TextBlock Text="Diagnósticos sem alterações. Reparos somente por comando e confirmação." Foreground="#D5E3ED" TextWrapping="Wrap" Margin="0,7,0,0"/>

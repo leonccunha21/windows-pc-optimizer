@@ -13,17 +13,21 @@ Interface desktop em português para o dia a dia de manutenção de computadores
 
 Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil analisado. Em computadores gerenciados, respeite a política de execução da organização. Não execute o BAT dentro do ZIP. Windows 10/11 com interface desktop; a compatibilidade do aplicativo não altera o ciclo de suporte do Windows.
 
-## O que a edição 4.0 oferece
+## O que a edição 4.2 oferece
 
 | Área | Recursos |
 |---|---|
 | Visão geral | Fluxo de atendimento, espaço analisado e resultado real da última limpeza |
-| Limpeza | Prévia por categoria e arquivo, seleção/desmarcação em massa, resultado detalhado e progresso por arquivo; caches Chrome, Edge e Brave; retenção mínima de 7 dias |
+| Limpeza | Prévia por categoria/arquivo, seleção em massa, resultado detalhado com exportação CSV opcional e progresso por arquivo; caches Chrome, Edge e Brave; retenção mínima de 7 dias |
 | Diagnóstico | Sistema, fabricante/modelo, CPU, RAM, discos, espaço livre, bateria e estado do Defender quando disponível |
+| Bancada técnica | Consultas reais de processos, programas instalados, inicialização, rede, atualizações e discos, sem modificar o sistema |
+| Verificações e reparos | SFC /verifyonly, DISM /ScanHealth, CHKDSK /scan, SFC /scannow e DISM /RestoreHealth: confirmados pelo técnico, em console separado com UAC |
 | Ferramentas | Atalhos para inicialização, aplicativos, armazenamento, segurança, otimização de unidades, restauração, eventos e tarefas |
 | Relatório | Cliente/OS, observações, diagnóstico e resultado; HTML imprimível em PDF ou JSON sem caminhos de arquivos excluídos |
 
 Análise e limpeza rodam em um runspace separado. A janela permanece disponível e permite solicitar interrupção entre arquivos. A consulta de hardware termina antes de fechar a janela. Relatórios são salvos apenas por escolha do usuário; não há histórico persistente automático com dados de clientes.
+
+As consultas da bancada são executadas em segundo plano; informações de inicialização são somente para leitura. Reparos e verificações abrem um novo console Windows, após confirmação e solicitação UAC. O relatório HTML/JSON não inclui caminhos de arquivos removidos; o CSV detalhado **inclui**, sendo exportado apenas após aviso de privacidade.
 
 ## Critérios de limpeza
 
@@ -54,6 +58,7 @@ Não há limpeza de Registro, alteração automática de serviços, pagefile, re
 ./Tests/Validate-Syntax.ps1
 ./Tests/Optimizer.Tests.ps1
 ./Tests/Core.Smoke.ps1
+./Tests/Technician.Smoke.ps1
 powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI
 ```
 

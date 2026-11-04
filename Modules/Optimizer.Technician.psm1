@@ -52,7 +52,8 @@ function Get-OptimizerTechnicalInventory {
                     foreach ($prop in $entry.PSObject.Properties) {
                         if ($prop.Name -match '^PS(Path|ParentPath|ChildName|Drive|Provider)$') { continue }
                         # Registry command strings can contain user data; expose only the program name.
-                        & $addRow $prop.Name (if ($path -like 'HKCU*') { 'Registro do usuário' } else { 'Registro do computador' }) 'Revisar no Windows'
+                        $location = if ($path -like 'HKCU*') { 'Registro do usuário' } else { 'Registro do computador' }
+                        & $addRow $prop.Name $location 'Revisar no Windows'
                     }
                 }
                 foreach ($folder in @(
@@ -77,11 +78,15 @@ function Get-OptimizerTechnicalInventory {
                     if ($State.Cancel) { break }
                     foreach ($entry in @(Get-ItemProperty -Path $key -ErrorAction SilentlyContinue)) {
                         if ($State.Cancel) { break }
-                        if ([string]::IsNullOrWhiteSpace($entry.DisplayName)) { continue }
-                        $version = [string]$entry.DisplayVersion
-                        $identity = $entry.DisplayName + '|' + $version
+                        $nameProperty = $entry.PSObject.Properties['DisplayName']
+                        if ($null -eq $nameProperty -or [string]::IsNullOrWhiteSpace([string]$nameProperty.Value)) { continue }
+                        $versionProperty = $entry.PSObject.Properties['DisplayVersion']
+                        $publisherProperty = $entry.PSObject.Properties['Publisher']
+                        $version = if ($null -ne $versionProperty) { [string]$versionProperty.Value } else { '' }
+                        $publisher = if ($null -ne $publisherProperty) { [string]$publisherProperty.Value } else { '' }
+                        $identity = [string]$nameProperty.Value + '|' + $version
                         if (-not $seen.Add($identity)) { continue }
-                        & $addRow ([string]$entry.DisplayName) ('Versão: ' + $version) ([string]$entry.Publisher)
+                        & $addRow ([string]$nameProperty.Value) ('Versão: ' + $version) $publisher
                         if ($rows.Count -ge 250) { break }
                     }
                 }
