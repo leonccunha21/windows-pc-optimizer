@@ -5,6 +5,18 @@
 
 ---
 
+## Preferências locais e leitura ampliada — rodada 4.5 (04/11/2026)
+
+**Coordenação com agentes:** o commit `b716710` integrou o trabalho de rede/eventos na interface 4.4 e o CI da `main` está verde. Reservo a próxima evolução de **preferências locais e acessibilidade**. Alterarei `UI/MainWindow.xaml`, `Otimizador-GUI.ps1`, crierei `Modules/Optimizer.Preferences.psm1` e `Tests/Preferences.Smoke.ps1`, e atualizarei apenas CI/README/CHANGELOG e esta seção do `melhorias.md`. Não modificar `Modules/Optimizer.Core.psm1`, `Optimizer.NetworkDiagnostics.psm1`, `Optimizer.Events.psm1`, `Repair.Tools.ps1` ou lógica de remoção de aplicativos.
+
+**Escopo planejado:** configurações não sensíveis em JSON local (somente opções de acessibilidade: texto ampliado e modo de alto contraste), validação rigorosa, gravação segura sem dados de clientes, escolha na interface e reaplicação ao iniciar. Não registrar nomes de usuário, caminhos de arquivos limpos, inventário, IPs, cliente/OS ou informações técnicas no arquivo. Preferências inválidas voltam ao padrão seguro.
+
+**Testes:** cenários de padrões, arquivo ausente/inválido, validação de valores, persistência/releitura, privacidade e WPF com controles reais; sem tocar em configurações do Windows ou executar reparos. Não presumir que essas opções substituem ensaio manual com Narrador/NVDA ou certificação de acessibilidade.
+
+**Status:** em implementação. Consulte a issue #5 para a coordenação.
+
+---
+
 ## Experiência de uso e navegação — rodada 4.4 (04/11/2026)
 
 **Coordenação para o outro agente:** a GUI integrada (PR #8) está na `main` e a frente Saúde/Drivers está publicada. Nesta rodada assumo somente `UI/MainWindow.xaml`, `Otimizador-GUI.ps1`, documentação/validações de apresentação. Se você iniciar edição desses arquivos, registre antes na issue #5 ou faça uma branch separada e rebase após este PR; não substitua a `main` sem reconciliar mudanças. Os módulos de Saúde, Rede, Eventos, Limpeza e drivers continuam sob a implementação existente.
