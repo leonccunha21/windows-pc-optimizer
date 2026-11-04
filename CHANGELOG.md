@@ -5,16 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.2] - 2026-11-04
-
-### Added
-- Nova aba **Rede** na interface WPF com inventário local de adaptadores, IPv4, gateway, DNS e perfis e testes de DNS/TCP com destino explícito.
-- Handlers assíncronos no runspace dedicado da interface para `Get-OptimizerNetworkSnapshot` e `Invoke-OptimizerConnectivityCheck`.
-
-### Fixed
-- A interface WPF passa a validar o fluxo de diagnóstico de rede no modo `-ValidateUI`, com o mesmo padrão de runspace das demais áreas.
-
-## [Unreleased]
+## [4.4] - 2026-11-04
 
 ### Added
 - Barra lateral funcional com indicação de seção ativa, comandos de teclado Ctrl+1–Ctrl+6 e Ctrl+B.
@@ -30,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Testes do módulo técnico e da allowlist de reparos.
 
 ### Changed
-- Layout com dimensões mínimas mais flexíveis e ajuste de arredondamento de pixels em diferentes DPIs; testes manuais em monitores variados permanecem pendentes.
+- Layout com dimensões mínimas mais flexíveis e ajuste de arredormento de pixels em diferentes DPIs; testes manuais em monitores variados permanecem pendentes.
 - Nova organização visual "Oficina Pro", distinguindo consultas, reparos elevados e atalhos. O subpainel de bancada integra as ferramentas diretamente ao lado das abas Saúde, Drivers, Aplicativos e Otimização.
 
 ## [4.1] - 2026-11-04
