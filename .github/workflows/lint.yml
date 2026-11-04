@@ -16,6 +16,9 @@ jobs:
       - name: Parse scripts and check duplicate definitions
         shell: pwsh
         run: ./Tests/Validate-Syntax.ps1
+      - name: Legacy regression checks without executing maintenance
+        shell: pwsh
+        run: ./Tests/Optimizer.Tests.ps1
       - name: Cleanup and report safety regressions
         shell: pwsh
         run: ./Tests/Core.Smoke.ps1

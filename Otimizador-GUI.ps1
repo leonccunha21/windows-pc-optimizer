@@ -7,7 +7,9 @@ Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1') -Force
 $reader = New-Object System.Xml.XmlNodeReader $layout
 $window = [Windows.Markup.XamlReader]::Load($reader)
 $ui = @{}
-foreach ($node in $layout.SelectNodes('//*[@x:Name]', $( $ns = New-Object Xml.XmlNamespaceManager $layout.NameTable; $ns.AddNamespace('x','http://schemas.microsoft.com/winfx/2006/xaml'); $ns ))) {
+$namespaces = New-Object Xml.XmlNamespaceManager $layout.NameTable
+$namespaces.AddNamespace('x','http://schemas.microsoft.com/winfx/2006/xaml')
+foreach ($node in $layout.SelectNodes('//*[@x:Name]', $namespaces)) {
     $ui[$node.GetAttribute('Name','http://schemas.microsoft.com/winfx/2006/xaml')] = $window.FindName($node.GetAttribute('Name','http://schemas.microsoft.com/winfx/2006/xaml'))
 }
 $script:scan = $null; $script:cleanup = $null; $script:diagnostics = @(); $script:worker = $null

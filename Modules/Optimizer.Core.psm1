@@ -126,6 +126,7 @@ function Invoke-OptimizerCleanup {
 
 function Get-OptimizerDiagnostics {
     $rows = New-Object 'System.Collections.Generic.List[object]'
+    $labels = @{ Caption='Windows'; Version='Versão'; LastBootUpTime='Última inicialização'; Manufacturer='Fabricante'; Model='Modelo'; TotalPhysicalMemory='Memória RAM'; Name='Identificação'; NumberOfCores='Núcleos'; NumberOfLogicalProcessors='Processadores lógicos'; Size='Capacidade'; Status='Status básico WMI'; EstimatedChargeRemaining='Carga restante (%)'; BatteryStatus='Estado da bateria (código WMI)' }
     foreach ($query in @(
         @{Name='Sistema'; Class='Win32_OperatingSystem'; Properties=@('Caption','Version','LastBootUpTime')},
         @{Name='Computador'; Class='Win32_ComputerSystem'; Properties=@('Manufacturer','Model','TotalPhysicalMemory')},
@@ -140,7 +141,7 @@ function Get-OptimizerDiagnostics {
                 foreach ($property in $query.Properties) {
                     $value = $item.$property
                     if ($property -in @('Size','TotalPhysicalMemory')) { $value = Format-OptimizerSize $value }
-                    $rows.Add([pscustomobject]@{ Area=$query.Name; Item=$property; Value=[string]$value })
+                    $rows.Add([pscustomobject]@{ Area=$query.Name; Item=$labels[$property]; Value=[string]$value })
                 }
             }
         } catch { $rows.Add([pscustomobject]@{ Area=$query.Name; Item='Consulta'; Value='Indisponível: ' + $_.Exception.Message }) }
