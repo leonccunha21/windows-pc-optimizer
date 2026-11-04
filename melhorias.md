@@ -5,6 +5,14 @@
 
 ---
 
+## Validação complementar: portabilidade e distribuição
+
+- O smoke test agora cria um perfil temporário quando `LOCALAPPDATA` não existe (Linux), evitando dependência do computador do executor.
+- O núcleo devolve uma lista vazia de alvos se `LOCALAPPDATA` estiver ausente.
+- Workflow de release por tag `v*` preparado para gerar ZIP e arquivo SHA-256 após validação. **Execução real por tag não testada** e nenhuma assinatura digital incluída.
+
+---
+
 ## Status: o que a v4.0 já resolveu
 
 | Item anterior | Situação |

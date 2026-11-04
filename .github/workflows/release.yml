@@ -1,0 +1,39 @@
+name: Package and publish Windows release
+on:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate scripts and legacy safety
+        shell: powershell
+        run: |
+          ./Tests/Validate-Syntax.ps1
+          ./Tests/Optimizer.Tests.ps1
+          ./Tests/Core.Smoke.ps1
+          powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI
+          if ($LASTEXITCODE -ne 0) { throw 'WPF validation failed' }
+      - name: Assemble release and SHA-256 checksum
+        shell: pwsh
+        run: |
+          $name = "PC-Optimizer-$env:GITHUB_REF_NAME"
+          $stage = Join-Path $env:RUNNER_TEMP $name
+          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+          $entries = @('Executar-Otimizador.bat','Otimizador-GUI.ps1','Otimizar-PC.ps1','Modules','UI','README.md','LEIA-ME.txt','LICENSE','SECURITY.md')
+          foreach ($entry in $entries) { Copy-Item -LiteralPath $entry -Destination $stage -Recurse -Force }
+          $zip = Join-Path $env:GITHUB_WORKSPACE "$name.zip"
+          Compress-Archive -LiteralPath $stage -DestinationPath $zip -Force
+          $sha = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$sha  $name.zip" | Set-Content -LiteralPath ($zip + '.sha256') -Encoding ascii
+      - name: Publish tagged GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $name = "PC-Optimizer-$env:GITHUB_REF_NAME"
+          gh release create "$env:GITHUB_REF_NAME" "$name.zip" "$name.zip.sha256" --verify-tag --generate-notes
