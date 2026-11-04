@@ -8,7 +8,7 @@ Describe "Otimizador-PC" {
         It "Defines Clean-Temp" { (Get-Command Clean-Temp -ErrorAction SilentlyContinue) -ne $null | Should Be $true }
         It "Defines Clean-BrowserCaches" { (Get-Command Clean-BrowserCaches -ErrorAction SilentlyContinue) -ne $null | Should Be $true }
         It "Defines Clean-PackageCaches" { (Get-Command Clean-PackageCaches -ErrorAction SilentlyContinue) -ne $null | Should Be $true }
-        It "Defines Clean-ProjectJunk" { (Get-Command Clean-ProjectJunk -ErrorAction SilentlyContinue) -ne $null | Should Be $true }
+        It "Does not define Clean-ProjectJunk (projects preserved)" { (Get-Command Clean-ProjectJunk -ErrorAction SilentlyContinue) -eq $null | Should Be $true }
         It "Defines Optimize-Startup" { (Get-Command Optimize-Startup -ErrorAction SilentlyContinue) -ne $null | Should Be $true }
         It "Defines System-Tweaks" { (Get-Command System-Tweaks -ErrorAction SilentlyContinue) -ne $null | Should Be $true }
         It "Defines Optimize-Disk" { (Get-Command Optimize-Disk -ErrorAction SilentlyContinue) -ne $null | Should Be $true }

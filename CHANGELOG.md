@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-11-04
+
+### Changed
+- **REMOVED project cleaning entirely** — no project files, source code, or build artifacts are ever touched. Projects are fully preserved.
+- Added professional maintenance: diagnostics (hardware, SMART, drivers, updates, ports, suspicious tasks), backups (drivers, registry), repairs (Windows Update, Store, network), advanced cleaning (duplicates, large/old files), HTML reports, scheduling, external tools links.
+- Added Clean-StoreCache and Clean-OneDriveCache.
+- Added Check-Memory, Check-OpenPorts, Check-SuspiciousTasks.
+- Added Backup-Drivers, Backup-RegistryFull.
+- Added Repair-WindowsUpdate, Repair-Store, Repair-Network.
+- Added Clean-Duplicates, Clean-LargeFiles, Clean-OldFiles.
+- Added Analyze-DiskSpace, Schedule-Task, Generate-Report, Show-ExternalTools.
+- 28 menu options.
+
 ## [1.1.0] - 2026-11-04
 
 ### Added

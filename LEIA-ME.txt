@@ -21,9 +21,8 @@ Modos avancados (linha de comando):
 
 PROTECOES:
 - Pastas do Epic Games / Fortnite NUNCA sao removidas.
-- Codigo-fonte (arquivos .py, .js, .ts, .cs, etc.) e preservado.
-- Apenas artefatos de build (node_modules, build, dist, .next, .gradle,
-  __pycache__, .venv, caches) sao removidos.
+- Arquivos de projetos (codigo-fonte, node_modules, build, etc.) NUNCA sao removidos.
+- Apenas caches e arquivos temporarios sao limpos.
 - Backup do registro de inicializacao e salvo em %TEMP%\OtimizadorPC_backup.
 
 REQUISITOS:

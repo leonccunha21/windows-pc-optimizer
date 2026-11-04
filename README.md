@@ -8,8 +8,8 @@ A PowerShell-based PC optimizer for Windows 10/11. Cleans junk, optimizes startu
 - **Clean browser caches** (Chrome, Edge, Firefox, Brave, Opera, Vivaldi)
 - **Clean package manager caches** (npm, pnpm, pip, Playwright, Cypress, Gradle, Maven, Cargo, Go)
 - **Clean app caches** (Spotify, Discord, Slack, Teams, OneDrive, VS Code, JetBrains)
-- **Clean project build artifacts** (node_modules, build, dist, .next, .gradle, .venv, __pycache__, and more)
-- **Safe deletion**: never removes source code or Epic Games / Fortnite files
+- **Projects are NEVER touched** — no source code, project files, or build artifacts are removed
+- **Safe deletion**: never removes Epic Games / Fortnite files
 - **Optimize startup** (remove non-essential programs from boot)
 - **System tweaks** (High Performance power plan, disable telemetry, SysMain, Delivery Optimization, visual effects, pagefile, TCP, Cortana, notifications)
 - **SSD TRIM / HDD defrag** (auto-detects drive type)
