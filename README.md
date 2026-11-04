@@ -5,19 +5,30 @@ A PowerShell-based PC optimizer for Windows 10/11. Cleans junk, optimizes startu
 ## Features
 
 - **Clean temporary files** (older than 7 days)
-- **Clean browser caches** (Chrome / Edge)
-- **Clean package manager caches** (npm, pnpm, pip, Playwright, Cypress)
+- **Clean browser caches** (Chrome, Edge, Firefox, Brave, Opera, Vivaldi)
+- **Clean package manager caches** (npm, pnpm, pip, Playwright, Cypress, Gradle, Maven, Cargo, Go)
+- **Clean app caches** (Spotify, Discord, Slack, Teams, OneDrive, VS Code, JetBrains)
 - **Clean project build artifacts** (node_modules, build, dist, .next, .gradle, .venv, __pycache__, and more)
+- **Safe deletion**: never removes source code or Epic Games / Fortnite files
 - **Optimize startup** (remove non-essential programs from boot)
-- **System tweaks** (High Performance power plan, disable telemetry, SysMain, Delivery Optimization, visual effects, pagefile)
-- **SSD TRIM**
+- **System tweaks** (High Performance power plan, disable telemetry, SysMain, Delivery Optimization, visual effects, pagefile, TCP, Cortana, notifications)
+- **SSD TRIM / HDD defrag** (auto-detects drive type)
+- **WinSxS component cleanup** (DISM)
+- **Prefetch + icon cache + thumbnail cache + font cache** cleanup
 - **Clear event logs**
-- **Disable background apps**
+- **Disable background apps + Game Bar/DVR**
+- **Uninstall UWP bloatware** (safe list)
 - **Disk Cleanup (cleanmgr)**
 - **Flush DNS + Winsock reset**
 - **Enable Storage Sense** (auto cleanup, downloads protected)
 - **System integrity check (SFC + DISM)** in background
 - **Windows Defender full scan** in background
+- **Disk space analysis** (top folders)
+- **Schedule weekly cleanup** (Task Scheduler)
+- **HTML report generation**
+- **Self-update** from GitHub
+- **Multi-drive support**
+- **Safe/Aggressive modes**
 
 ## Safety
 
