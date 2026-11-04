@@ -113,6 +113,40 @@ try {
     $noCleanupReport = Join-Path $testRoot 'report-no-cleanup.html'
     Export-OptimizerReport -Path $noCleanupReport -Customer 'Teste' -Notes '' -Diagnostics @() -Cleanup $null
     Assert-True ((Get-Content $noCleanupReport -Raw) -match 'Nenhuma limpeza') 'Report without cleanup is explicit'
+
+    $batteryXml = @'
+<?xml version="1.0" encoding="utf-8"?>
+<BatteryReport xmlns="http://schemas.microsoft.com/Windows/2011/BatteryReport">
+  <Battery>
+    <Manufacturer>Contoso</Manufacturer>
+    <Chemistry>Li-Ion</Chemistry>
+    <SerialNumber>TEST-123</SerialNumber>
+    <DesignCapacity>50000</DesignCapacity>
+    <FullChargeCapacity>40000</FullChargeCapacity>
+    <CycleCount>250</CycleCount>
+  </Battery>
+</BatteryReport>
+'@
+    $battery = ConvertFrom-OptimizerBatteryReportXml -Xml $batteryXml
+    Assert-True ($battery.HasBattery -and $battery.DesignCapacityMWh -eq 50000 -and $battery.FullChargeCapacityMWh -eq 40000) 'Battery report XML reads capacities'
+    Assert-True ($battery.HealthPercent -eq 80 -and $battery.Rating -eq 'Boa' -and $battery.CycleCount -eq 250) 'Battery report computes health and cycles'
+    Assert-True ((Get-OptimizerHealthRating -HealthPercent 70) -eq 'Atenção' -and (Get-OptimizerHealthRating -HealthPercent 50) -eq 'Substituir') 'Health rating thresholds are explicit'
+    Assert-True ((Get-OptimizerHealthRating -HealthPercent $null) -eq 'Indisponível') 'Health rating handles missing capacity'
+    $threw = $false; try { ConvertFrom-OptimizerBatteryReportXml -Xml '<BatteryReport' } catch { $threw = $true }
+    Assert-True $threw 'Malformed battery report is rejected'
+
+    $catalog = @(Get-OptimizerBloatCatalog)
+    Assert-True ($catalog.Count -ge 10 -and @($catalog | Where-Object { -not $_.Match -or -not $_.Label }).Count -eq 0) 'Bloat catalog entries have match and label'
+    Assert-True (@($catalog | Where-Object Match -eq 'Microsoft.Xbox*').Count -eq 1) 'Bloat catalog includes Xbox packages'
+    $optimizations = @(Get-OptimizerOptimizations)
+    Assert-True ($optimizations.Count -ge 5 -and @($optimizations | Group-Object Id | Where-Object Count -gt 1).Count -eq 0) 'Optimization catalog has unique actions'
+    Assert-True (@($optimizations | Where-Object { -not $_.Name -or -not $_.Description -or $null -eq $_.RequiresAdmin }).Count -eq 0) 'Optimization actions are fully described'
+    $unknown = Invoke-OptimizerOptimization -Ids 'does-not-exist' -Confirm:$false
+    Assert-True ($unknown[0].Status -eq 'Ignorado' -and $unknown[0].Detail -match 'desconhecida') 'Unknown optimization is rejected'
+    if ($env:OS -eq 'Windows_NT') {
+        $simulated = Invoke-OptimizerOptimization -Ids 'power-balanced' -Catalog $optimizations -WhatIf
+        Assert-True ($simulated[0].Status -eq 'Simulado') 'WhatIf simulates optimization without changing the system'
+    }
     Write-Output "All $script:passed safety checks passed."
 } finally {
     if(Test-Path (Join-Path $testRoot 'cache/linked')) { [IO.Directory]::Delete((Join-Path $testRoot 'cache/linked')) }

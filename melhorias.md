@@ -50,7 +50,7 @@
 4. Handlers assíncronos na GUI.
 5. Validação PS 5.1, PS 7, WPF e lint; commit e push.
 
-> Status: **em andamento**. Ao concluir, esta seção será marcada como publicada com o SHA do commit.
+> Status: **concluído em 04/11/2026** — entregas do botão Fechar, aba Saúde e aba Manutenção implementadas e publicadas junto com o commit de merge em `main`.
 
 ---
 

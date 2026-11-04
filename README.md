@@ -20,10 +20,25 @@ Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil 
 | Visão geral | Fluxo de atendimento, espaço analisado e resultado real da última limpeza |
 | Limpeza | Prévia por categoria e arquivo, seleção/desmarcação em massa, resultado detalhado e progresso por arquivo; caches Chrome, Edge e Brave; retenção mínima de 7 dias |
 | Diagnóstico | Sistema, fabricante/modelo, CPU, RAM, discos, espaço livre, bateria e estado do Defender quando disponível |
-| Ferramentas | Atalhos para inicialização, aplicativos, armazenamento, segurança, otimização de unidades, restauração, eventos e tarefas |
+| Saúde | Bateria com relatório oficial do Windows (powercfg), capacidade de projeto e ciclos; discos físicos com contadores SMART, temperatura, desgaste e volumes |
+| Manutenção | Drivers instalados com status (assinatura/idosidade), atualizações de driver via Windows Update; aplicativos instalados com sugestões de remoção e exclusão confirmada; otimizações seguras (plano de energia, Sensor de Armazenamento, cache de entrega, Lixeira) |
+| Atalhos do Windows | Inicialização, aplicativos, armazenamento, segurança, otimização de unidades, restauração, eventos, tarefas, recursos opcionais, dispositivos, energia, Windows Update, informações de sistema |
 | Relatório | Cliente/OS, observações, diagnóstico e resultado; HTML imprimível em PDF ou JSON sem caminhos de arquivos excluídos |
 
 Análise e limpeza rodam em um runspace separado. A janela permanece disponível e permite solicitar interrupção entre arquivos. A consulta de hardware termina antes de fechar a janela. Relatórios são salvos apenas por escolha do usuário; não há histórico persistente automático com dados de clientes.
+
+## Saúde e manutenção
+
+A aba **Saúde** consolida as consultas de bateria e de disco. A bateria é medida pelo relatório oficial do Windows (`powercfg /batteryreport`); quando o relatório não existe ou não informa capacidade de projeto, o estado permanece como informação do sistema. O desgaste e temperatura vêm dos contadores SMART do subsistema de armazenamento; contas ausentes são exibidas sem notas de saúde inventadas.
+
+A aba **Manutenção** reúne drivers, aplicativos e ajustes. Tudo é consultado primeiro; nada é instalado, alterado ou removido automaticamente. A remoção de aplicativos é sempre confirmada e remove somente pacotes não marcados como não removíveis para o usuário atual.
+
+As ações de ajuste (plano de energia, Sensor de Armazenamento, cache de Otimização de Entrega, esvaziar Lixeira, desativar inicialização rápida) pedem confirmação explícita. Ações que exigem administrador falham com explicação quando a interface roda sem elevação.
+
+
+## Janela
+
+A janela WPF define o estilo de borda (`SingleBorderWindow`) com `ResizeMode` ajustável e exibe o botão **Fechar** na barra de título do aplicativo, no cabeçalho da janela. Durante uma operação em andamento, o fechamento é perguntado ao usuário e encerra o runspace em vez de ser ignorado. Atalhos: **F5** analisa, **Esc** solicita interrupção e **Ctrl+E** abre a exportação do relatório.
 
 ## Critérios de limpeza
 

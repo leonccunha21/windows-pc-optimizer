@@ -213,4 +213,382 @@ function Export-OptimizerReport {
     [IO.File]::WriteAllText($Path, $html, (New-Object Text.UTF8Encoding $true))
 }
 
-Export-ModuleMember -Function Format-OptimizerSize, Get-OptimizerTargets, Test-OptimizerPath, Get-OptimizerScan, Invoke-OptimizerCleanup, Get-OptimizerDiagnostics, Export-OptimizerReport
+function Get-OptimizerPropertyValue {
+    param($InputObject, [string]$Name)
+    if ($null -eq $InputObject) { return $null }
+    $property = $InputObject.PSObject.Properties[$Name]
+    if ($null -eq $property) { return $null }
+    return $property.Value
+}
+
+function Get-OptimizerXmlText {
+    param($Node, [string]$Name)
+    if ($null -eq $Node) { return $null }
+    $child = $Node.SelectSingleNode("*[local-name()='$Name']")
+    if ($null -eq $child) { return $null }
+    return [string]$child.InnerText
+}
+
+function Get-OptimizerHealthRating {
+    [CmdletBinding()]
+    param($HealthPercent)
+    if ($null -eq $HealthPercent) { return 'Indisponível' }
+    $value = [double]$HealthPercent
+    if ($value -ge 80) { return 'Boa' }
+    if ($value -ge 60) { return 'Atenção' }
+    return 'Substituir'
+}
+
+function ConvertFrom-OptimizerBatteryReportXml {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Xml)
+    try {
+        $document = New-Object Xml.XmlDocument
+        $document.LoadXml($Xml)
+    } catch { throw 'Relatório de bateria inválido ou ilegível.' }
+    $battery = @($document.GetElementsByTagName('Battery')) | Select-Object -First 1
+    if ($null -eq $battery) {
+        return [pscustomobject]@{ HasBattery=$false; Manufacturer=''; Chemistry=''; SerialNumber=''; DesignCapacityMWh=[long]0; FullChargeCapacityMWh=[long]0; CycleCount=0; HealthPercent=$null; Rating='Indisponível' }
+    }
+    [long]$design = 0; [long]$full = 0; [long]$cycles = 0
+    $designText = Get-OptimizerXmlText $battery 'DesignCapacity'
+    $fullText = Get-OptimizerXmlText $battery 'FullChargeCapacity'
+    $cycleText = Get-OptimizerXmlText $battery 'CycleCount'
+    if (-not [long]::TryParse($designText, [ref]$design)) { $design = 0 }
+    if (-not [long]::TryParse($fullText, [ref]$full)) { $full = 0 }
+    if (-not [long]::TryParse($cycleText, [ref]$cycles)) { $cycles = 0 }
+    $health = $null
+    if ($design -gt 0 -and $full -gt 0) { $health = [math]::Round(100 * $full / $design, 1) }
+    [pscustomobject]@{
+        HasBattery = $true
+        Manufacturer = [string](Get-OptimizerXmlText $battery 'Manufacturer')
+        Chemistry = [string](Get-OptimizerXmlText $battery 'Chemistry')
+        SerialNumber = [string](Get-OptimizerXmlText $battery 'SerialNumber')
+        DesignCapacityMWh = $design
+        FullChargeCapacityMWh = $full
+        CycleCount = $cycles
+        HealthPercent = $health
+        Rating = Get-OptimizerHealthRating -HealthPercent $health
+    }
+}
+
+function Get-OptimizerBatteryHealth {
+    [CmdletBinding()]
+    param()
+    $result = [pscustomobject]@{
+        HasBattery=$false; Manufacturer=''; Chemistry=''; SerialNumber=''
+        DesignCapacityMWh=[long]0; FullChargeCapacityMWh=[long]0; CycleCount=0
+        HealthPercent=$null; Rating='Indisponível'; EstimatedChargeRemaining=$null
+        BatteryStatus=''; Method=''; Note=''
+    }
+    if ($env:OS -ne 'Windows_NT') { $result.Note = 'Consulta disponível apenas no Windows.'; return $result }
+    try {
+        $battery = @(Get-CimInstance Win32_Battery -ErrorAction Stop) | Select-Object -First 1
+        if ($null -eq $battery) { $result.Note = 'Nenhuma bateria detectada. Em desktops esse resultado é esperado.'; return $result }
+        $result.HasBattery = $true
+        $result.EstimatedChargeRemaining = Get-OptimizerPropertyValue $battery 'EstimatedChargeRemaining'
+        $result.BatteryStatus = [string](Get-OptimizerPropertyValue $battery 'BatteryStatus')
+    } catch {
+        $result.Note = 'Não foi possível consultar a bateria: ' + $_.Exception.Message
+        return $result
+    }
+    $temp = Join-Path ([IO.Path]::GetTempPath()) ('pcoptimizer-battery-' + [guid]::NewGuid().ToString('N') + '.xml')
+    try {
+        & powercfg.exe /batteryreport /xml /output $temp 2>$null | Out-Null
+        if (Test-Path -LiteralPath $temp) {
+            $parsed = ConvertFrom-OptimizerBatteryReportXml -Xml (Get-Content -LiteralPath $temp -Raw -Encoding UTF8)
+            if ($parsed.HasBattery) {
+                $result.Manufacturer = $parsed.Manufacturer
+                $result.Chemistry = $parsed.Chemistry
+                $result.SerialNumber = $parsed.SerialNumber
+                $result.DesignCapacityMWh = $parsed.DesignCapacityMWh
+                $result.FullChargeCapacityMWh = $parsed.FullChargeCapacityMWh
+                $result.CycleCount = $parsed.CycleCount
+                $result.HealthPercent = $parsed.HealthPercent
+                $result.Rating = $parsed.Rating
+                $result.Method = 'powercfg /batteryreport'
+            }
+        }
+    } catch {
+        $result.Note = 'Relatório detalhado indisponível: ' + $_.Exception.Message
+    } finally {
+        if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue }
+    }
+    if ($result.Method -eq '') { $result.Note = 'Capacidade de projeto não informada pelo fabricante; saúde detalhada indisponível.' }
+    return $result
+}
+
+function Save-OptimizerBatteryReport {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path)
+    if ($env:OS -ne 'Windows_NT') { throw 'O relatório de bateria está disponível apenas no Windows.' }
+    $fullPath = [IO.Path]::GetFullPath($Path)
+    $directory = [IO.Path]::GetDirectoryName($fullPath)
+    if (-not (Test-Path -LiteralPath $directory -PathType Container)) { throw 'A pasta de destino não existe.' }
+    & powercfg.exe /batteryreport /output $fullPath 2>&1 | Out-Null
+    if (-not (Test-Path -LiteralPath $fullPath)) { throw 'O Windows não gerou o relatório de bateria.' }
+    return $fullPath
+}
+
+function Get-OptimizerDiskHealth {
+    [CmdletBinding()]
+    param()
+    $disks = New-Object 'System.Collections.Generic.List[object]'
+    $volumes = New-Object 'System.Collections.Generic.List[object]'
+    $note = ''
+    if ($env:OS -ne 'Windows_NT') {
+        return [pscustomobject]@{ Disks=@(); Volumes=@(); Note='Consulta disponível apenas no Windows.' }
+    }
+    if (Get-Command Get-PhysicalDisk -ErrorAction SilentlyContinue) {
+        try {
+            foreach ($disk in @(Get-PhysicalDisk -ErrorAction Stop)) {
+                $temperature = $null; $wear = $null; $hours = $null; $readErrors = $null
+                try {
+                    $counter = $disk | Get-StorageReliabilityCounter -ErrorAction Stop
+                    $temperature = Get-OptimizerPropertyValue $counter 'Temperature'
+                    $wear = Get-OptimizerPropertyValue $counter 'Wear'
+                    $hours = Get-OptimizerPropertyValue $counter 'PowerOnHours'
+                    $readErrors = Get-OptimizerPropertyValue $counter 'ReadErrorsTotal'
+                } catch { Write-Verbose 'Leitura opcional indisponível.' }
+                $health = [string](Get-OptimizerPropertyValue $disk 'HealthStatus')
+                $rating = switch ($health) {
+                    'Healthy' { 'Boa' }
+                    'Warning' { 'Atenção' }
+                    'Unhealthy' { 'Crítica' }
+                    default { if ($health) { $health } else { 'Indisponível' } }
+                }
+                $size = Get-OptimizerPropertyValue $disk 'Size'
+                $disks.Add([pscustomobject]@{
+                    Device=[string](Get-OptimizerPropertyValue $disk 'FriendlyName')
+                    Media=[string](Get-OptimizerPropertyValue $disk 'MediaType')
+                    Bus=[string](Get-OptimizerPropertyValue $disk 'BusType')
+                    Size=if ($null -ne $size) { Format-OptimizerSize $size } else { '—' }
+                    Health=$health
+                    Rating=$rating
+                    Status=(@((Get-OptimizerPropertyValue $disk 'OperationalStatus')) -join ', ')
+                    Temperature=if ($temperature -and $temperature -gt 0) { "$temperature °C" } else { '—' }
+                    Wear=if ($null -ne $wear) { "$wear%" } else { '—' }
+                    PowerOnHours=if ($null -ne $hours) { [string]$hours } else { '—' }
+                    ReadErrors=if ($null -ne $readErrors) { [string]$readErrors } else { '—' }
+                })
+            }
+        } catch { $note = 'Consulta SMART indisponível: ' + $_.Exception.Message }
+    }
+    if ($disks.Count -eq 0) {
+        try {
+            foreach ($drive in @(Get-CimInstance Win32_DiskDrive -ErrorAction Stop)) {
+                $disks.Add([pscustomobject]@{
+                    Device=[string](Get-OptimizerPropertyValue $drive 'Model'); Media=[string](Get-OptimizerPropertyValue $drive 'MediaType'); Bus=[string](Get-OptimizerPropertyValue $drive 'InterfaceType')
+                    Size=if ($drive.Size) { Format-OptimizerSize $drive.Size } else { '—' }
+                    Health=[string](Get-OptimizerPropertyValue $drive 'Status'); Rating='Ver Relatório'; Status=[string](Get-OptimizerPropertyValue $drive 'Status')
+                    Temperature='—'; Wear='—'; PowerOnHours='—'; ReadErrors='—'
+                })
+            }
+        } catch { $note = 'Não foi possível consultar os discos: ' + $_.Exception.Message }
+    }
+    try {
+        foreach ($volume in @(Get-Volume -ErrorAction Stop | Where-Object { $null -ne $_.DriveLetter })) {
+            $remaining = Get-OptimizerPropertyValue $volume 'SizeRemaining'
+            $total = Get-OptimizerPropertyValue $volume 'Size'
+            $volumes.Add([pscustomobject]@{
+                Letter=[string]$volume.DriveLetter; Label=[string](Get-OptimizerPropertyValue $volume 'FileSystemLabel')
+                FileSystem=[string](Get-OptimizerPropertyValue $volume 'FileSystem'); Free=if ($null -ne $remaining) { Format-OptimizerSize $remaining } else { '—' }
+                Total=if ($null -ne $total) { Format-OptimizerSize $total } else { '—' }
+                Health=[string](Get-OptimizerPropertyValue $volume 'HealthStatus')
+            })
+        }
+    } catch { Write-Verbose 'Leitura opcional indisponível.' }
+    if ($volumes.Count -eq 0) {
+        try {
+            foreach ($logical in @(Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' -ErrorAction Stop)) {
+                $volumes.Add([pscustomobject]@{ Letter=[string]$logical.DeviceID; Label=[string]$logical.VolumeName; FileSystem=[string]$logical.FileSystem; Free=Format-OptimizerSize $logical.FreeSpace; Total=Format-OptimizerSize $logical.Size; Health='Não informado' })
+            }
+        } catch { Write-Verbose 'Leitura opcional indisponível.' }
+    }
+    [pscustomobject]@{ Disks=$disks.ToArray(); Volumes=$volumes.ToArray(); Note=$note }
+}
+
+function Get-OptimizerDrivers {
+    [CmdletBinding()]
+    param([int]$OutdatedDays = 1095)
+    if ($env:OS -ne 'Windows_NT') { return @() }
+    if ($OutdatedDays -lt 365) { throw 'O limite mínimo de driver antigo é de 365 dias.' }
+    $rows = New-Object 'System.Collections.Generic.List[object]'
+    $drivers = @(Get-CimInstance Win32_PnPSignedDriver -ErrorAction Stop | Where-Object { $_.DeviceName -and $_.DriverVersion })
+    foreach ($driver in $drivers) {
+        $driverDate = $null
+        try { if ($driver.DriverDate) { $driverDate = [DateTime]$driver.DriverDate } } catch { Write-Verbose 'Leitura opcional indisponível.' }
+        $ageDays = $null
+        if ($null -ne $driverDate) { $ageDays = [int]((Get-Date) - $driverDate).TotalDays }
+        $signed = [bool](Get-OptimizerPropertyValue $driver 'IsSigned')
+        $manufacturer = [string](Get-OptimizerPropertyValue $driver 'Manufacturer')
+        $status = 'OK'
+        if (-not $signed) { $status = 'Não assinado' }
+        elseif ($null -ne $ageDays -and $ageDays -gt $OutdatedDays -and $manufacturer -notmatch '^Microsoft') { $status = 'Verificar atualização' }
+        $rows.Add([pscustomobject]@{
+            Class=[string](Get-OptimizerPropertyValue $driver 'DeviceClass')
+            Device=[string]$driver.DeviceName
+            Manufacturer=$manufacturer
+            Version=[string]$driver.DriverVersion
+            Date=if ($null -ne $driverDate) { $driverDate.ToString('dd/MM/yyyy') } else { '—' }
+            AgeDays=$ageDays
+            Signed=if ($signed) { 'Sim' } else { 'Não' }
+            Status=$status
+        })
+    }
+    return @($rows | Sort-Object Class, Device)
+}
+
+function Get-OptimizerDriverUpdates {
+    [CmdletBinding()]
+    param()
+    $result = [pscustomobject]@{ Available=$false; Updates=@(); Error='' }
+    if ($env:OS -ne 'Windows_NT') { $result.Error = 'Consulta disponível apenas no Windows.'; return $result }
+    try {
+        $session = New-Object -ComObject Microsoft.Update.Session
+        $searcher = $session.CreateUpdateSearcher()
+        $found = $searcher.Search("IsInstalled=0 and Type='Driver'")
+        $updates = New-Object 'System.Collections.Generic.List[object]'
+        foreach ($update in @($found.Updates)) {
+            $manufacturer = ''; $model = ''; $updateClass = ''
+            try { $manufacturer = [string]$update.DriverManufacturer } catch { Write-Verbose 'Leitura opcional indisponível.' }
+            try { $model = [string]$update.DriverModel } catch { Write-Verbose 'Leitura opcional indisponível.' }
+            try { $updateClass = [string]$update.DriverClass } catch { Write-Verbose 'Leitura opcional indisponível.' }
+            $updates.Add([pscustomobject]@{
+                Title=[string]$update.Title; Manufacturer=$manufacturer; Model=$model
+                Class=$updateClass; Downloaded=[bool]$update.IsDownloaded
+            })
+        }
+        $result.Updates = $updates.ToArray()
+        $result.Available = $updates.Count -gt 0
+    } catch {
+        $result.Error = 'Não foi possível consultar o Windows Update: ' + $_.Exception.Message
+    }
+    return $result
+}
+
+function Get-OptimizerBloatCatalog {
+    [CmdletBinding()]
+    param()
+    return @(
+        [pscustomobject]@{ Match='Microsoft.Xbox*'; Label='Xbox e Game Pass' }
+        [pscustomobject]@{ Match='Microsoft.BingNews'; Label='Notícias Bing' }
+        [pscustomobject]@{ Match='Microsoft.BingWeather'; Label='Clima MSN' }
+        [pscustomobject]@{ Match='Microsoft.GetHelp'; Label='Obter Ajuda' }
+        [pscustomobject]@{ Match='Microsoft.Getstarted'; Label='Dicas do Windows' }
+        [pscustomobject]@{ Match='Microsoft.WindowsFeedbackHub'; Label='Hub de Comentários' }
+        [pscustomobject]@{ Match='Microsoft.MicrosoftSolitaireCollection'; Label='Paciência Microsoft' }
+        [pscustomobject]@{ Match='Clipchamp.Clipchamp'; Label='Editor Clipchamp' }
+        [pscustomobject]@{ Match='MicrosoftTeams'; Label='Microsoft Teams (consumidor)' }
+        [pscustomobject]@{ Match='Microsoft.SkypeApp'; Label='Skype' }
+        [pscustomobject]@{ Match='Microsoft.YourPhone'; Label='Vincular ao Celular' }
+        [pscustomobject]@{ Match='Microsoft.People'; Label='Pessoas' }
+        [pscustomobject]@{ Match='Microsoft.MixedReality.Portal'; Label='Realidade Misturada' }
+        [pscustomobject]@{ Match='Microsoft.Microsoft3DViewer'; Label='Visualizador 3D' }
+        [pscustomobject]@{ Match='Microsoft.Print3D'; Label='Imprimir em 3D' }
+        [pscustomobject]@{ Match='Microsoft.ZuneMusic'; Label='Música legada (Groove)' }
+        [pscustomobject]@{ Match='Microsoft.ZuneVideo'; Label='Filmes e TV' }
+        [pscustomobject]@{ Match='Microsoft.MicrosoftOfficeHub'; Label='Hub do Office' }
+        [pscustomobject]@{ Match='Microsoft.WindowsMaps'; Label='Mapas' }
+        [pscustomobject]@{ Match='SpotifyAB.SpotifyMusic'; Label='Spotify pré-instalado' }
+        [pscustomobject]@{ Match='*TikTok*'; Label='TikTok pré-instalado' }
+        [pscustomobject]@{ Match='*Facebook*'; Label='Facebook pré-instalado' }
+        [pscustomobject]@{ Match='*Instagram*'; Label='Instagram pré-instalado' }
+        [pscustomobject]@{ Match='*Twitter*'; Label='X/Twitter pré-instalado' }
+        [pscustomobject]@{ Match='*CandyCrush*'; Label='Candy Crush pré-instalado' }
+        [pscustomobject]@{ Match='*Disney*'; Label='Disney+ pré-instalado' }
+    )
+}
+
+function Get-OptimizerAppInventory {
+    [CmdletBinding()]
+    param()
+    if ($env:OS -ne 'Windows_NT') { return @() }
+    $catalog = Get-OptimizerBloatCatalog
+    $rows = New-Object 'System.Collections.Generic.List[object]'
+    foreach ($package in @(Get-AppxPackage -ErrorAction Stop | Where-Object { -not $_.IsFramework -and -not $_.IsResourcePackage })) {
+        $match = @($catalog | Where-Object { $package.Name -like $_.Match }) | Select-Object -First 1
+        $rows.Add([pscustomobject]@{
+            Selected=$false
+            Label=if ($null -ne $match) { $match.Label } else { [string]$package.Name }
+            Name=[string]$package.Name
+            Version=[string]$package.Version
+            Publisher=[string](Get-OptimizerPropertyValue $package 'PublisherDisplayName')
+            Suggested=($null -ne $match)
+            NonRemovable=[bool](Get-OptimizerPropertyValue $package 'NonRemovable')
+            PackageFullName=[string]$package.PackageFullName
+        })
+    }
+    return @($rows | Sort-Object @{ Expression='Suggested'; Descending=$true }, Label)
+}
+
+function Invoke-OptimizerAppRemoval {
+    [CmdletBinding(SupportsShouldProcess)]
+    param([Parameter(Mandatory)][string[]]$PackageFullNames)
+    if ($env:OS -ne 'Windows_NT') { throw 'A remoção de aplicativos está disponível apenas no Windows.' }
+    $results = New-Object 'System.Collections.Generic.List[object]'
+    foreach ($fullName in $PackageFullNames) {
+        $status = 'Ignorado'; $detail = ''; $label = $fullName
+        try {
+            $package = Get-AppxPackage -ErrorAction Stop | Where-Object { $_.PackageFullName -eq $fullName } | Select-Object -First 1
+            if ($null -eq $package) { throw 'Pacote não encontrado para o usuário atual.' }
+            $label = [string]$package.Name
+            if ([bool](Get-OptimizerPropertyValue $package 'NonRemovable')) { throw 'O Windows marca este pacote como não removível.' }
+            if ($PSCmdlet.ShouldProcess($label, 'Remover aplicativo do usuário atual')) {
+                Remove-AppxPackage -Package $package.PackageFullName -ErrorAction Stop
+                $status = 'Removido'; $detail = 'Pode ser reinstalado pela Microsoft Store.'
+            } else { $status = 'Simulado' }
+        } catch { $status = 'Falhou'; $detail = $_.Exception.Message }
+        $results.Add([pscustomobject]@{ PackageFullName=$fullName; Name=$label; Status=$status; Detail=$detail })
+    }
+    return $results.ToArray()
+}
+
+function Get-OptimizerOptimizations {
+    [CmdletBinding()]
+    param()
+    return @(
+        [pscustomobject]@{ Id='power-high'; Name='Plano de energia: alto desempenho'; Description='Mantém o processador em frequência alta. Em notebooks aumenta o consumo e o calor.'; RequiresAdmin=$false }
+        [pscustomobject]@{ Id='power-balanced'; Name='Plano de energia: equilibrado'; Description='Equilibra desempenho e consumo. Recomendado para uso diário e notebooks.'; RequiresAdmin=$false }
+        [pscustomobject]@{ Id='storage-sense'; Name='Ativar Sensor de Armazenamento'; Description='Permite ao Windows remover temporários e arquivos antigos automaticamente.'; RequiresAdmin=$false }
+        [pscustomobject]@{ Id='delivery-cache'; Name='Limpar cache de Otimização de Entrega'; Description='Libera cópias de atualizações usadas para compartilhamento local.'; RequiresAdmin=$false }
+        [pscustomobject]@{ Id='recycle-bin'; Name='Esvaziar Lixeira'; Description='Remove definitivamente os itens já enviados à Lixeira.'; RequiresAdmin=$false }
+        [pscustomobject]@{ Id='fast-startup-off'; Name='Desativar inicialização rápida'; Description='Desliga o estado hibernado do desligamento. Útil quando há dupla inicialização ou drivers instáveis.'; RequiresAdmin=$true }
+    )
+}
+
+function Invoke-OptimizerOptimization {
+    [CmdletBinding(SupportsShouldProcess)]
+    param([Parameter(Mandatory)][string[]]$Ids, [object[]]$Catalog = (Get-OptimizerOptimizations))
+    $known = @{}
+    foreach ($item in $Catalog) { $known[$item.Id] = $item }
+    $results = New-Object 'System.Collections.Generic.List[object]'
+    foreach ($id in $Ids) {
+        $status = 'Ignorado'; $detail = ''
+        if (-not $known.ContainsKey($id)) {
+            $results.Add([pscustomobject]@{ Id=$id; Name=$id; Status=$status; Detail='Ação desconhecida.' })
+            continue
+        }
+        $action = $known[$id]
+        try {
+            if ($env:OS -ne 'Windows_NT') { throw 'Disponível apenas no Windows.' }
+            if (-not $PSCmdlet.ShouldProcess($action.Name, 'Aplicar otimização')) {
+                $status = 'Simulado'
+            } else {
+                switch ($id) {
+                    'power-high' { & powercfg.exe /setactive SCHEME_MIN 2>&1 | Out-Null; if ($LASTEXITCODE -ne 0) { throw 'O Windows recusou o plano de energia.' }; $status = 'Aplicado'; $detail = 'Alto desempenho ativado.' }
+                    'power-balanced' { & powercfg.exe /setactive SCHEME_BALANCED 2>&1 | Out-Null; if ($LASTEXITCODE -ne 0) { throw 'O Windows recusou o plano de energia.' }; $status = 'Aplicado'; $detail = 'Equilibrado ativado.' }
+                    'storage-sense' { & reg.exe add 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy' /v 01 /t REG_DWORD /d 1 /f 2>&1 | Out-Null; if ($LASTEXITCODE -ne 0) { throw 'Não foi possível ativar o Sensor de Armazenamento.' }; $status = 'Aplicado'; $detail = 'Sensor de Armazenamento ativado.' }
+                    'delivery-cache' { if (-not (Get-Command Delete-DeliveryOptimizationCache -ErrorAction SilentlyContinue)) { throw 'Cmdlet de Otimização de Entrega indisponível.' }; Delete-DeliveryOptimizationCache -Force -ErrorAction Stop; $status = 'Aplicado'; $detail = 'Cache de entrega limpo.' }
+                    'recycle-bin' { Clear-RecycleBin -Force -ErrorAction Stop; $status = 'Aplicado'; $detail = 'Lixeira esvaziada.' }
+                    'fast-startup-off' { & reg.exe add 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power' /v HiberbootEnabled /t REG_DWORD /d 0 /f 2>&1 | Out-Null; if ($LASTEXITCODE -ne 0) { throw 'Requer administrador para alterar a inicialização rápida.' }; $status = 'Aplicado'; $detail = 'Inicialização rápida desativada.' }
+                    default { throw 'Ação sem implementação.' }
+                }
+            }
+        } catch { $status = 'Falhou'; $detail = $_.Exception.Message }
+        $results.Add([pscustomobject]@{ Id=$id; Name=$action.Name; Status=$status; Detail=$detail })
+    }
+    return $results.ToArray()
+}
+
+Export-ModuleMember -Function Format-OptimizerSize, Get-OptimizerTargets, Test-OptimizerPath, Get-OptimizerScan, Invoke-OptimizerCleanup, Get-OptimizerDiagnostics, Export-OptimizerReport, ConvertFrom-OptimizerBatteryReportXml, Get-OptimizerHealthRating, Get-OptimizerBatteryHealth, Save-OptimizerBatteryReport, Get-OptimizerDiskHealth, Get-OptimizerDrivers, Get-OptimizerDriverUpdates, Get-OptimizerBloaTCatalog, Get-OptimizerAppInventory, Invoke-OptimizerAppRemoval, Get-OptimizerOptimizations, Invoke-OptimizerOptimization

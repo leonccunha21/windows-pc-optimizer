@@ -13,17 +13,82 @@ foreach ($node in $layout.SelectNodes('//*[@x:Name]', $namespaces)) {
     $ui[$node.GetAttribute('Name','http://schemas.microsoft.com/winfx/2006/xaml')] = $window.FindName($node.GetAttribute('Name','http://schemas.microsoft.com/winfx/2006/xaml'))
 }
 $script:scan = $null; $script:cleanup = $null; $script:diagnostics = @(); $script:worker = $null
+$script:battery = $null; $script:disks = $null; $script:appx = @(); $script:optimizations = @(); $script:driverUpdates = $null
 $script:state = [hashtable]::Synchronized(@{Cancel=$false; Message=''; Result=$null; Error=$null; Total=0; Processed=0})
 $script:modulePath = Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1'
+$script:isAdmin = $false
+try {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+    $script:isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+} catch { Write-Verbose 'Não foi possível verificar elevação.' }
 
 function Set-Busy([bool]$Busy) {
-    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton')) { $ui[$name].IsEnabled = -not $Busy }
+    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','OptimizationRunButton','HealthShortcut','MaintenanceShortcut')) { $ui[$name].IsEnabled = -not $Busy }
     $ui.CleanButton.IsEnabled = -not $Busy -and $null -ne $script:scan -and -not $script:scan.Cancelled -and @($script:scan.Files).Count -gt 0
     $ui.DetailsButton.IsEnabled = -not $Busy -and ($null -ne $script:scan -or $null -ne $script:cleanup)
     $ui.Categories.IsEnabled = -not $Busy
     $ui.CancelButton.IsEnabled = $Busy -and $script:operation -ne 'Diagnose'
     $ui.Progress.IsIndeterminate = $Busy -and $script:operation -ne 'Clean'
     if (-not $Busy) { $ui.Progress.Value = 0 }
+}
+function Update-BatteryView {
+    if ($null -eq $script:battery) { return }
+    $battery = $script:battery
+    $rows = @(
+        [pscustomobject]@{ Item='Bateria detectada'; Value=if ($battery.HasBattery) { 'Sim' } else { 'Não' } }
+        [pscustomobject]@{ Item='Carga restante'; Value=if ($null -ne $battery.EstimatedChargeRemaining) { "$($battery.EstimatedChargeRemaining)%" } else { 'Não informada' } }
+        [pscustomobject]@{ Item='Fabricante'; Value=if ($battery.Manufacturer) { $battery.Manufacturer } else { 'Não informado' } }
+        [pscustomobject]@{ Item='Química'; Value=if ($battery.Chemistry) { $battery.Chemistry } else { 'Não informada' } }
+        [pscustomobject]@{ Item='Saúde estimada'; Value=if ($null -ne $battery.HealthPercent) { "$($battery.HealthPercent)% ($($battery.Rating))" } else { 'Indisponível' } }
+        [pscustomobject]@{ Item='Capacidade de projeto'; Value=if ($battery.DesignCapacityMWh -gt 0) { "$([math]::Round($battery.DesignCapacityMWh / 1000)) mAh (nominal)" } else { '—' } }
+        [pscustomobject]@{ Item='Carga completa atual'; Value=if ($battery.FullChargeCapacityMWh -gt 0) { "$([math]::Round($battery.FullChargeCapacityMWh / 1000)) mAh (nominal)" } else { '—' } }
+        [pscustomobject]@{ Item='Ciclos'; Value=if ($battery.CycleCount -gt 0) { [string]$battery.CycleCount } else { 'Não informado' } }
+        [pscustomobject]@{ Item='Método'; Value=if ($battery.Method) { $battery.Method } else { 'WMI / indisponível' } }
+        [pscustomobject]@{ Item='Observação'; Value=if ($battery.Note) { $battery.Note } else { '—' } }
+    )
+    $ui.BatteryGrid.ItemsSource = $rows
+    if (-not $battery.HasBattery) {
+        $ui.BatterySummary.Text = if ($battery.Note) { $battery.Note } else { 'Nenhuma bateria detectada.' }
+    } elseif ($null -ne $battery.HealthPercent) {
+        $cycles = if ($battery.CycleCount -gt 0) { $battery.CycleCount } else { 'não informado' }
+        $ui.BatterySummary.Text = "Saúde estimada: $($battery.HealthPercent)% — $($battery.Rating). Ciclos: $cycles."
+    } else {
+        $ui.BatterySummary.Text = 'Bateria detectada; capacidade de projeto não informada pelo fabricante.'
+    }
+    $script:diagnostics = @($script:diagnostics | Where-Object { $_.Area -ne 'Bateria' }) + @($rows | ForEach-Object { [pscustomobject]@{ Area='Bateria'; Item=$_.Item; Value=$_.Value } })
+}
+function Update-DiskView {
+    if ($null -eq $script:disks) { return }
+    $ui.DiskGrid.ItemsSource = @($script:disks.Disks)
+    $ui.VolumeGrid.ItemsSource = @($script:disks.Volumes)
+    $diskRows = New-Object 'System.Collections.Generic.List[object]'
+    foreach ($disk in @($script:disks.Disks)) {
+        $diskRows.Add([pscustomobject]@{ Area='Discos'; Item=[string]$disk.Device; Value=('{0} • {1} • {2} • {3} • Horas: {4} • Desgaste: {5}' -f $disk.Media, $disk.Rating, $disk.Size, $disk.Temperature, $disk.PowerOnHours, $disk.Wear) })
+    }
+    foreach ($volume in @($script:disks.Volumes)) {
+        $diskRows.Add([pscustomobject]@{ Area='Discos'; Item=('Volume ' + $volume.Letter); Value=('Livre {0} de {1} • {2}' -f $volume.Free, $volume.Total, $volume.Health) })
+    }
+    if ($script:disks.Note) { $diskRows.Add([pscustomobject]@{ Area='Discos'; Item='Observação'; Value=$script:disks.Note }) }
+    $script:diagnostics = @($script:diagnostics | Where-Object { $_.Area -ne 'Discos' }) + $diskRows.ToArray()
+    $ui.HealthNote.Text = if ($script:disks.Note) { $script:disks.Note } else { 'Contadores SMART variam por fabricante e controladora. Ausência de leitura não significa disco saudável.' }
+}
+function Update-AppxGrid {
+    $rows = if ($ui.AppxBloatOnly.IsChecked) { @($script:appx | Where-Object Suggested) } else { @($script:appx) }
+    $ui.AppxGrid.ItemsSource = $rows
+    if (@($script:appx).Count -eq 0) {
+        $ui.AppxSummary.Text = 'Nenhum inventário carregado. Clique em "Listar aplicativos instalados".'
+    } else {
+        $suggested = @($script:appx | Where-Object Suggested).Count
+        $ui.AppxSummary.Text = "$(@($rows).Count) aplicativos exibidos • $suggested sugestões de remoção • reavalie antes de remover."
+    }
+}
+function Update-ConnectionNote {
+    if ($script:isAdmin) {
+        $ui.OptimizationNote.Text = 'Executando como administrador: todas as ações abaixo estão disponíveis. Ainda assim, cada uma exige confirmação.'
+    } else {
+        $ui.OptimizationNote.Text = 'Sem elevação: remover aplicativos do usuário funciona; ações marcadas com Admin falham com explicação e nada é alterado.'
+    }
 }
 function Start-Work([string]$Operation, $Payload) {
     if ($null -ne $script:worker) { return }
@@ -38,6 +103,16 @@ function Start-Work([string]$Operation, $Payload) {
                 'Scan' { $State.Result = Get-OptimizerScan -State $State }
                 'Clean' { $State.Result = Invoke-OptimizerCleanup -Scan $Payload.Scan -CategoryIds $Payload.Ids -State $State -Confirm:$false }
                 'Diagnose' { $State.Message = 'Consultando hardware e Windows...'; $State.Result = @(Get-OptimizerDiagnostics) }
+                'Health' {
+                    $State.Message = 'Lendo bateria...'; $batteryResult = Get-OptimizerBatteryHealth
+                    $State.Message = 'Lendo discos e volumes...'; $diskResult = Get-OptimizerDiskHealth
+                    $State.Result = [pscustomobject]@{ Battery=$batteryResult; Disks=$diskResult }
+                }
+                'Drivers' { $State.Message = 'Inventariando drivers...'; $State.Result = @(Get-OptimizerDrivers) }
+                'DriverUpdates' { $State.Message = 'Consultando drivers no Windows Update...'; $State.Result = Get-OptimizerDriverUpdates }
+                'Appx' { $State.Message = 'Listando aplicativos instalados...'; $State.Result = @(Get-OptimizerAppInventory) }
+                'RemoveAppx' { $State.Message = 'Removendo aplicativos selecionados...'; $State.Result = @(Invoke-OptimizerAppRemoval -PackageFullNames $Payload.Names -Confirm:$false) }
+                'Optimize' { $State.Message = 'Aplicando otimizações selecionadas...'; $State.Result = @(Invoke-OptimizerOptimization -Ids $Payload.Ids -Confirm:$false) }
             }
         } catch { $State.Error = $_.Exception.Message }
     }).AddArgument($script:modulePath).AddArgument($Operation).AddArgument($Payload).AddArgument($script:state)
@@ -73,6 +148,63 @@ $timer.Add_Tick({
                 $ui.Categories.ItemsSource = @()
             }
             'Diagnose' { $script:diagnostics = @($script:state.Result); $ui.DiagnosticsGrid.ItemsSource = $script:diagnostics; $ui.Status.Text = 'Diagnóstico concluído. Confira itens indisponíveis e observações.' }
+            'Health' {
+                $script:battery = $script:state.Result.Battery
+                $script:disks = $script:state.Result.Disks
+                Update-BatteryView
+                Update-DiskView
+                $ui.Status.Text = 'Saúde consultada. Confira saúde da bateria, contadores SMART e espaço dos volumes.'
+            }
+            'Drivers' {
+                $drivers = @($script:state.Result)
+                $ui.DriverGrid.ItemsSource = $drivers
+                $old = @($drivers | Where-Object Status -eq 'Driver antigo').Count
+                $unsigned = @($drivers | Where-Object Status -eq 'Não assinado').Count
+                $ui.DriverSummary.Text = "$($drivers.Count) drivers listados • $($old) para verificação • $($unsigned) não assinados. A consulta não instala nada."
+                $ui.Status.Text = 'Inventário de drivers concluído.'
+            }
+            'DriverUpdates' {
+                $script:driverUpdates = $script:state.Result
+                if ($script:driverUpdates.Error) {
+                    $ui.DriverUpdateGrid.ItemsSource = @()
+                    $ui.DriverSummary.Text = $script:driverUpdates.Error
+                    $ui.Status.Text = 'Consulta de drivers indisponível.'
+                } else {
+                    $ui.DriverUpdateGrid.ItemsSource = @($script:driverUpdates.Updates)
+                    $count = @($script:driverUpdates.Updates).Count
+                    $ui.DriverSummary.Text = if ($count -eq 0) { 'Nenhuma atualização de driver pendente no Windows Update.' } else { "$count atualizações de driver encontradas. Instale pelo Windows Update após revisar." }
+                    $ui.Status.Text = 'Consulta de drivers concluída. Nada foi instalado.'
+                }
+            }
+            'Appx' {
+                $script:appx = @($script:state.Result)
+                Update-AppxGrid
+                $ui.Status.Text = 'Aplicativos listados. Marque somente o que deseja remover.'
+            }
+            'RemoveAppx' {
+                $results = @($script:state.Result)
+                $removed = @($results | Where-Object Status -eq 'Removido')
+                $names = @($removed | ForEach-Object { $_.PackageFullName })
+                if ($names.Count -gt 0) { $script:appx = @($script:appx | Where-Object { $_.PackageFullName -notin $names }) }
+                Update-AppxGrid
+                $failed = @($results | Where-Object Status -eq 'Falhou')
+                $ui.Status.Text = "$($removed.Count) aplicativos removidos • $($failed.Count) falhas. Reinstale pela Microsoft Store se necessário."
+                if ($failed.Count -gt 0) { $ui.AppxNote.Text = (@($failed | Select-Object -First 6 | ForEach-Object { "$($_.Name): $($_.Detail)" }) -join ' | ') }
+            }
+            'Optimize' {
+                $results = @($script:state.Result)
+                foreach ($result in $results) {
+                    $entry = @($script:optimizations | Where-Object { $_.Id -eq $result.Id }) | Select-Object -First 1
+                    if ($null -ne $entry) { $entry.Selected = $false }
+                }
+                $ui.OptimizationGrid.Items.Refresh()
+                $applied = @($results | Where-Object Status -eq 'Aplicado').Count
+                $failed = @($results | Where-Object Status -eq 'Falhou')
+                $details = @($results | ForEach-Object { "$($_.Name): $($_.Status)" }) -join ' • '
+                $ui.OptimizationSummary.Text = "$applied aplicadas • $($failed.Count) falhas. $details"
+                if ($failed.Count -gt 0) { $ui.OptimizationNote.Text = (@($failed | ForEach-Object { "$($_.Name): $($_.Detail)" }) -join ' | ') }
+                $ui.Status.Text = 'Otimizações concluídas. Revise o resultado antes de repetir.'
+            }
         }
     } catch {
         $ui.Status.Text = 'Falha: ' + $_.Exception.Message
@@ -85,6 +217,46 @@ $ui.GoClean.Add_Click({ $ui.Pages.SelectedIndex = 1; Start-Work 'Scan' $null })
 $ui.DiagnoseHome.Add_Click({ $ui.Pages.SelectedIndex = 2; Start-Work 'Diagnose' $null })
 $ui.DiagnoseButton.Add_Click({ Start-Work 'Diagnose' $null })
 $ui.CancelButton.Add_Click({ $script:state.Cancel = $true; $ui.CancelButton.IsEnabled = $false; $ui.Status.Text = 'Interrompendo após o arquivo atual...' })
+$ui.CloseButton.Add_Click({ $window.Close() })
+$ui.HealthAnalyzeButton.Add_Click({ Start-Work 'Health' $null })
+$ui.HealthHome.Add_Click({ $ui.Pages.SelectedIndex = 3; Start-Work 'Health' $null })
+$ui.HealthShortcut.Add_Click({ $ui.Pages.SelectedIndex = 3 })
+$ui.MaintenanceShortcut.Add_Click({ $ui.Pages.SelectedIndex = 4 })
+$ui.BatteryReportButton.Add_Click({
+    $dialog = New-Object Microsoft.Win32.SaveFileDialog
+    $dialog.Filter = 'Relatório de bateria (*.html)|*.html'
+    $dialog.FileName = 'Bateria-' + $env:COMPUTERNAME + '-' + (Get-Date -Format 'yyyyMMdd-HHmm') + '.html'
+    if ($dialog.ShowDialog($window)) {
+        try {
+            $saved = Save-OptimizerBatteryReport -Path $dialog.FileName
+            $ui.Status.Text = 'Relatório de bateria salvo: ' + $saved
+        } catch { [void][Windows.MessageBox]::Show($window, $_.Exception.Message, 'Relatório não gerado', 'OK', 'Warning') }
+    }
+})
+$ui.DriverScanButton.Add_Click({ $ui.Pages.SelectedIndex = 4; $ui.MaintenanceTabs.SelectedIndex = 0; Start-Work 'Drivers' $null })
+$ui.DriverUpdatesButton.Add_Click({ $ui.Pages.SelectedIndex = 4; $ui.MaintenanceTabs.SelectedIndex = 0; Start-Work 'DriverUpdates' $null })
+$ui.AppxScanButton.Add_Click({ $ui.Pages.SelectedIndex = 4; $ui.MaintenanceTabs.SelectedIndex = 1; Start-Work 'Appx' $null })
+$ui.AppxBloatOnly.Add_Checked({ Update-AppxGrid })
+$ui.AppxBloatOnly.Add_Unchecked({ Update-AppxGrid })
+$ui.AppxRemoveButton.Add_Click({
+    [void]$ui.AppxGrid.CommitEdit([Windows.Controls.DataGridEditingUnit]::Cell, $true)
+    [void]$ui.AppxGrid.CommitEdit([Windows.Controls.DataGridEditingUnit]::Row, $true)
+    $selected = @($script:appx | Where-Object Selected)
+    if ($selected.Count -eq 0) { $ui.Status.Text = 'Marque pelo menos um aplicativo para remover.'; return }
+    $preview = (@($selected | Select-Object -First 8 | ForEach-Object { $_.Label }) -join ', ')
+    if ($selected.Count -gt 8) { $preview += ", +$($selected.Count - 8)" }
+    $answer = [Windows.MessageBox]::Show($window, "Remover $($selected.Count) aplicativos do usuário atual?`n`n$preview`n`nA remoção não apaga arquivos pessoais. Você pode reinstalar pela Microsoft Store.", 'Confirmar remoção', 'YesNo', 'Warning', 'No')
+    if ($answer -eq 'Yes') { Start-Work 'RemoveAppx' @{ Names=@($selected | ForEach-Object PackageFullName) } }
+})
+$ui.OptimizationRunButton.Add_Click({
+    [void]$ui.OptimizationGrid.CommitEdit([Windows.Controls.DataGridEditingUnit]::Cell, $true)
+    [void]$ui.OptimizationGrid.CommitEdit([Windows.Controls.DataGridEditingUnit]::Row, $true)
+    $selected = @($script:optimizations | Where-Object Selected)
+    if ($selected.Count -eq 0) { $ui.Status.Text = 'Marque pelo menos uma otimização.'; return }
+    $preview = (@($selected | ForEach-Object { $_.Name }) -join "`n")
+    $answer = [Windows.MessageBox]::Show($window, "Aplicar as ações abaixo?`n`n$preview`n`nAções que exigem administrador podem falhar sem elevação.", 'Confirmar otimizações', 'YesNo', 'Warning', 'No')
+    if ($answer -eq 'Yes') { Start-Work 'Optimize' @{ Ids=@($selected | ForEach-Object Id) } }
+})
 $ui.CleanButton.Add_Click({
     [void]$ui.Categories.CommitEdit([Windows.Controls.DataGridEditingUnit]::Cell, $true)
     [void]$ui.Categories.CommitEdit([Windows.Controls.DataGridEditingUnit]::Row, $true)
@@ -147,13 +319,15 @@ $window.Add_PreviewKeyDown({
         $ui.Status.Text = 'Interrompendo após o arquivo atual...'
     } elseif ($keyArgs.Key -eq [Windows.Input.Key]::E -and [Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control -and $ui.ExportButton.IsEnabled) {
         $keyArgs.Handled = $true
-        $ui.Pages.SelectedIndex = 4
+        $ui.Pages.SelectedIndex = 5
         $ui.ExportButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
     }
 })
 $toolActions = @{
     StartupTool='ms-settings:startupapps'; AppsTool='ms-settings:appsfeatures'; StorageTool='ms-settings:storagesense'; SecurityTool='windowsdefender:'
     DiskTool='dfrgui.exe'; RestoreTool='SystemPropertiesProtection.exe'; EventsTool='eventvwr.msc'; TaskTool='taskmgr.exe'
+    OptionalFeaturesTool='optionalfeatures.exe'; WindowsUpdateTool='ms-settings:windowsupdate'; PowerOptionsTool='powercfg.cpl'
+    SystemInfoTool='msinfo32.exe'; DriverUpdateTool='ms-settings:windowsupdate'; DeviceManagerTool='devmgmt.msc'
 }
 foreach ($name in $toolActions.Keys) {
     $ui[$name].Tag = $toolActions[$name]
@@ -163,9 +337,20 @@ foreach ($name in $toolActions.Keys) {
         catch { [void][Windows.MessageBox]::Show($window, $_.Exception.Message, 'Ferramenta indisponível', 'OK', 'Warning') }
     })
 }
+$script:optimizations = @(Get-OptimizerOptimizations | ForEach-Object {
+    [pscustomobject]@{ Id=$_.Id; Name=$_.Name; Description=$_.Description; Admin=if ($_.RequiresAdmin) { 'Sim' } else { 'Não' }; Selected=$false }
+})
+$ui.OptimizationGrid.ItemsSource = $script:optimizations
+Update-ConnectionNote
 $window.Add_Closing({
     param($closeSender, $closeArgs)
-    if ($null -ne $closeSender -and $null -ne $script:worker) { $closeArgs.Cancel = $true; $script:state.Cancel = $true; $ui.Status.Text = 'Aguarde a operação terminar antes de fechar. A interrupção foi solicitada.' }
+    if ($null -eq $closeSender -or $null -eq $script:worker) { return }
+    $answer = [Windows.MessageBox]::Show($window, 'Há uma operação em andamento. Deseja interromper e fechar?', 'Fechar PC Optimizer', 'YesNo', 'Warning', 'No')
+    if ($answer -ne 'Yes') { $closeArgs.Cancel = $true; return }
+    $script:state.Cancel = $true
+    $timer.Stop()
+    try { $script:worker.Stop(); $script:worker.Dispose() } catch { Write-Verbose 'Falha ao encerrar o runspace.' }
+    $script:worker = $null
 })
 if ($ValidateUI) {
     if ($PreviewPath) {
@@ -210,6 +395,10 @@ if ($ValidateUI) {
         $window.Close()
         if (Test-Path $fixture) { Remove-Item -LiteralPath $fixture -Recurse -Force }
     }
+    foreach ($required in @('CloseButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','HealthAnalyzeButton','BatteryReportButton')) {
+        if ($null -eq $ui[$required]) { throw "Controle ausente na interface: $required" }
+    }
+    if (@($ui.OptimizationGrid.Items).Count -lt 5) { throw 'Catálogo de otimizações não foi carregado.' }
     Write-Output 'WPF layout, bindings, asynchronous scan and cleanup passed.'
     return
 }
