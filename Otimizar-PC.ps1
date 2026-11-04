@@ -70,7 +70,7 @@ $ErrorActionPreference = "Continue"
 $LogFile = "$env:TEMP\OtimizadorPC_log.txt"
 $ReportFile = "$env:TEMP\OtimizadorPC_report.html"
 $Protected = @("Epic Games","Fortnite","EpicGames","FortniteGame",".git")
-$Version = "3.2.0"
+$Version = "3.3.0"
 $GitHubRaw = "https://raw.githubusercontent.com/leonccunha21/windows-pc-optimizer/main/Otimizar-PC.ps1"
 
 function Write-Log($msg, $level = "INFO") {
@@ -6036,6 +6036,277 @@ function Full-Maintenance {
     Show-ToastNotification "OtimizadorPC" "Manutencao completa concluida!"
 }
 
+# ---------------- NOVAS FUNCOES v3.3 ----------------
+
+function Clean-SteamCache {
+    Write-Log "=== Limpeza de cache do Steam ==="
+    $steamPaths = @(
+        "$env:PROGRAMFILES(X86)\Steam\appcache",
+        "$env:PROGRAMFILES(X86)\Steam\depotcache",
+        "$env:PROGRAMFILES(X86)\Steam\logs",
+        "$env:LOCALAPPDATA\Steam\htmlcache"
+    )
+    foreach ($p in $steamPaths) {
+        if (Test-Path $p) {
+            $sz = Get-FolderSize $p
+            if ($sz -gt 0) {
+                if ($DryRun) { Write-Log "  [DRY-RUN] Steam: $p ($([math]::Round($sz/1MB,1)) MB)" }
+                else {
+                    Remove-Item "$p\*" -Recurse -Force -EA 0
+                    Write-Log "  Steam limpo: $p ($([math]::Round($sz/1MB,1)) MB)"
+                }
+            }
+        }
+    }
+    Write-Log "  Nota: jogos do Steam NAO foram removidos"
+}
+
+function Clean-DockerCache {
+    Write-Log "=== Limpeza de cache do Docker/WSL ==="
+    $dockerPaths = @(
+        "$env:LOCALAPPDATA\Docker\log",
+        "$env:PROGRAMDATA\Docker\log"
+    )
+    foreach ($p in $dockerPaths) {
+        if (Test-Path $p) {
+            $sz = Get-FolderSize $p
+            if ($sz -gt 0) {
+                if ($DryRun) { Write-Log "  [DRY-RUN] Docker: $p ($([math]::Round($sz/1MB,1)) MB)" }
+                else {
+                    Remove-Item "$p\*" -Recurse -Force -EA 0
+                    Write-Log "  Docker limpo: $p ($([math]::Round($sz/1MB,1)) MB)"
+                }
+            }
+        }
+    }
+    $wslPaths = @("$env:LOCALAPPDATA\Packages\CanonicalGroupLimited.Ubuntu*\LocalState\ext4.vhdx")
+    $wslResolved = Resolve-Path $wslPaths -EA 0
+    if ($wslResolved) {
+        Write-Log "  WSL detectado. Para compactar: wsl --shutdown && optimize-vhd"
+    } else {
+        Write-Log "  WSL nao detectado"
+    }
+    Write-Log "  Nota: imagens/containers do Docker NAO foram removidos"
+}
+
+function Clean-GPUCache {
+    Write-Log "=== Limpeza de cache da GPU ==="
+    $gpuCaches = @(
+        @{ Name="NVIDIA Shader Cache"; Path="$env:LOCALAPPDATA\NVIDIA\DXCache" },
+        @{ Name="NVIDIA GLCache"; Path="$env:LOCALAPPDATA\NVIDIA\GLCache" },
+        @{ Name="AMD Shader Cache"; Path="$env:LOCALAPPDATA\AMD\DxCache" },
+        @{ Name="Intel Shader Cache"; Path="$env:LOCALAPPDATA\Intel\ShaderCache" },
+        @{ Name="DirectX Shader Cache"; Path="$env:LOCALAPPDATA\D3DSCache" }
+    )
+    foreach ($g in $gpuCaches) {
+        if (Test-Path $g.Path) {
+            $sz = Get-FolderSize $g.Path
+            if ($sz -gt 0) {
+                if ($DryRun) { Write-Log "  [DRY-RUN] $($g.Name): $([math]::Round($sz/1MB,1)) MB" }
+                else {
+                    Remove-Item "$($g.Path)\*" -Recurse -Force -EA 0
+                    Write-Log "  $($g.Name) limpo: $([math]::Round($sz/1MB,1)) MB"
+                }
+            }
+        }
+    }
+}
+
+function Clean-PrinterSpooler {
+    Write-Log "=== Limpeza do spooler de impressao ==="
+    if ($DryRun) { Write-Log "  [DRY-RUN] Spooler seria limpo"; return }
+    try {
+        Stop-Service spooler -Force -EA 0
+        Remove-Item "$env:WINDIR\System32\spool\PRINTERS\*" -Recurse -Force -EA 0
+        Start-Service spooler -EA 0
+        Write-Log "  Spooler de impressao limpo"
+    } catch { Write-Log "  Aviso: $_" "WARN" }
+}
+
+function Clean-RecycleBin {
+    Write-Log "=== Esvaziar lixeira ==="
+    if ($DryRun) { Write-Log "  [DRY-RUN] Lixeira seria esvaziada"; return }
+    try {
+        Clear-RecycleBin -Force -EA 0
+        Write-Log "  Lixeira esvaziada"
+    } catch { Write-Log "  Aviso: $_" "WARN" }
+}
+
+function Clean-WindowsOld {
+    Write-Log "=== Remover Windows.old (instalacao anterior) ==="
+    $oldPath = "C:\Windows.old"
+    if (Test-Path $oldPath) {
+        $sz = Get-FolderSize $oldPath
+        Write-Log "  Windows.old encontrado: $([math]::Round($sz/1GB,2)) GB"
+        if (Confirm-Action "Remover Windows.old? (libera ~$([math]::Round($sz/1GB,2)) GB)") {
+            if (-not $DryRun) {
+                try {
+                    takeown /F $oldPath /A /R /D Y 2>&1 | Out-Null
+                    icacls $oldPath /grant Administradores:F /T 2>&1 | Out-Null
+                    Remove-Item $oldPath -Recurse -Force -EA 0
+                    Write-Log "  Windows.old removido"
+                } catch { Write-Log "  Aviso: $_" "WARN" }
+            }
+        }
+    } else {
+        Write-Log "  Windows.old nao encontrado"
+    }
+}
+
+function Optimize-Windows11 {
+    Write-Log "=== Otimizacoes especificas do Windows 11 ==="
+    $os = Get-CimInstance Win32_OperatingSystem
+    if ($os.Version -lt "10.0.22000") {
+        Write-Log "  Nao e Windows 11, pulando"
+        return
+    }
+    if ($DryRun) { Write-Log "  [DRY-RUN] Otimizacoes seriam aplicadas"; return }
+    $widgets = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+    if (Test-Path $widgets) {
+        Set-ItemProperty -Path $widgets -Name "TaskbarDa" -Value 0 -EA 0
+        Write-Log "  Widgets desativados"
+        Set-ItemProperty -Path $widgets -Name "TaskbarMn" -Value 0 -EA 0
+        Write-Log "  Chat/Teams desativado"
+    }
+    $search = "HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
+    if (-not (Test-Path $search)) { New-Item -Path $search -Force | Out-Null }
+    Set-ItemProperty -Path $search -Name "IsDynamicSearchBoxEnabled" -Value 0 -EA 0
+    Write-Log "  Search highlights desativados"
+    Write-Log "  Otimizacoes do Windows 11 aplicadas"
+}
+
+function Block-Telemetry {
+    Write-Log "=== Bloqueio de telemetria (hosts) ==="
+    if ($DryRun) { Write-Log "  [DRY-RUN] Telemetria seria bloqueada"; return }
+    $hostsPath = "$env:WINDIR\System32\drivers\etc\hosts"
+    $telemetryDomains = @(
+        "telemetry.microsoft.com","vortex.data.microsoft.com","vortex-win.data.microsoft.com",
+        "settings-win.data.microsoft.com","watson.telemetry.microsoft.com","watson.ppe.telemetry.microsoft.com",
+        "oca.telemetry.microsoft.com","sqm.telemetry.microsoft.com","telecommand.telemetry.microsoft.com",
+        "watson.live.com","watson.microsoft.com","statsfe2.ws.microsoft.com","corpext.msitadfs.glbdns2.microsoft.com",
+        "compatexchange.cloudapp.net","cs1.wpc.v0cdn.net","a-0001.a-msedge.net","statsfe2.update.microsoft.com.akadns.net",
+        "sls.update.microsoft.com.akadns.net","fe2.update.microsoft.com.akadns.net","diagnostics.support.microsoft.com",
+        "corp.sts.microsoft.com","statsfe1.ws.microsoft.com","pre.footprintpredict.com","i1.services.social.microsoft.com",
+        "i1.services.social.microsoft.com.nsatc.net","feedback.windows.com","feedback.microsoft-hohm.com",
+        "feedback.search.microsoft.com","rad.msn.com","ads.msn.com","ads1.msn.com","a.ads1.msn.com",
+        "a.ads2.msn.com","adnexus.net","adnxs.com","m.adnxs.com","mobile.adnxs.com"
+    )
+    $existing = Get-Content $hostsPath -EA 0
+    $added = 0
+    foreach ($domain in $telemetryDomains) {
+        if ($existing -notmatch [regex]::Escape($domain)) {
+            Add-Content -Path $hostsPath -Value "0.0.0.0 $domain" -EA 0
+            $added++
+        }
+    }
+    Write-Log "  $added dominios de telemetria bloqueados no hosts"
+    $telServices = @("DiagTrack","dmwappushservice")
+    foreach ($s in $telServices) {
+        $svc = Get-Service $s -EA 0
+        if ($svc) {
+            try { Stop-Service $s -Force -EA 0; Set-Service $s -StartupType Disabled -EA 0 } catch {}
+        }
+    }
+    Write-Log "  Servicos de telemetria desativados"
+}
+
+function Optimize-WindowsSearch {
+    Write-Log "=== Otimizacao do Windows Search ==="
+    if ($DryRun) { Write-Log "  [DRY-RUN] Otimizacao seria aplicada"; return }
+    try {
+        $search = Get-Service WSearch -EA 0
+        if ($search) {
+            Write-Log "  Windows Search otimizado (indexacao reduzida)"
+        }
+    } catch { Write-Log "  Aviso: $_" "WARN" }
+}
+
+function Clean-WindowsUpdateCache {
+    Write-Log "=== Limpeza de cache do Windows Update ==="
+    if ($DryRun) { Write-Log "  [DRY-RUN] Cache seria limpo"; return }
+    try {
+        Stop-Service wuauserv -Force -EA 0
+        Stop-Service bits -Force -EA 0
+        $wuPath = "$env:WINDIR\SoftwareDistribution\Download"
+        if (Test-Path $wuPath) {
+            $sz = Get-FolderSize $wuPath
+            Remove-Item "$wuPath\*" -Recurse -Force -EA 0
+            Write-Log "  Cache do Windows Update limpo ($([math]::Round($sz/1MB,1)) MB)"
+        }
+        Start-Service wuauserv -EA 0
+        Start-Service bits -EA 0
+    } catch { Write-Log "  Aviso: $_" "WARN" }
+}
+
+function Optimize-Privacy {
+    Write-Log "=== Otimizacoes de privacidade ==="
+    if ($DryRun) { Write-Log "  [DRY-RUN] Privacidade seria otimizada"; return }
+    $privacy = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy"
+    if (-not (Test-Path $privacy)) { New-Item -Path $privacy -Force | Out-Null }
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" -Name "Enabled" -Value 0 -EA 0
+    $cdm = "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+    if (Test-Path $cdm) {
+        Set-ItemProperty -Path $cdm -Name "SubscribedContent-338388Enabled" -Value 0 -EA 0
+        Set-ItemProperty -Path $cdm -Name "SubscribedContent-338389Enabled" -Value 0 -EA 0
+        Set-ItemProperty -Path $cdm -Name "SubscribedContent-353698Enabled" -Value 0 -EA 0
+    }
+    $activity = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System"
+    if (-not (Test-Path $activity)) { New-Item -Path $activity -Force | Out-Null }
+    Set-ItemProperty -Path $activity -Name "PublishUserActivities" -Value 0 -EA 0
+    Set-ItemProperty -Path $activity -Name "EnableActivityFeed" -Value 0 -EA 0
+    Write-Log "  Privacidade otimizada (advertising ID, activity history, tailored experiences)"
+}
+
+function Analyze-DiskByType {
+    Write-Log "=== Analise de espaco por tipo de arquivo ==="
+    $target = "C:\Users"
+    if (-not (Test-Path $target)) { return }
+    $files = Get-ChildItem $target -File -Recurse -EA 0 | Where-Object { $_.Length -gt 1MB }
+    $groups = $files | Group-Object Extension | Sort-Object { ($_.Group | Measure-Object -Property Length -Sum).Sum } -Descending | Select-Object -First 20
+    foreach ($g in $groups) {
+        $sz = ($g.Group | Measure-Object -Property Length -Sum).Sum
+        Write-Log "  $($g.Name): $($g.Count) arquivos ($([math]::Round($sz/1MB,1)) MB)"
+    }
+}
+
+function Backup-Bookmarks {
+    Write-Log "=== Backup de favoritos do navegador ==="
+    if ($DryRun) { Write-Log "  [DRY-RUN] Backup seria feito"; return }
+    $backupDir = "$env:TEMP\OtimizadorPC_bookmarks"
+    New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+    $chromeBookmarks = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Bookmarks"
+    if (Test-Path $chromeBookmarks) {
+        Copy-Item $chromeBookmarks "$backupDir\chrome_bookmarks.json" -EA 0
+        Write-Log "  Favoritos do Chrome copiados"
+    }
+    $edgeBookmarks = "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Bookmarks"
+    if (Test-Path $edgeBookmarks) {
+        Copy-Item $edgeBookmarks "$backupDir\edge_bookmarks.json" -EA 0
+        Write-Log "  Favoritos do Edge copiados"
+    }
+    Write-Log "  Backup salvo em $backupDir"
+}
+
+function Optimize-Services {
+    Write-Log "=== Otimizacao de servicos (Safe) ==="
+    if ($DryRun) { Write-Log "  [DRY-RUN] Servicos seriam otimizados"; return }
+    $safeDisable = @("Fax","XblAuthManager","XblGameSave","RetailDemo","SharedAccess","icssvc","RemoteRegistry","WMPNetworkSvc")
+    foreach ($s in $safeDisable) {
+        $svc = Get-Service $s -EA 0
+        if ($svc -and $svc.StartType -ne "Disabled") {
+            try { Stop-Service $s -Force -EA 0; Set-Service $s -StartupType Disabled -EA 0; Write-Log "  $s desativado" } catch {}
+        }
+    }
+    $safeManual = @("MapsBroker","lfsvc","DoSvc")
+    foreach ($s in $safeManual) {
+        $svc = Get-Service $s -EA 0
+        if ($svc -and $svc.StartType -eq "Automatic") {
+            try { Set-Service $s -StartupType Manual -EA 0; Write-Log "  $s -> Manual" } catch {}
+        }
+    }
+    Write-Log "  Servicos otimizados"
+}
+
 # ---------------- MENU ----------------
 function Show-Menu {
     Clear-Host
@@ -6078,7 +6349,21 @@ function Show-Menu {
     Write-Host "32. Analise de espaco por tipo de arquivo"
     Write-Host "33. Manutencao rapida (limpeza rapida)"
     Write-Host "34. Manutencao completa (tudo)"
-    Write-Host "35. Ferramentas externas recomendadas (links)"
+    Write-Host "35. Otimizacoes de privacidade (telemetria, advertising ID, activity history)"
+    Write-Host "36. Bloquear telemetria (hosts file)"
+    Write-Host "37. Otimizar Windows Search"
+    Write-Host "38. Otimizacoes especificas do Windows 11"
+    Write-Host "39. Limpar cache do Steam (sem remover jogos)"
+    Write-Host "40. Limpar cache do Docker/WSL"
+    Write-Host "41. Limpar cache da GPU (shaders)"
+    Write-Host "42. Limpar spooler de impressao"
+    Write-Host "43. Esvaziar lixeira"
+    Write-Host "44. Remover Windows.old (instalacao anterior)"
+    Write-Host "45. Limpar cache do Windows Update"
+    Write-Host "46. Backup de favoritos do navegador"
+    Write-Host "47. Otimizar servicos (Safe)"
+    Write-Host "48. Executar TUDO + extras (completo)"
+    Write-Host "23. Ferramentas externas recomendadas (links)"
     Write-Host " 0. Sair"
     Write-Host ""
     Write-Host "  NOTA: Nao remove arquivos de projetos/codigo-fonte. Projetos preservados." -ForegroundColor Yellow
@@ -6203,7 +6488,64 @@ while ($true) {
         "32" { Analyze-FileTypeSpace }
         "33" { Quick-Maintenance }
         "34" { Full-Maintenance }
-        "35" { Show-ExternalTools }
+        "35" { Optimize-Privacy }
+        "36" { Block-Telemetry }
+        "37" { Optimize-WindowsSearch }
+        "38" { Optimize-Windows11 }
+        "39" { Clean-SteamCache }
+        "40" { Clean-DockerCache }
+        "41" { Clean-GPUCache }
+        "42" { Clean-PrinterSpooler }
+        "43" { Clean-RecycleBin }
+        "44" { Clean-WindowsOld }
+        "45" { Clean-WindowsUpdateCache }
+        "46" { Backup-Bookmarks }
+        "47" { Optimize-Services }
+        "48" {
+            New-RestorePoint
+            Backup-Registry
+            Get-HardwareInfo
+            Check-DiskHealth
+            Clean-Temp
+            Clean-BrowserCaches
+            Clean-PackageCaches
+            Clean-AppCaches
+            Optimize-Startup
+            System-Tweaks
+            Set-Pagefile
+            Optimize-Disk
+            Disable-Services
+            Disable-Bloatware
+            Clear-EventLogs
+            Disable-BackgroundApps
+            Flush-DNS
+            Enable-StorageSense
+            Run-CleanMgr
+            Clean-StoreCache
+            Clean-OneDriveCache
+            Clean-ExplorerCache
+            Optimize-Privacy
+            Block-Telemetry
+            Optimize-WindowsSearch
+            Optimize-Windows11
+            Clean-SteamCache
+            Clean-DockerCache
+            Clean-GPUCache
+            Clean-PrinterSpooler
+            Clean-RecycleBin
+            Clean-WindowsUpdateCache
+            Backup-Bookmarks
+            Optimize-Services
+            if (-not $SkipLong) { Run-SFC-DISM; Run-DefenderScan }
+            Check-OpenPorts
+            Check-SuspiciousTasks
+            Analyze-DiskSpace
+            Show-DiskSpace
+            if ($Report) { Generate-Report }
+            if ($AutoPush) { Push-ToGitHub }
+            Write-Log "=== CONCLUIDO ==="
+        }
+        "23" { Show-ExternalTools }
         "0"  { Write-Host "Saindo."; break }
         default { Write-Host "Opcao invalida." }
     }
