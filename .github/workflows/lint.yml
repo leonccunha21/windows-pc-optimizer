@@ -50,6 +50,13 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: ./Tests/Network.Smoke.ps1
+      - name: Historical Windows events offline regression tests
+        shell: pwsh
+        run: ./Tests/Events.Smoke.ps1
+      - name: Historical Windows events regression tests under PowerShell 5.1
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./Tests/Events.Smoke.ps1
       - name: Technician inventory and repair allowlist tests
         shell: pwsh
         run: ./Tests/Technician.Smoke.ps1
