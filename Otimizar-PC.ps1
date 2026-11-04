@@ -70,7 +70,7 @@ $ErrorActionPreference = "Continue"
 $LogFile = "$env:TEMP\OtimizadorPC_log.txt"
 $ReportFile = "$env:TEMP\OtimizadorPC_report.html"
 $Protected = @("Epic Games","Fortnite","EpicGames","FortniteGame",".git")
-$Version = "3.1.0"
+$Version = "3.2.0"
 $GitHubRaw = "https://raw.githubusercontent.com/leonccunha21/windows-pc-optimizer/main/Otimizar-PC.ps1"
 
 function Write-Log($msg, $level = "INFO") {
@@ -5902,6 +5902,140 @@ function Show-DiskSpace {
     }
 }
 
+# ---------------- NOVAS FUNCOES (v3.2) ----------------
+
+function Check-Temperatures {
+    Write-Log "=== Temperatura do sistema ==="
+    try {
+        $temps = Get-CimInstance -Namespace "root\WMI" -ClassName "MSAcpi_ThermalZoneTemperature" -EA 0
+        if ($temps) {
+            foreach ($t in $temps) {
+                $celsius = [math]::Round(($t.CurrentTemperature - 2732) / 10, 1)
+                $status = if ($celsius -gt 80) { "QUENTE" } elseif ($celsius -gt 60) { "MORNO" } else { "OK" }
+                Write-Log "  $($t.InstanceName): ${celsius}C ($status)"
+            }
+        } else {
+            Write-Log "  Sensores de temperatura nao disponiveis via WMI"
+            Write-Log "  Use HWiNFO ou MSI Afterburner para monitoramento detalhado"
+        }
+    } catch { Write-Log "  Nao foi possivel ler temperaturas: $_" "WARN" }
+}
+
+function Clean-ExplorerCache {
+    Write-Log "=== Limpeza de cache do Explorer ==="
+    if ($DryRun) { Write-Log "  [DRY-RUN] Cache seria limpo"; return }
+    try {
+        Stop-Process -Name explorer -Force -EA 0
+        Remove-Item "$env:LOCALAPPDATA\Microsoft\Windows\Explorer\*cache*" -Force -EA 0
+        Remove-Item "$env:LOCALAPPDATA\IconCache.db" -Force -EA 0
+        Start-Process explorer
+        Write-Log "  Cache do Explorer limpo"
+    } catch { Write-Log "  Aviso: $_" "WARN" }
+}
+
+function Check-DiskIntegrity {
+    Write-Log "=== Verificacao de integridade do disco (chkdsk) ==="
+    if ($DryRun) { Write-Log "  [DRY-RUN] chkdsk seria agendado"; return }
+    try {
+        $result = chkdsk C: /scan 2>&1
+        $result | ForEach-Object { Write-Log "  $_" }
+        Write-Log "  Verificacao de disco concluida"
+    } catch { Write-Log "  Aviso: $_" "WARN" }
+}
+
+function Kill-HighCPU {
+    Write-Log "=== Processos com alto uso de CPU ==="
+    $procs = Get-Process -EA 0 | Where-Object { $_.CPU -gt 50 } | Sort-Object CPU -Descending | Select-Object -First 10
+    if ($procs) {
+        foreach ($p in $procs) {
+            Write-Log "  $($p.Name) (PID $($p.Id)): CPU $([math]::Round($p.CPU,1))s, Mem $([math]::Round($p.WorkingSet64/1MB,1)) MB"
+        }
+        if (Confirm-Action "Encerrar processos com alto CPU?") {
+            if (-not $DryRun) {
+                $procs | ForEach-Object { Stop-Process -Id $_.Id -Force -EA 0; Write-Log "  Encerrado: $($_.Name)" }
+            }
+        }
+    } else {
+        Write-Log "  Nenhum processo com alto uso de CPU"
+    }
+}
+
+function Show-ToastNotification {
+    param([string]$Title, [string]$Message)
+    try {
+        [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
+        $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)
+        $textNodes = $template.GetElementsByTagName("text")
+        $textNodes.Item(0).AppendChild($template.CreateTextNode($Title)) | Out-Null
+        $textNodes.Item(1).AppendChild($template.CreateTextNode($Message)) | Out-Null
+        $toast = [Windows.UI.Notifications.ToastNotification]::new($template)
+        [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("OtimizadorPC").Show($toast)
+    } catch {
+        # Fallback: balloon tip
+        try {
+            $notify = New-Object System.Windows.Forms.NotifyIcon
+            $notify.Icon = [System.Drawing.SystemIcons]::Information
+            $notify.BalloonTipTitle = $Title
+            $notify.BalloonTipText = $Message
+            $notify.Visible = $true
+            $notify.ShowBalloonTip(5000)
+            Start-Sleep -Seconds 1
+            $notify.Dispose()
+        } catch {}
+    }
+}
+
+function Analyze-FileTypeSpace {
+    Write-Log "=== Analise de espaco por tipo de arquivo (Downloads) ==="
+    $target = "$env:USERPROFILE\Downloads"
+    if (-not (Test-Path $target)) { return }
+    $files = Get-ChildItem $target -File -Recurse -EA 0
+    $groups = $files | Group-Object Extension | Sort-Object { ($_.Group | Measure-Object -Property Length -Sum).Sum } -Descending | Select-Object -First 15
+    foreach ($g in $groups) {
+        $sz = ($g.Group | Measure-Object -Property Length -Sum).Sum
+        Write-Log "  $($g.Name): $($g.Count) arquivos ($([math]::Round($sz/1MB,1)) MB)"
+    }
+}
+
+function Quick-Maintenance {
+    Write-Log "=== Manutencao rapida ==="
+    Clean-Temp
+    Clean-BrowserCaches
+    Clear-EventLogs
+    Flush-DNS
+    Optimize-Disk
+    Write-Log "=== Manutencao rapida concluida ==="
+    Show-ToastNotification "OtimizadorPC" "Manutencao rapida concluida!"
+}
+
+function Full-Maintenance {
+    Write-Log "=== Manutencao completa ==="
+    New-RestorePoint
+    Backup-Registry
+    Get-HardwareInfo
+    Check-DiskHealth
+    Clean-Temp
+    Clean-BrowserCaches
+    Clean-PackageCaches
+    Clean-AppCaches
+    Optimize-Startup
+    System-Tweaks
+    Set-Pagefile
+    Optimize-Disk
+    Clear-EventLogs
+    Disable-BackgroundApps
+    Flush-DNS
+    Enable-StorageSense
+    Run-CleanMgr
+    Clean-StoreCache
+    Clean-OneDriveCache
+    if (-not $SkipLong) { Run-SFC-DISM; Run-DefenderScan }
+    Analyze-DiskSpace
+    Show-DiskSpace
+    Write-Log "=== Manutencao completa concluida ==="
+    Show-ToastNotification "OtimizadorPC" "Manutencao completa concluida!"
+}
+
 # ---------------- MENU ----------------
 function Show-Menu {
     Clear-Host
@@ -5937,6 +6071,14 @@ function Show-Menu {
     Write-Host "25. Executar TUDO (recomendado)"
     Write-Host "26. Self-update (verificar nova versao no GitHub)"
     Write-Host "27. Auto-push para GitHub"
+    Write-Host "28. Verificar temperaturas (CPU/GPU)"
+    Write-Host "29. Limpar cache do Explorer"
+    Write-Host "30. Verificar integridade do disco (chkdsk)"
+    Write-Host "31. Encerrar processos com alto CPU"
+    Write-Host "32. Analise de espaco por tipo de arquivo"
+    Write-Host "33. Manutencao rapida (limpeza rapida)"
+    Write-Host "34. Manutencao completa (tudo)"
+    Write-Host "35. Ferramentas externas recomendadas (links)"
     Write-Host " 0. Sair"
     Write-Host ""
     Write-Host "  NOTA: Nao remove arquivos de projetos/codigo-fonte. Projetos preservados." -ForegroundColor Yellow
@@ -5979,6 +6121,7 @@ if ($Auto) {
     Clean-OneDriveCache
     Clean-Duplicates
     Clean-LargeFiles
+    Clean-ExplorerCache
     if (-not $SkipLong) { Run-SFC-DISM; Run-DefenderScan }
     Check-OpenPorts
     Check-SuspiciousTasks
@@ -6053,6 +6196,14 @@ while ($true) {
         }
         "26" { Invoke-SelfUpdate }
         "27" { Push-ToGitHub }
+        "28" { Check-Temperatures }
+        "29" { Clean-ExplorerCache }
+        "30" { Check-DiskIntegrity }
+        "31" { Kill-HighCPU }
+        "32" { Analyze-FileTypeSpace }
+        "33" { Quick-Maintenance }
+        "34" { Full-Maintenance }
+        "35" { Show-ExternalTools }
         "0"  { Write-Host "Saindo."; break }
         default { Write-Host "Opcao invalida." }
     }
