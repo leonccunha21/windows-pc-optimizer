@@ -1,9 +1,50 @@
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="PC Optimizer | Oficina Pro" Width="1120" Height="740" MinWidth="920" MinHeight="560" UseLayoutRounding="True" SnapsToDevicePixels="True" WindowStartupLocation="CenterScreen" WindowStyle="SingleBorderWindow" ResizeMode="CanResize" ShowInTaskbar="True" Background="#F3F6FA" FontFamily="Segoe UI" Foreground="#192C42">
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib" Title="PC Optimizer | Oficina Pro" Width="1120" Height="740" MinWidth="920" MinHeight="560" UseLayoutRounding="True" SnapsToDevicePixels="True" WindowStartupLocation="CenterScreen" WindowStyle="SingleBorderWindow" ResizeMode="CanResize" ShowInTaskbar="True" Background="{DynamicResource UiColorF3F6FA}" FontFamily="Segoe UI" Foreground="{DynamicResource UiColor192C42}">
  <Window.Resources>
+  <SolidColorBrush x:Key="UiColor0E887A" Color="#0E887A"/>
+  <SolidColorBrush x:Key="UiColor102638" Color="#102638"/>
+  <SolidColorBrush x:Key="UiColor117B6D" Color="#117B6D"/>
+  <SolidColorBrush x:Key="UiColor13283C" Color="#13283C"/>
+  <SolidColorBrush x:Key="UiColor192C42" Color="#192C42"/>
+  <SolidColorBrush x:Key="UiColor203C50" Color="#203C50"/>
+  <SolidColorBrush x:Key="UiColor23C6AA" Color="#23C6AA"/>
+  <SolidColorBrush x:Key="UiColor38BDF8" Color="#38BDF8"/>
+  <SolidColorBrush x:Key="UiColor40566C" Color="#40566C"/>
+  <SolidColorBrush x:Key="UiColor526B80" Color="#526B80"/>
+  <SolidColorBrush x:Key="UiColor5BD7C4" Color="#5BD7C4"/>
+  <SolidColorBrush x:Key="UiColor67DDC6" Color="#67DDC6"/>
+  <SolidColorBrush x:Key="UiColor6DE0D0" Color="#6DE0D0"/>
+  <SolidColorBrush x:Key="UiColor86A6C0" Color="#86A6C0"/>
+  <SolidColorBrush x:Key="UiColor99601E" Color="#99601E"/>
+  <SolidColorBrush x:Key="UiColor9BB5C7" Color="#9BB5C7"/>
+  <SolidColorBrush x:Key="UiColorC0392B" Color="#C0392B"/>
+  <SolidColorBrush x:Key="UiColorC7D5E2" Color="#C7D5E2"/>
+  <SolidColorBrush x:Key="UiColorD2E2EC" Color="#D2E2EC"/>
+  <SolidColorBrush x:Key="UiColorDCE6EF" Color="#DCE6EF"/>
+  <SolidColorBrush x:Key="UiColorE1E8F0" Color="#E1E8F0"/>
+  <SolidColorBrush x:Key="UiColorE2EDF5" Color="#E2EDF5"/>
+  <SolidColorBrush x:Key="UiColorE2F3EE" Color="#E2F3EE"/>
+  <SolidColorBrush x:Key="UiColorE7EDF3" Color="#E7EDF3"/>
+  <SolidColorBrush x:Key="UiColorE7EDF4" Color="#E7EDF4"/>
+  <SolidColorBrush x:Key="UiColorF3F6FA" Color="#F3F6FA"/>
+  <SolidColorBrush x:Key="UiColorF5D579" Color="#F5D579"/>
+  <SolidColorBrush x:Key="UiColorF7FAFC" Color="#F7FAFC"/>
+  <SolidColorBrush x:Key="UiColorFFF5DF" Color="#FFF5DF"/>
+  <SolidColorBrush x:Key="UiCardBrush" Color="#FFFFFF"/>
+  <sys:Double x:Key="UiFont10">10</sys:Double>
+  <sys:Double x:Key="UiFont11">11</sys:Double>
+  <sys:Double x:Key="UiFont15">15</sys:Double>
+  <sys:Double x:Key="UiFont18">18</sys:Double>
+  <sys:Double x:Key="UiFont19">19</sys:Double>
+  <sys:Double x:Key="UiFont20">20</sys:Double>
+  <sys:Double x:Key="UiFont22">22</sys:Double>
+  <sys:Double x:Key="UiFont23">23</sys:Double>
+  <sys:Double x:Key="UiFont24">24</sys:Double>
+  <sys:Double x:Key="UiFont28">28</sys:Double>
+  <sys:Double x:Key="UiRowHeight">38</sys:Double>
   <Style TargetType="Button">
    <Setter Property="Padding" Value="18,11"/>
    <Setter Property="Margin" Value="0,0,10,10"/>
-   <Setter Property="Background" Value="#117B6D"/>
+   <Setter Property="Background" Value="{DynamicResource UiColor117B6D}"/>
    <Setter Property="Foreground" Value="White"/>
    <Setter Property="BorderThickness" Value="0"/>
    <Setter Property="Cursor" Value="Hand"/>
@@ -17,7 +58,7 @@
       <ControlTemplate.Triggers>
        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Opacity" Value="0.85"/></Trigger>
        <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Surface" Property="Opacity" Value="0.4"/></Trigger>
-       <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="#38BDF8"/><Setter TargetName="Surface" Property="BorderThickness" Value="2"/></Trigger>
+       <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource UiColor38BDF8}"/><Setter TargetName="Surface" Property="BorderThickness" Value="2"/></Trigger>
       </ControlTemplate.Triggers>
      </ControlTemplate>
     </Setter.Value>
@@ -25,7 +66,7 @@
   </Style>
   <Style x:Key="SidebarNavButton" TargetType="Button">
    <Setter Property="Background" Value="Transparent"/>
-   <Setter Property="Foreground" Value="#E2EDF5"/>
+   <Setter Property="Foreground" Value="{DynamicResource UiColorE2EDF5}"/>
    <Setter Property="Padding" Value="13,11"/>
    <Setter Property="Margin" Value="0,0,0,7"/>
    <Setter Property="BorderThickness" Value="1"/>
@@ -38,8 +79,8 @@
      <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
     </Border>
     <ControlTemplate.Triggers>
-     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="NavigationSurface" Property="BorderBrush" Value="#5BD7C4"/></Trigger>
-     <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="NavigationSurface" Property="BorderBrush" Value="#F5D579"/><Setter TargetName="NavigationSurface" Property="BorderThickness" Value="2"/></Trigger>
+     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="NavigationSurface" Property="BorderBrush" Value="{DynamicResource UiColor5BD7C4}"/></Trigger>
+     <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="NavigationSurface" Property="BorderBrush" Value="{DynamicResource UiColorF5D579}"/><Setter TargetName="NavigationSurface" Property="BorderThickness" Value="2"/></Trigger>
      <Trigger Property="IsEnabled" Value="False"><Setter TargetName="NavigationSurface" Property="Opacity" Value="0.5"/></Trigger>
     </ControlTemplate.Triggers>
    </ControlTemplate></Setter.Value></Setter>
@@ -49,78 +90,98 @@
    <Setter Property="CornerRadius" Value="14"/>
    <Setter Property="Padding" Value="22"/>
    <Setter Property="Margin" Value="0,0,0,18"/>
-   <Setter Property="BorderBrush" Value="#E1E8F0"/>
+   <Setter Property="BorderBrush" Value="{DynamicResource UiColorE1E8F0}"/>
    <Setter Property="BorderThickness" Value="1"/>
   </Style>
+  <Style TargetType="ComboBox">
+   <Setter Property="Background" Value="{DynamicResource UiCardBrush}"/>
+   <Setter Property="Foreground" Value="{DynamicResource UiColor192C42}"/>
+   <Setter Property="Padding" Value="9,6"/>
+   <Setter Property="Margin" Value="0,6,0,14"/>
+  </Style>
+  <Style TargetType="CheckBox">
+   <Setter Property="Foreground" Value="{DynamicResource UiColor192C42}"/>
+   <Setter Property="Margin" Value="0,4,0,12"/>
+  </Style>
   <Style TargetType="TextBox">
+   <Setter Property="Background" Value="{DynamicResource UiCardBrush}"/>
+   <Setter Property="Foreground" Value="{DynamicResource UiColor192C42}"/>
    <Setter Property="Padding" Value="10"/>
-   <Setter Property="BorderBrush" Value="#C7D5E2"/>
+   <Setter Property="BorderBrush" Value="{DynamicResource UiColorC7D5E2}"/>
    <Setter Property="Margin" Value="0,5,0,14"/>
   </Style>
+  <Style TargetType="DataGridColumnHeader">
+   <Setter Property="Background" Value="{DynamicResource UiColorE7EDF4}"/>
+   <Setter Property="Foreground" Value="{DynamicResource UiColor192C42}"/>
+   <Setter Property="Padding" Value="8"/>
+   <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
   <Style TargetType="DataGrid">
+   <Setter Property="Foreground" Value="{DynamicResource UiColor192C42}"/>
    <Setter Property="AutoGenerateColumns" Value="False"/>
    <Setter Property="CanUserAddRows" Value="False"/>
    <Setter Property="CanUserDeleteRows" Value="False"/>
    <Setter Property="HeadersVisibility" Value="Column"/>
    <Setter Property="RowHeight" Value="38"/>
    <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-   <Setter Property="HorizontalGridLinesBrush" Value="#E7EDF3"/>
+   <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource UiColorE7EDF3}"/>
    <Setter Property="BorderThickness" Value="0"/>
    <Setter Property="Background" Value="White"/>
-   <Setter Property="AlternatingRowBackground" Value="#F7FAFC"/>
+   <Setter Property="AlternatingRowBackground" Value="{DynamicResource UiColorF7FAFC}"/>
    <Setter Property="SelectionMode" Value="Single"/>
   </Style>
   <Style TargetType="TabItem">
    <Setter Property="Padding" Value="15,11"/>
    <Setter Property="Margin" Value="0,0,5,0"/>
-   <Setter Property="Foreground" Value="#192C42"/>
+   <Setter Property="Foreground" Value="{DynamicResource UiColor192C42}"/>
    <Setter Property="FontWeight" Value="SemiBold"/>
    <Setter Property="Template">
     <Setter.Value>
      <ControlTemplate TargetType="TabItem">
-      <Border x:Name="TabSurface" Background="#E7EDF4" CornerRadius="8" Padding="{TemplateBinding Padding}">
-       <ContentPresenter x:Name="TabHeader" ContentSource="Header" HorizontalAlignment="Center" TextElement.Foreground="#526B80"/>
+      <Border x:Name="TabSurface" Background="{DynamicResource UiColorE7EDF4}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+       <ContentPresenter x:Name="TabHeader" ContentSource="Header" HorizontalAlignment="Center" TextElement.Foreground="{DynamicResource UiColor526B80}"/>
       </Border>
       <ControlTemplate.Triggers>
-       <Trigger Property="IsSelected" Value="True"><Setter TargetName="TabSurface" Property="Background" Value="#13283C"/><Setter TargetName="TabHeader" Property="TextElement.Foreground" Value="White"/></Trigger>
-       <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="TabSurface" Property="BorderBrush" Value="#117B6D"/><Setter TargetName="TabSurface" Property="BorderThickness" Value="2"/></Trigger>
+       <Trigger Property="IsSelected" Value="True"><Setter TargetName="TabSurface" Property="Background" Value="{DynamicResource UiColor13283C}"/><Setter TargetName="TabHeader" Property="TextElement.Foreground" Value="White"/></Trigger>
+       <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="TabSurface" Property="BorderBrush" Value="{DynamicResource UiColor117B6D}"/><Setter TargetName="TabSurface" Property="BorderThickness" Value="2"/></Trigger>
       </ControlTemplate.Triggers>
      </ControlTemplate>
     </Setter.Value>
    </Setter>
   </Style>
  </Window.Resources>
- <Grid Background="#F3F6FA" TextElement.Foreground="#192C42">
+ <Grid Background="{DynamicResource UiColorF3F6FA}" TextElement.Foreground="{DynamicResource UiColor192C42}">
   <Grid.ColumnDefinitions><ColumnDefinition Width="212"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-  <Border Background="#13283C">
+  <Border Background="{DynamicResource UiColor13283C}">
    <Grid Margin="22,30">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel>
-     <Border Background="#23C6AA" CornerRadius="12" Width="48" Height="48" HorizontalAlignment="Left"><TextBlock Text="PC" Foreground="#102638" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-     <TextBlock Text="PC Optimizer" FontSize="23" FontWeight="Bold" Foreground="White" Margin="0,18,0,5"/>
-     <TextBlock Text="CENTRAL DE MANUTENÇÃO" FontSize="10" Foreground="#86A6C0"/>
+     <Border Background="{DynamicResource UiColor23C6AA}" CornerRadius="12" Width="48" Height="48" HorizontalAlignment="Left"><TextBlock Text="PC" Foreground="{DynamicResource UiColor102638}" FontSize="{DynamicResource UiFont22}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+     <TextBlock Text="PC Optimizer" FontSize="{DynamicResource UiFont23}" FontWeight="Bold" Foreground="White" Margin="0,18,0,5"/>
+     <TextBlock Text="CENTRAL DE MANUTENÇÃO" FontSize="{DynamicResource UiFont10}" Foreground="{DynamicResource UiColor86A6C0}"/>
     </StackPanel>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,26,0,16" KeyboardNavigation.TabNavigation="Continue">
      <StackPanel>
-      <TextBlock Text="NAVEGAÇÃO" FontSize="10" Foreground="#9BB5C7" Margin="0,0,0,14" FontWeight="SemiBold"/>
-      <Button x:Name="NavOverview" Style="{StaticResource SidebarNavButton}" Background="#0E887A" Content="Visão geral" ToolTip="Ctrl+1" AutomationProperties.Name="Visão geral" />
+      <TextBlock Text="NAVEGAÇÃO" FontSize="{DynamicResource UiFont10}" Foreground="{DynamicResource UiColor9BB5C7}" Margin="0,0,0,14" FontWeight="SemiBold"/>
+      <Button x:Name="NavOverview" Style="{StaticResource SidebarNavButton}" Background="{DynamicResource UiColor0E887A}" Content="Visão geral" ToolTip="Ctrl+1" AutomationProperties.Name="Visão geral" />
       <Button x:Name="NavDiagnose" Style="{StaticResource SidebarNavButton}" Content="Diagnóstico" ToolTip="Ctrl+2" AutomationProperties.Name="Diagnóstico" />
       <Button x:Name="NavHealth" Style="{StaticResource SidebarNavButton}" Content="Saúde e discos" ToolTip="Ctrl+3" AutomationProperties.Name="Saúde e discos" />
       <Button x:Name="NavCleanup" Style="{StaticResource SidebarNavButton}" Content="Limpeza segura" ToolTip="Ctrl+4" AutomationProperties.Name="Limpeza segura" />
       <Button x:Name="NavMaintenance" Style="{StaticResource SidebarNavButton}" Content="Manutenção" ToolTip="Ctrl+5" AutomationProperties.Name="Manutenção" />
       <Button x:Name="NavBench" Style="{StaticResource SidebarNavButton}" Content="Bancada técnica" ToolTip="Ctrl+B" AutomationProperties.Name="Bancada técnica" />
+      <Button x:Name="NavSettings" Style="{StaticResource SidebarNavButton}" Content="Preferências" ToolTip="Ctrl+7" AutomationProperties.Name="Preferências de leitura e acessibilidade"/>
       <Button x:Name="NavReport" Style="{StaticResource SidebarNavButton}" Content="Relatório" ToolTip="Ctrl+6" AutomationProperties.Name="Relatório" />
-      <Border Background="#203C50" CornerRadius="10" Padding="13" Margin="0,20,0,0">
+      <Border Background="{DynamicResource UiColor203C50}" CornerRadius="10" Padding="13" Margin="0,20,0,0">
        <StackPanel>
-        <TextBlock Text="SEGURANÇA EM PRIMEIRO LUGAR" FontSize="10" FontWeight="SemiBold" Foreground="#6DE0D0"/>
-        <TextBlock Text="Consultas não alteram o sistema. Exclusões e reparos só ocorrem após confirmação." TextWrapping="Wrap" Foreground="#D2E2EC" LineHeight="20" Margin="0,7,0,0"/>
+        <TextBlock Text="SEGURANÇA EM PRIMEIRO LUGAR" FontSize="{DynamicResource UiFont10}" FontWeight="SemiBold" Foreground="{DynamicResource UiColor6DE0D0}"/>
+        <TextBlock Text="Consultas não alteram o sistema. Exclusões e reparos só ocorrem após confirmação." TextWrapping="Wrap" Foreground="{DynamicResource UiColorD2E2EC}" LineHeight="20" Margin="0,7,0,0"/>
        </StackPanel>
       </Border>
      </StackPanel>
     </ScrollViewer>
     <StackPanel Grid.Row="2">
-     <TextBlock Text="LOCAL • SEM TELEMETRIA" Foreground="#67DDC6" FontSize="10"/>
-     <TextBlock Text="Edição oficina / 4.4" Foreground="#86A6C0" Margin="0,7,0,0"/>
+     <TextBlock Text="LOCAL • SEM TELEMETRIA" Foreground="{DynamicResource UiColor67DDC6}" FontSize="{DynamicResource UiFont10}"/>
+     <TextBlock Text="Edição oficina / 4.5" Foreground="{DynamicResource UiColor86A6C0}" Margin="0,7,0,0"/>
     </StackPanel>
    </Grid>
   </Border>
@@ -129,49 +190,49 @@
    <Grid Margin="0,0,0,18">
     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
     <StackPanel>
-     <TextBlock Text="Oficina Pro  •  Central técnica" FontSize="23" FontWeight="SemiBold" TextWrapping="Wrap"/>
-     <TextBlock Text="Tudo organizado: diagnóstico, saúde, limpeza, drivers e bancada." TextWrapping="Wrap" Foreground="#526B80" Margin="0,8,0,0"/>
+     <TextBlock Text="Oficina Pro  •  Central técnica" FontSize="{DynamicResource UiFont23}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+     <TextBlock Text="Tudo organizado: diagnóstico, saúde, limpeza, drivers e bancada." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,8,0,0"/>
     </StackPanel>
-    <Button x:Name="CloseButton" Grid.Column="1" Content="Fechar" Background="#C0392B" VerticalAlignment="Top" AutomationProperties.Name="Fechar aplicativo"/>
+    <Button x:Name="CloseButton" Grid.Column="1" Content="Fechar" Background="{DynamicResource UiColorC0392B}" VerticalAlignment="Top" AutomationProperties.Name="Fechar aplicativo"/>
    </Grid>
    <TabControl x:Name="Pages" Grid.Row="1" BorderThickness="0" Background="Transparent" KeyboardNavigation.TabNavigation="Continue">
     <TabItem Header="Visão geral">
      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="0,20,0,0">
-       <Border Style="{StaticResource Card}" Background="#E2F3EE">
+       <Border Style="{StaticResource Card}" Background="{DynamicResource UiColorE2F3EE}">
         <StackPanel>
-         <TextBlock Text="Comece conhecendo o equipamento" FontSize="22" FontWeight="SemiBold"/>
+         <TextBlock Text="Comece conhecendo o equipamento" FontSize="{DynamicResource UiFont22}" FontWeight="SemiBold"/>
          <TextBlock Text="Consulte hardware, bateria, discos, drivers e espaço disponível antes de qualquer alteração." TextWrapping="Wrap" Margin="0,10,0,18"/>
          <WrapPanel>
           <Button x:Name="DiagnoseHome" Content="Verificar equipamento" AutomationProperties.Name="Verificar equipamento" />
-          <Button x:Name="HealthHome" Content="Saúde e ferramentas" Background="#40566C" AutomationProperties.Name="Saúde e ferramentas" />
+          <Button x:Name="HealthHome" Content="Saúde e ferramentas" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Saúde e ferramentas" />
          </WrapPanel>
         </StackPanel>
        </Border>
        <UniformGrid Columns="2">
         <Border Style="{StaticResource Card}" Margin="0,0,10,18">
          <StackPanel>
-          <TextBlock Text="ESPAÇO ANALISADO" Foreground="#526B80" FontSize="11"/>
-          <TextBlock x:Name="ScanMetric" Text="Ainda não analisado" FontSize="24" FontWeight="SemiBold" Margin="0,12,0,5"/>
-          <TextBlock Text="Temporários e caches com mais de 7 dias" Foreground="#526B80" TextWrapping="Wrap"/>
+          <TextBlock Text="ESPAÇO ANALISADO" Foreground="{DynamicResource UiColor526B80}" FontSize="{DynamicResource UiFont11}"/>
+          <TextBlock x:Name="ScanMetric" Text="Ainda não analisado" FontSize="{DynamicResource UiFont24}" FontWeight="SemiBold" Margin="0,12,0,5"/>
+          <TextBlock Text="Temporários e caches com mais de 7 dias" Foreground="{DynamicResource UiColor526B80}" TextWrapping="Wrap"/>
          </StackPanel>
         </Border>
         <Border Style="{StaticResource Card}" Margin="10,0,0,18">
          <StackPanel>
-          <TextBlock Text="ÚLTIMA LIMPEZA" Foreground="#526B80" FontSize="11"/>
-          <TextBlock x:Name="CleanMetric" Text="0 MB" FontSize="28" FontWeight="SemiBold" Foreground="#117B6D" Margin="0,8,0,5"/>
-          <TextBlock Text="Somente exclusões confirmadas" Foreground="#526B80"/>
+          <TextBlock Text="ÚLTIMA LIMPEZA" Foreground="{DynamicResource UiColor526B80}" FontSize="{DynamicResource UiFont11}"/>
+          <TextBlock x:Name="CleanMetric" Text="0 MB" FontSize="{DynamicResource UiFont28}" FontWeight="SemiBold" Foreground="{DynamicResource UiColor117B6D}" Margin="0,8,0,5"/>
+          <TextBlock Text="Somente exclusões confirmadas" Foreground="{DynamicResource UiColor526B80}"/>
          </StackPanel>
         </Border>
        </UniformGrid>
        <Border Style="{StaticResource Card}">
         <StackPanel>
-         <TextBlock Text="Ferramentas que realmente importam" FontSize="18" FontWeight="SemiBold"/>
-         <TextBlock Text="Saúde da bateria e capacidade de projeto, SMART e desgaste dos discos, inventário de drivers, atualizações de driver disponíveis no Windows Update, remoção de aplicativos pré-instalados e ajustes seguros de energia e armazenamento." TextWrapping="Wrap" Foreground="#526B80" LineHeight="23" Margin="0,12,0,18"/>
+         <TextBlock Text="Ferramentas que realmente importam" FontSize="{DynamicResource UiFont18}" FontWeight="SemiBold"/>
+         <TextBlock Text="Saúde da bateria e capacidade de projeto, SMART e desgaste dos discos, inventário de drivers, atualizações de driver disponíveis no Windows Update, remoção de aplicativos pré-instalados e ajustes seguros de energia e armazenamento." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" LineHeight="23" Margin="0,12,0,18"/>
          <WrapPanel>
-          <Button x:Name="GoClean" Content="Analisar limpeza" Background="#40566C" AutomationProperties.Name="Analisar limpeza" />
-          <Button x:Name="HealthShortcut" Content="Saúde" Background="#40566C" AutomationProperties.Name="Saúde" />
-          <Button x:Name="MaintenanceShortcut" Content="Manutenção" Background="#40566C" AutomationProperties.Name="Manutenção" /><Button x:Name="WorkbenchShortcut" Content="Bancada técnica" Background="#40566C" AutomationProperties.Name="Bancada técnica" />
+          <Button x:Name="GoClean" Content="Analisar limpeza" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Analisar limpeza" />
+          <Button x:Name="HealthShortcut" Content="Saúde" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Saúde" />
+          <Button x:Name="MaintenanceShortcut" Content="Manutenção" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Manutenção" /><Button x:Name="WorkbenchShortcut" Content="Bancada técnica" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Bancada técnica" />
          </WrapPanel>
         </StackPanel>
        </Border>
@@ -182,14 +243,14 @@
      <Grid Margin="0,20,0,0">
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
       <StackPanel Margin="0,0,0,16">
-       <TextBlock Text="Analise primeiro. Limpe apenas o que escolher." FontSize="19" FontWeight="SemiBold"/>
-       <TextBlock Text="Feche os navegadores para incluir caches. Arquivos recentes ou alterados serão preservados." TextWrapping="Wrap" Foreground="#526B80" Margin="0,8,0,12"/>
+       <TextBlock Text="Analise primeiro. Limpe apenas o que escolher." FontSize="{DynamicResource UiFont19}" FontWeight="SemiBold"/>
+       <TextBlock Text="Feche os navegadores para incluir caches. Arquivos recentes ou alterados serão preservados." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,8,0,12"/>
        <WrapPanel>
         <Button x:Name="ScanButton" Content="1. Analisar arquivos" AutomationProperties.Name="Analisar arquivos temporários - F5"/>
         <Button x:Name="CleanButton" Content="2. Limpar selecionados" AutomationProperties.Name="Limpar arquivos revisados - exige confirmação" IsEnabled="False"/>
-        <Button x:Name="DetailsButton" Content="Prévia / resultado" Background="#40566C" IsEnabled="False" AutomationProperties.Name="Prévia / resultado" />
-        <Button x:Name="SelectAllButton" Content="Selecionar tudo" AutomationProperties.Name="Selecionar todas as categorias" Background="#40566C"/>
-        <Button x:Name="SelectNoneButton" Content="Desmarcar tudo" AutomationProperties.Name="Desmarcar todas as categorias" Background="#40566C"/><Button x:Name="ExportResultsButton" Content="Exportar CSV" AutomationProperties.Name="Exportar resultado da limpeza em CSV" Background="#40566C" IsEnabled="False"/>
+        <Button x:Name="DetailsButton" Content="Prévia / resultado" Background="{DynamicResource UiColor40566C}" IsEnabled="False" AutomationProperties.Name="Prévia / resultado" />
+        <Button x:Name="SelectAllButton" Content="Selecionar tudo" AutomationProperties.Name="Selecionar todas as categorias" Background="{DynamicResource UiColor40566C}"/>
+        <Button x:Name="SelectNoneButton" Content="Desmarcar tudo" AutomationProperties.Name="Desmarcar todas as categorias" Background="{DynamicResource UiColor40566C}"/><Button x:Name="ExportResultsButton" Content="Exportar CSV" AutomationProperties.Name="Exportar resultado da limpeza em CSV" Background="{DynamicResource UiColor40566C}" IsEnabled="False"/>
        </WrapPanel>
       </StackPanel>
       <DataGrid x:Name="Categories" Grid.Row="1">
@@ -200,14 +261,14 @@
         <DataGridTextColumn Header="Espaço" Binding="{Binding Size}" Width="100" IsReadOnly="True"/>
        </DataGrid.Columns>
       </DataGrid>
-      <TextBox x:Name="ScanWarnings" Grid.Row="2" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="95" VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="#FFF5DF"/>
-      <TextBlock x:Name="CleanupSummary" Grid.Row="3" Text="A análise não apaga arquivos. A exclusão será confirmada antes de começar." TextWrapping="Wrap" Foreground="#526B80" Margin="0,8,0,10"/>
+      <TextBox x:Name="ScanWarnings" Grid.Row="2" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="95" VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="{DynamicResource UiColorFFF5DF}"/>
+      <TextBlock x:Name="CleanupSummary" Grid.Row="3" Text="A análise não apaga arquivos. A exclusão será confirmada antes de começar." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,8,0,10"/>
      </Grid>
     </TabItem>
     <TabItem Header="Diagnóstico">
      <Grid Margin="0,20,0,0">
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-      <WrapPanel Margin="0,0,0,18"><Button x:Name="DiagnoseButton" Content="Atualizar diagnóstico" AutomationProperties.Name="Atualizar diagnóstico" /><TextBlock Text="Consulta sem alterar configurações" VerticalAlignment="Center" Foreground="#526B80"/></WrapPanel>
+      <WrapPanel Margin="0,0,0,18"><Button x:Name="DiagnoseButton" Content="Atualizar diagnóstico" AutomationProperties.Name="Atualizar diagnóstico" /><TextBlock Text="Consulta sem alterar configurações" VerticalAlignment="Center" Foreground="{DynamicResource UiColor526B80}"/></WrapPanel>
       <DataGrid x:Name="DiagnosticsGrid" Grid.Row="1" IsReadOnly="True">
        <DataGrid.Columns>
         <DataGridTextColumn Header="Área" Binding="{Binding Area}" Width="130"/>
@@ -215,7 +276,7 @@
         <DataGridTextColumn Header="Resultado" Binding="{Binding Value}" Width="*"/>
        </DataGrid.Columns>
       </DataGrid>
-      <TextBlock Grid.Row="2" Text="O status básico do disco não substitui SMART completo. Sensores não disponíveis são indicados, sem notas de saúde inventadas." TextWrapping="Wrap" Foreground="#526B80" Margin="0,16,0,10"/>
+      <TextBlock Grid.Row="2" Text="O status básico do disco não substitui SMART completo. Sensores não disponíveis são indicados, sem notas de saúde inventadas." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,16,0,10"/>
      </Grid>
     </TabItem>
     <TabItem Header="Saúde">
@@ -223,18 +284,18 @@
       <StackPanel Margin="0,20,0,0">
        <Border Style="{StaticResource Card}">
         <StackPanel>
-         <TextBlock Text="Bateria e armazenamento" FontSize="20" FontWeight="SemiBold"/>
-         <TextBlock Text="A bateria usa o relatório oficial do Windows (powercfg). Os discos usam o status do subsistema de armazenamento e os contadores SMART disponíveis. Leituras não alteram nada." TextWrapping="Wrap" Foreground="#526B80" Margin="0,10,0,16"/>
+         <TextBlock Text="Bateria e armazenamento" FontSize="{DynamicResource UiFont20}" FontWeight="SemiBold"/>
+         <TextBlock Text="A bateria usa o relatório oficial do Windows (powercfg). Os discos usam o status do subsistema de armazenamento e os contadores SMART disponíveis. Leituras não alteram nada." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,10,0,16"/>
          <WrapPanel>
           <Button x:Name="HealthAnalyzeButton" Content="Analisar bateria e discos" AutomationProperties.Name="Analisar bateria e discos" />
-          <Button x:Name="BatteryReportButton" Content="Salvar relatório de bateria" Background="#40566C" AutomationProperties.Name="Salvar relatório de bateria" />
+          <Button x:Name="BatteryReportButton" Content="Salvar relatório de bateria" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Salvar relatório de bateria" />
          </WrapPanel>
-         <TextBlock x:Name="BatterySummary" Text="Nenhuma análise executada nesta sessão." TextWrapping="Wrap" Foreground="#526B80"/>
+         <TextBlock x:Name="BatterySummary" Text="Nenhuma análise executada nesta sessão." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}"/>
         </StackPanel>
        </Border>
        <Border Style="{StaticResource Card}">
         <StackPanel>
-         <TextBlock Text="Bateria" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12"/>
+         <TextBlock Text="Bateria" FontSize="{DynamicResource UiFont18}" FontWeight="SemiBold" Margin="0,0,0,12"/>
          <DataGrid x:Name="BatteryGrid" Height="210" IsReadOnly="True">
           <DataGrid.Columns>
            <DataGridTextColumn Header="Item" Binding="{Binding Item}" Width="240"/>
@@ -245,7 +306,7 @@
        </Border>
        <Border Style="{StaticResource Card}">
         <StackPanel>
-         <TextBlock Text="Discos físicos" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12"/>
+         <TextBlock Text="Discos físicos" FontSize="{DynamicResource UiFont18}" FontWeight="SemiBold" Margin="0,0,0,12"/>
          <DataGrid x:Name="DiskGrid" Height="180" IsReadOnly="True">
           <DataGrid.Columns>
            <DataGridTextColumn Header="Dispositivo" Binding="{Binding Device}" Width="*"/>
@@ -261,7 +322,7 @@
        </Border>
        <Border Style="{StaticResource Card}">
         <StackPanel>
-         <TextBlock Text="Volumes" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12"/>
+         <TextBlock Text="Volumes" FontSize="{DynamicResource UiFont18}" FontWeight="SemiBold" Margin="0,0,0,12"/>
          <DataGrid x:Name="VolumeGrid" Height="150" IsReadOnly="True">
           <DataGrid.Columns>
            <DataGridTextColumn Header="Unidade" Binding="{Binding Letter}" Width="80"/>
@@ -272,7 +333,7 @@
            <DataGridTextColumn Header="Saúde" Binding="{Binding Health}" Width="100"/>
           </DataGrid.Columns>
          </DataGrid>
-         <TextBlock x:Name="HealthNote" Text="Contadores SMART variam por fabricante e controladora. Ausência de leitura não significa disco saudável." TextWrapping="Wrap" Foreground="#526B80" Margin="0,12,0,0"/>
+         <TextBlock x:Name="HealthNote" Text="Contadores SMART variam por fabricante e controladora. Ausência de leitura não significa disco saudável." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,12,0,0"/>
         </StackPanel>
        </Border>
       </StackPanel>
@@ -285,11 +346,11 @@
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <WrapPanel>
          <Button x:Name="DriverScanButton" Content="Listar drivers instalados" AutomationProperties.Name="Listar drivers instalados" />
-         <Button x:Name="DriverUpdatesButton" Content="Procurar atualizações de driver" Background="#40566C" AutomationProperties.Name="Procurar atualizações de driver" />
+         <Button x:Name="DriverUpdatesButton" Content="Procurar atualizações de driver" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Procurar atualizações de driver" />
          <Button x:Name="DriverUpdateTool" Content="Abrir Windows Update" AutomationProperties.Name="Abrir Windows Update" />
-         <Button x:Name="DeviceManagerTool" Content="Gerenciador de dispositivos" Background="#40566C" AutomationProperties.Name="Gerenciador de dispositivos" />
+         <Button x:Name="DeviceManagerTool" Content="Gerenciador de dispositivos" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Gerenciador de dispositivos" />
         </WrapPanel>
-        <TextBlock x:Name="DriverSummary" Grid.Row="1" Text="Nenhum inventário carregado. A consulta não instala nada." TextWrapping="Wrap" Foreground="#526B80" Margin="0,4,0,12"/>
+        <TextBlock x:Name="DriverSummary" Grid.Row="1" Text="Nenhum inventário carregado. A consulta não instala nada." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,4,0,12"/>
         <DataGrid x:Name="DriverGrid" Grid.Row="2" IsReadOnly="True">
          <DataGrid.Columns>
           <DataGridTextColumn Header="Classe" Binding="{Binding Class}" Width="130"/>
@@ -300,7 +361,7 @@
           <DataGridTextColumn Header="Situação" Binding="{Binding Status}" Width="110"/>
          </DataGrid.Columns>
         </DataGrid>
-        <TextBlock Grid.Row="3" Text="Atualizações de driver encontradas no Windows Update" FontSize="15" FontWeight="SemiBold" Margin="0,14,0,8"/>
+        <TextBlock Grid.Row="3" Text="Atualizações de driver encontradas no Windows Update" FontSize="{DynamicResource UiFont15}" FontWeight="SemiBold" Margin="0,14,0,8"/>
         <DataGrid x:Name="DriverUpdateGrid" Grid.Row="4" Height="140" IsReadOnly="True">
          <DataGrid.Columns>
           <DataGridTextColumn Header="Atualização" Binding="{Binding Title}" Width="*"/>
@@ -315,10 +376,10 @@
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <WrapPanel>
          <Button x:Name="AppxScanButton" Content="Listar aplicativos instalados" AutomationProperties.Name="Listar aplicativos instalados" />
-         <Button x:Name="AppxRemoveButton" Content="Remover selecionados" Background="#C0392B" AutomationProperties.Name="Remover selecionados" />
+         <Button x:Name="AppxRemoveButton" Content="Remover selecionados" Background="{DynamicResource UiColorC0392B}" AutomationProperties.Name="Remover selecionados" />
          <CheckBox x:Name="AppxBloatOnly" Content="Mostrar só sugestões" VerticalAlignment="Center" Margin="8,0,0,10"/>
         </WrapPanel>
-        <TextBlock x:Name="AppxSummary" Grid.Row="1" Text="A lista mostra aplicativos da Microsoft Store do usuário atual. A remoção é confirmada e pode ser desfeita reinstalando pela Store." TextWrapping="Wrap" Foreground="#526B80" Margin="0,4,0,12"/>
+        <TextBlock x:Name="AppxSummary" Grid.Row="1" Text="A lista mostra aplicativos da Microsoft Store do usuário atual. A remoção é confirmada e pode ser desfeita reinstalando pela Store." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,4,0,12"/>
         <DataGrid x:Name="AppxGrid" Grid.Row="2">
          <DataGrid.Columns>
           <DataGridCheckBoxColumn Header="Remover" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="75"/>
@@ -327,14 +388,14 @@
           <DataGridTextColumn Header="Versão" Binding="{Binding Version}" Width="120" IsReadOnly="True"/>
          </DataGrid.Columns>
         </DataGrid>
-        <TextBlock x:Name="AppxNote" Grid.Row="3" Text="Sugestões são apenas indicações. Revise a lista: remover Xbox, Teams ou outros aplicativos pode afetar recursos que você usa." TextWrapping="Wrap" Foreground="#526B80" Margin="0,10,0,0"/>
+        <TextBlock x:Name="AppxNote" Grid.Row="3" Text="Sugestões são apenas indicações. Revise a lista: remover Xbox, Teams ou outros aplicativos pode afetar recursos que você usa." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,10,0,0"/>
        </Grid>
       </TabItem>
       <TabItem Header="Otimização">
        <Grid Margin="0,16,0,0">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <WrapPanel><Button x:Name="OptimizationRunButton" Content="Aplicar selecionadas" AutomationProperties.Name="Aplicar selecionadas" /></WrapPanel>
-        <TextBlock x:Name="OptimizationSummary" Grid.Row="1" Text="Marque apenas o que faz sentido para este equipamento. Toda ação pede confirmação." TextWrapping="Wrap" Foreground="#526B80" Margin="0,4,0,12"/>
+        <TextBlock x:Name="OptimizationSummary" Grid.Row="1" Text="Marque apenas o que faz sentido para este equipamento. Toda ação pede confirmação." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,4,0,12"/>
         <DataGrid x:Name="OptimizationGrid" Grid.Row="2">
          <DataGrid.Columns>
           <DataGridCheckBoxColumn Header="Aplicar" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
@@ -343,7 +404,7 @@
           <DataGridTextColumn Header="Admin" Binding="{Binding Admin}" Width="70" IsReadOnly="True"/>
          </DataGrid.Columns>
         </DataGrid>
-        <TextBlock x:Name="OptimizationNote" Grid.Row="3" Text="Sem elevação, ações que exigem administrador falham com explicação e nada é alterado. Não há automação silenciosa." TextWrapping="Wrap" Foreground="#526B80" Margin="0,10,0,0"/>
+        <TextBlock x:Name="OptimizationNote" Grid.Row="3" Text="Sem elevação, ações que exigem administrador falham com explicação e nada é alterado. Não há automação silenciosa." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,10,0,0"/>
        </Grid>
       </TabItem>
       <TabItem Header="Atalhos">
@@ -351,8 +412,8 @@
         <StackPanel Margin="0,16,0,0">
          <Border Style="{StaticResource Card}">
           <StackPanel>
-           <TextBlock Text="Ferramentas do Windows" FontSize="20" FontWeight="SemiBold"/>
-           <TextBlock Text="Abra a ferramenta, avalie o equipamento e escolha a ação. Nenhum reparo é iniciado automaticamente." TextWrapping="Wrap" Foreground="#526B80" Margin="0,10,0,16"/>
+           <TextBlock Text="Ferramentas do Windows" FontSize="{DynamicResource UiFont20}" FontWeight="SemiBold"/>
+           <TextBlock Text="Abra a ferramenta, avalie o equipamento e escolha a ação. Nenhum reparo é iniciado automaticamente." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,10,0,16"/>
            <WrapPanel Margin="0,0,0,4"><Button x:Name="StartupTool" Content="Inicialização" AutomationProperties.Name="Inicialização" /><Button x:Name="AppsTool" Content="Aplicativos instalados" AutomationProperties.Name="Aplicativos instalados" /><Button x:Name="StorageTool" Content="Armazenamento" AutomationProperties.Name="Armazenamento" /></WrapPanel>
            <WrapPanel Margin="0,0,0,4"><Button x:Name="SecurityTool" Content="Segurança do Windows" AutomationProperties.Name="Segurança do Windows" /><Button x:Name="DiskTool" Content="Otimizar unidades" AutomationProperties.Name="Otimizar unidades" /><Button x:Name="RestoreTool" Content="Proteção do sistema" AutomationProperties.Name="Proteção do sistema" /></WrapPanel>
            <WrapPanel Margin="0,0,0,4"><Button x:Name="EventsTool" Content="Visualizador de eventos" AutomationProperties.Name="Visualizador de eventos" /><Button x:Name="TaskTool" Content="Gerenciador de tarefas" AutomationProperties.Name="Gerenciador de tarefas" /><Button x:Name="OptionalFeaturesTool" Content="Recursos opcionais" AutomationProperties.Name="Recursos opcionais" /></WrapPanel>
@@ -361,8 +422,8 @@
          </Border>
          <Border Style="{StaticResource Card}">
           <StackPanel>
-           <TextBlock Text="Rotina de bancada" FontSize="18" FontWeight="SemiBold"/>
-           <TextBlock Text="Antes de reparos: confirme o backup do cliente e registre os sintomas. Em notebooks, confira alimentação e bateria. Preserve logs de eventos para investigar falhas. Use o relatório para registrar o serviço e o que ainda precisa ser verificado." TextWrapping="Wrap" LineHeight="24" Foreground="#526B80" Margin="0,12,0,0"/>
+           <TextBlock Text="Rotina de bancada" FontSize="{DynamicResource UiFont18}" FontWeight="SemiBold"/>
+           <TextBlock Text="Antes de reparos: confirme o backup do cliente e registre os sintomas. Em notebooks, confira alimentação e bateria. Preserve logs de eventos para investigar falhas. Use o relatório para registrar o serviço e o que ainda precisa ser verificado." TextWrapping="Wrap" LineHeight="24" Foreground="{DynamicResource UiColor526B80}" Margin="0,12,0,0"/>
           </StackPanel>
          </Border>
         </StackPanel>
@@ -374,14 +435,14 @@
          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
           <StackPanel Margin="0,18,0,0">
         <Border Style="{StaticResource Card}"><StackPanel>
-         <TextBlock Text="Inventário técnico" FontSize="20" FontWeight="SemiBold"/>
-         <TextBlock Text="Processos, inicialização, aplicativos, interfaces, atualizações e discos. Consultas locais sem alterações." Foreground="#526B80" TextWrapping="Wrap" Margin="0,8,0,14"/>
+         <TextBlock Text="Inventário técnico" FontSize="{DynamicResource UiFont20}" FontWeight="SemiBold"/>
+         <TextBlock Text="Processos, inicialização, aplicativos, interfaces, atualizações e discos. Consultas locais sem alterações." Foreground="{DynamicResource UiColor526B80}" TextWrapping="Wrap" Margin="0,8,0,14"/>
          <WrapPanel>
           <Button x:Name="InvProcessesButton" Content="Processos" AutomationProperties.Name="Processos" /><Button x:Name="InvStartupButton" Content="Inicialização" AutomationProperties.Name="Inicialização" />
           <Button x:Name="InvSoftwareButton" Content="Programas" AutomationProperties.Name="Programas" /><Button x:Name="InvNetworkButton" Content="Adaptadores" AutomationProperties.Name="Adaptadores" />
           <Button x:Name="InvUpdatesButton" Content="Atualizações" AutomationProperties.Name="Atualizações" /><Button x:Name="InvStorageButton" Content="Unidades" AutomationProperties.Name="Unidades" />
          </WrapPanel>
-         <TextBlock x:Name="WorkbenchSummary" Text="Selecione uma consulta." Foreground="#526B80" Margin="0,0,0,9"/>
+         <TextBlock x:Name="WorkbenchSummary" Text="Selecione uma consulta." Foreground="{DynamicResource UiColor526B80}" Margin="0,0,0,9"/>
          <DataGrid x:Name="WorkbenchGrid" Height="220" IsReadOnly="True" AutomationProperties.Name="Inventário técnico">
           <DataGrid.Columns>
            <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="2*"/>
@@ -397,16 +458,16 @@
          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
           <StackPanel Margin="0,18,0,0">
         <Border Style="{StaticResource Card}"><StackPanel>
-         <TextBlock Text="Rede e conectividade" FontSize="20" FontWeight="SemiBold"/>
-         <TextBlock Text="Inventário local não gera tráfego externo; IP, gateway, DNS e perfis ficam ocultos por padrão." Foreground="#526B80" TextWrapping="Wrap" Margin="0,8,0,14"/>
-         <WrapPanel><Button x:Name="NetworkSnapshotButton" Content="Consultar rede" AutomationProperties.Name="Consultar rede" /><Button x:Name="NetworkRevealButton" Content="Mostrar endereços locais" Background="#40566C" AutomationProperties.Name="Mostrar endereços locais" /></WrapPanel>
-         <TextBlock Text="Teste externo opcional — destino autorizado e porta:" Foreground="#526B80" Margin="0,8,0,5"/>
+         <TextBlock Text="Rede e conectividade" FontSize="{DynamicResource UiFont20}" FontWeight="SemiBold"/>
+         <TextBlock Text="Inventário local não gera tráfego externo; IP, gateway, DNS e perfis ficam ocultos por padrão." Foreground="{DynamicResource UiColor526B80}" TextWrapping="Wrap" Margin="0,8,0,14"/>
+         <WrapPanel><Button x:Name="NetworkSnapshotButton" Content="Consultar rede" AutomationProperties.Name="Consultar rede" /><Button x:Name="NetworkRevealButton" Content="Mostrar endereços locais" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Mostrar endereços locais" /></WrapPanel>
+         <TextBlock Text="Teste externo opcional — destino autorizado e porta:" Foreground="{DynamicResource UiColor526B80}" Margin="0,8,0,5"/>
          <WrapPanel>
           <TextBox x:Name="NetworkTarget" Width="225" MaxLength="253" AutomationProperties.Name="Host ou IP para teste TCP e DNS"/>
           <TextBox x:Name="NetworkPort" Width="68" MaxLength="5" Text="443" AutomationProperties.Name="Porta TCP"/>
-          <Button x:Name="NetworkProbeButton" Content="Testar DNS e TCP" Background="#40566C" AutomationProperties.Name="Testar DNS e TCP" />
+          <Button x:Name="NetworkProbeButton" Content="Testar DNS e TCP" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Testar DNS e TCP" />
          </WrapPanel>
-         <TextBlock x:Name="NetworkSummary" Text="Sem consulta. Teste externo depende de confirmação." TextWrapping="Wrap" Foreground="#526B80" Margin="0,0,0,10"/>
+         <TextBlock x:Name="NetworkSummary" Text="Sem consulta. Teste externo depende de confirmação." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,0,0,10"/>
          <DataGrid x:Name="NetworkGrid" Height="215" IsReadOnly="True" AutomationProperties.Name="Resultados de rede">
           <DataGrid.Columns>
            <DataGridTextColumn Header="Área" Binding="{Binding Area}" Width="120"/>
@@ -423,10 +484,10 @@
          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
           <StackPanel Margin="0,18,0,0">
         <Border Style="{StaticResource Card}"><StackPanel>
-         <TextBlock Text="Histórico de falhas do Windows" FontSize="20" FontWeight="SemiBold"/>
-         <TextBlock Text="Contagem de alertas WHEA, disco, NTFS, desligamentos, tela azul e serviços. Sem copiar mensagens brutas de eventos." TextWrapping="Wrap" Foreground="#526B80" Margin="0,8,0,13"/>
+         <TextBlock Text="Histórico de falhas do Windows" FontSize="{DynamicResource UiFont20}" FontWeight="SemiBold"/>
+         <TextBlock Text="Contagem de alertas WHEA, disco, NTFS, desligamentos, tela azul e serviços. Sem copiar mensagens brutas de eventos." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,8,0,13"/>
          <Button x:Name="EventsAnalyzeButton" Content="Analisar os últimos 14 dias" HorizontalAlignment="Left" AutomationProperties.Name="Analisar os últimos 14 dias" />
-         <TextBlock x:Name="EventsSummary" Text="Histórico não consultado." TextWrapping="Wrap" Foreground="#526B80" Margin="0,5,0,10"/>
+         <TextBlock x:Name="EventsSummary" Text="Histórico não consultado." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,5,0,10"/>
          <DataGrid x:Name="EventsGrid" Height="205" IsReadOnly="True" AutomationProperties.Name="Eventos de falhas agrupados">
           <DataGrid.Columns>
            <DataGridTextColumn Header="Categoria" Binding="{Binding Category}" Width="185"/>
@@ -444,16 +505,16 @@
          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
           <StackPanel Margin="0,18,0,0">
         <Border Style="{StaticResource Card}"><StackPanel>
-         <TextBlock Text="Verificação e reparos do sistema" FontSize="20" FontWeight="SemiBold"/>
-         <TextBlock Text="SFC, DISM e CHKDSK em console separado, com confirmação explícita e elevação do Windows (UAC). Confira backup antes de reparar." TextWrapping="Wrap" Foreground="#526B80" Margin="0,8,0,13"/>
+         <TextBlock Text="Verificação e reparos do sistema" FontSize="{DynamicResource UiFont20}" FontWeight="SemiBold"/>
+         <TextBlock Text="SFC, DISM e CHKDSK em console separado, com confirmação explícita e elevação do Windows (UAC). Confira backup antes de reparar." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,8,0,13"/>
          <WrapPanel>
-          <Button x:Name="SfcVerifyButton" Content="SFC verificar" Background="#40566C" AutomationProperties.Name="SFC verificar" />
-          <Button x:Name="DismScanButton" Content="DISM verificar" Background="#40566C" AutomationProperties.Name="DISM verificar" />
-          <Button x:Name="ChkdskScanButton" Content="CHKDSK analisar" Background="#40566C" AutomationProperties.Name="CHKDSK analisar" />
-          <Button x:Name="SfcRepairButton" Content="SFC reparar" Background="#99601E" AutomationProperties.Name="SFC reparar" />
-          <Button x:Name="DismRepairButton" Content="DISM reparar" Background="#99601E" AutomationProperties.Name="DISM reparar" />
+          <Button x:Name="SfcVerifyButton" Content="SFC verificar" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="SFC verificar" />
+          <Button x:Name="DismScanButton" Content="DISM verificar" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="DISM verificar" />
+          <Button x:Name="ChkdskScanButton" Content="CHKDSK analisar" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="CHKDSK analisar" />
+          <Button x:Name="SfcRepairButton" Content="SFC reparar" Background="{DynamicResource UiColor99601E}" AutomationProperties.Name="SFC reparar" />
+          <Button x:Name="DismRepairButton" Content="DISM reparar" Background="{DynamicResource UiColor99601E}" AutomationProperties.Name="DISM reparar" />
          </WrapPanel>
-         <TextBlock Text="O resultado da execução elevada fica no console e não entra automaticamente no relatório." Foreground="#526B80" TextWrapping="Wrap"/>
+         <TextBlock Text="O resultado da execução elevada fica no console e não entra automaticamente no relatório." Foreground="{DynamicResource UiColor526B80}" TextWrapping="Wrap"/>
         </StackPanel></Border>
           </StackPanel>
          </ScrollViewer>
@@ -467,14 +528,45 @@
       <StackPanel Margin="0,20,0,0">
        <Border Style="{StaticResource Card}">
         <StackPanel>
-         <TextBlock Text="Entrega de atendimento" FontSize="20" FontWeight="SemiBold"/>
-         <TextBlock Text="Identificação opcional e observações incluídas somente no arquivo que você salvar. Bateria, discos e limpeza entram no relatório quando analisados." TextWrapping="Wrap" Foreground="#526B80" Margin="0,10,0,18"/>
+         <TextBlock Text="Entrega de atendimento" FontSize="{DynamicResource UiFont20}" FontWeight="SemiBold"/>
+         <TextBlock Text="Identificação opcional e observações incluídas somente no arquivo que você salvar. Bateria, discos e limpeza entram no relatório quando analisados." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,10,0,18"/>
          <TextBlock Text="Cliente / ordem de serviço"/>
          <TextBox x:Name="Customer" MaxLength="180" AutomationProperties.Name="Cliente ou ordem de serviço"/>
          <TextBlock Text="Sintomas, serviços realizados e recomendações"/>
          <TextBox x:Name="Notes" AcceptsReturn="True" Height="130" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MaxLength="10000" AutomationProperties.Name="Observações do atendimento"/>
          <Button x:Name="ExportButton" Content="Salvar relatório HTML / imprimir em PDF" HorizontalAlignment="Left" AutomationProperties.Name="Salvar relatório HTML / imprimir em PDF" />
-         <TextBlock Text="O HTML pode ser aberto no navegador e impresso em PDF. Nenhum dado é enviado à internet." TextWrapping="Wrap" Foreground="#526B80" Margin="0,15,0,0"/>
+         <TextBlock Text="O HTML pode ser aberto no navegador e impresso em PDF. Nenhum dado é enviado à internet." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,15,0,0"/>
+        </StackPanel>
+       </Border>
+      </StackPanel>
+     </ScrollViewer>
+    </TabItem>
+    <TabItem Header="Preferências">
+     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="0,20,0,0">
+       <Border Style="{StaticResource Card}">
+        <StackPanel>
+         <TextBlock Text="Ajustar leitura e acessibilidade" FontSize="{DynamicResource UiFont22}" FontWeight="SemiBold"/>
+         <TextBlock Text="As escolhas são locais deste perfil. Nenhum dado de cliente ou diagnóstico é salvo. O Windows mantém as próprias configurações de acessibilidade." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,12,0,20"/>
+         <CheckBox x:Name="PreferenceHighContrast" Content="Modo de alto contraste no programa" AutomationProperties.Name="Ativar contraste elevado no PC Optimizer"/>
+         <TextBlock Text="Ampliação dos textos" FontWeight="SemiBold" Margin="0,12,0,0"/>
+         <ComboBox x:Name="PreferenceTextScale" Width="245" HorizontalAlignment="Left" AutomationProperties.Name="Escala dos textos do aplicativo">
+          <ComboBoxItem Content="100% — padrão" Tag="100"/>
+          <ComboBoxItem Content="115% — ampliado" Tag="115"/>
+          <ComboBoxItem Content="125% — leitura maior" Tag="125"/>
+         </ComboBox>
+         <WrapPanel Margin="0,10,0,2">
+          <Button x:Name="PreferenceApplyButton" Content="Aplicar e salvar" AutomationProperties.Name="Aplicar e salvar preferências"/>
+          <Button x:Name="PreferenceResetButton" Content="Restaurar padrão" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Restaurar configurações de leitura padrão"/>
+         </WrapPanel>
+         <TextBlock x:Name="PreferenceStatus" Text="Apenas configurações de leitura serão armazenadas." Foreground="{DynamicResource UiColor526B80}" TextWrapping="Wrap" Margin="0,5,0,8"/>
+        </StackPanel>
+       </Border>
+       <Border Style="{StaticResource Card}">
+        <StackPanel>
+         <TextBlock Text="Atalhos de navegação" FontSize="{DynamicResource UiFont18}" FontWeight="SemiBold"/>
+         <TextBlock Text="Ctrl+1 a Ctrl+7: áreas principais. Ctrl+B: bancada técnica. F5: analisar limpeza. Esc: interromper a operação. Ctrl+E: exportar relatório." Foreground="{DynamicResource UiColor526B80}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+         <TextBlock Text="A edição 4.5 melhora a leitura, mas testes manuais com Narrador/NVDA, escalas de DPI variadas e Alto Contraste do Windows ainda são recomendados." Foreground="{DynamicResource UiColor526B80}" TextWrapping="Wrap" Margin="0,12,0,0"/>
         </StackPanel>
        </Border>
       </StackPanel>
@@ -484,10 +576,10 @@
    <Grid Grid.Row="2" Margin="0,16,0,0">
     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
     <StackPanel>
-     <ProgressBar x:Name="Progress" Height="4" Foreground="#117B6D" Background="#DCE6EF"/>
-     <TextBlock x:Name="Status" Text="Pronto. Escolha uma análise para começar." Foreground="#526B80" Margin="0,10,0,0" TextWrapping="Wrap"/>
+     <ProgressBar x:Name="Progress" Height="4" Foreground="{DynamicResource UiColor117B6D}" Background="{DynamicResource UiColorDCE6EF}"/>
+     <TextBlock x:Name="Status" Text="Pronto. Escolha uma análise para começar." Foreground="{DynamicResource UiColor526B80}" Margin="0,10,0,0" TextWrapping="Wrap"/>
     </StackPanel>
-    <Button x:Name="CancelButton" AutomationProperties.Name="Interromper operação - Escape" Grid.Column="1" Content="Interromper" Background="#40566C" Margin="15,0,0,0" IsEnabled="False"/>
+    <Button x:Name="CancelButton" AutomationProperties.Name="Interromper operação - Escape" Grid.Column="1" Content="Interromper" Background="{DynamicResource UiColor40566C}" Margin="15,0,0,0" IsEnabled="False"/>
    </Grid>
   </Grid>
  </Grid>
