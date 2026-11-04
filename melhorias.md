@@ -19,7 +19,11 @@
 
 **Integração com a UI:** responsabilidade do agente de Saúde/Drivers. Preservar a bancada existente; após publicação deste módulo, ligar uma consulta explícita por botão, em runspace, sem transmissão de logs e sem ações de reparo automático. **Não afirmar integração na interface antes de implementada e testada.**
 
-**Estado:** reservado; implementação e validação em progresso.
+**Estado: ENTREGUE NA MAIN** — [PR #7](https://github.com/leonccunha21/windows-pc-optimizer/pull/7), commit `028a916d`. Testes de privacidade, classificação, limites, cancelamento e exportação validados via suíte sintética; CI verde em PS7 (Windows/Ubuntu), PS5.1 e WPF. Nenhuma rotina real de limpeza, exclusão ou reparo foi executada.
+
+**Arquivos adicionais entregues:** `Tools/Executar-Diagnostico-Eventos.bat` para duplo clique; `Tools/Diagnostico-Eventos.ps1` com exportação JSON opcional. Empacotamento de Release já inclui a pasta `Tools`. O diagnóstico é um módulo autônomo, **não integrado à GUI ainda**.
+
+**Próximo passo reservado à frente Saúde/Drivers/UI:** usar `Get-OptimizerEventSummary` em área "Histórico de falhas", com consulta somente após clique, renderizando `Categories`, `Warnings` e contagem. A integração não deve incluir mensagens originais, caminhos de arquivos nem reparo automático. Não recriar a classificação no núcleo principal.
 
 ---
 
