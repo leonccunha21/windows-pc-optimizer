@@ -1,262 +1,177 @@
-<#
-.SYNOPSIS
-    GUI for Windows PC Optimizer - Modern interface.
-.DESCRIPTION
-    WinForms interface wrapping Otimizar-PC.ps1 functions.
-    Features: dark/light theme, progress bar, tooltips, status bar.
-#>
-#Requires -RunAsAdministrator
-
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-. (Join-Path $scriptDir "Otimizar-PC.ps1") -LoadOnly
-
-# Theme colors
-$DarkMode = $true
-if ($DarkMode) {
-    $bgColor = [System.Drawing.Color]::FromArgb(30, 30, 35)
-    $fgColor = [System.Drawing.Color]::FromArgb(230, 230, 235)
-    $accentColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
-    $panelColor = [System.Drawing.Color]::FromArgb(40, 40, 48)
-    $btnColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
-    $btnHover = [System.Drawing.Color]::FromArgb(0, 100, 190)
-} else {
-    $bgColor = [System.Drawing.Color]::FromArgb(245, 245, 250)
-    $fgColor = [System.Drawing.Color]::FromArgb(30, 30, 35)
-    $accentColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
-    $panelColor = [System.Drawing.Color]::White
-    $btnColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
-    $btnHover = [System.Drawing.Color]::FromArgb(0, 100, 190)
+﻿#Requires -Version 5.1
+param([switch]$ValidateUI, [string]$PreviewPath)
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
+Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1') -Force
+[xml]$layout = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'UI\MainWindow.xaml') -Raw -Encoding UTF8
+$reader = New-Object System.Xml.XmlNodeReader $layout
+$window = [Windows.Markup.XamlReader]::Load($reader)
+$ui = @{}
+$namespaces = New-Object Xml.XmlNamespaceManager $layout.NameTable
+$namespaces.AddNamespace('x','http://schemas.microsoft.com/winfx/2006/xaml')
+foreach ($node in $layout.SelectNodes('//*[@x:Name]', $namespaces)) {
+    $ui[$node.GetAttribute('Name','http://schemas.microsoft.com/winfx/2006/xaml')] = $window.FindName($node.GetAttribute('Name','http://schemas.microsoft.com/winfx/2006/xaml'))
 }
+$script:scan = $null; $script:cleanup = $null; $script:diagnostics = @(); $script:worker = $null
+$script:state = [hashtable]::Synchronized(@{Cancel=$false; Message=''; Result=$null; Error=$null})
+$script:modulePath = Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1'
 
-$form = New-Object System.Windows.Forms.Form
-$form.Text = "Windows PC Optimizer v$Version"
-$form.Size = New-Object System.Drawing.Size(560, 700)
-$form.StartPosition = "CenterScreen"
-$form.FormBorderStyle = "FixedDialog"
-$form.MaximizeBox = $false
-$form.BackColor = $bgColor
-$form.ForeColor = $fgColor
-$form.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-
-# Header panel
-$headerPanel = New-Object System.Windows.Forms.Panel
-$headerPanel.Location = New-Object System.Drawing.Point(0, 0)
-$headerPanel.Size = New-Object System.Drawing.Size(560, 60)
-$headerPanel.BackColor = $accentColor
-$form.Controls.Add($headerPanel)
-
-$lblTitle = New-Object System.Windows.Forms.Label
-$lblTitle.Text = "⚡ Windows PC Optimizer"
-$lblTitle.Location = New-Object System.Drawing.Point(20, 10)
-$lblTitle.Size = New-Object System.Drawing.Size(400, 28)
-$lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 16, [System.Drawing.FontStyle]::Bold)
-$lblTitle.ForeColor = [System.Drawing.Color]::White
-$headerPanel.Controls.Add($lblTitle)
-
-$lblSubtitle = New-Object System.Windows.Forms.Label
-$lblSubtitle.Text = "v$Version  |  Modo: $Mode  |  Protege projetos, codigo e Epic Games"
-$lblSubtitle.Location = New-Object System.Drawing.Point(20, 38)
-$lblSubtitle.Size = New-Object System.Drawing.Size(520, 16)
-$lblSubtitle.Font = New-Object System.Drawing.Font("Segoe UI", 8)
-$lblSubtitle.ForeColor = [System.Drawing.Color]::FromArgb(220, 220, 230)
-$headerPanel.Controls.Add($lblSubtitle)
-
-# Options group
-$grpOptions = New-Object System.Windows.Forms.GroupBox
-$grpOptions.Text = "Otimizações"
-$grpOptions.Location = New-Object System.Drawing.Point(15, 70)
-$grpOptions.Size = New-Object System.Drawing.Size(525, 260)
-$grpOptions.ForeColor = $fgColor
-$grpOptions.BackColor = $panelColor
-$form.Controls.Add($grpOptions)
-
-$options = @(
-    @{ Key = "temp";      Text = "🧹 Limpeza de temporários (≥7 dias)" },
-    @{ Key = "browser";   Text = "🌐 Caches de navegadores (Chrome, Edge, Firefox...)" },
-    @{ Key = "packages";  Text = "📦 Caches de pacotes (npm, pip, gradle...)" },
-    @{ Key = "appcaches"; Text = "📱 Caches de aplicativos (Spotify, Discord, VS Code...)" },
-    @{ Key = "startup";   Text = "🚀 Otimizar inicialização (boot)" },
-    @{ Key = "system";    Text = "⚙️ Ajustes de sistema (energia, telemetria, etc.)" },
-    @{ Key = "disk";      Text = "💾 Otimizar disco (TRIM/defrag, WinSxS)" },
-    @{ Key = "events";    Text = "📋 Limpar logs de eventos" },
-    @{ Key = "bgapps";    Text = "🔇 Desativar apps em segundo plano" },
-    @{ Key = "cleanmgr";  Text = "🗑️ Limpeza de Disco (cleanmgr)" },
-    @{ Key = "dns";       Text = "🌍 Flush DNS + reset Winsock" },
-    @{ Key = "storage";   Text = "📦 Ativar Storage Sense" },
-    @{ Key = "defender";  Text = "🛡️ Varredura completa do Defender" }
-)
-
-$checkboxes = @{}
-$y = 22
-$col = 0
-foreach ($opt in $options) {
-    $cb = New-Object System.Windows.Forms.CheckBox
-    $cb.Text = $opt.Text
-    $cb.Location = New-Object System.Drawing.Point(12 + ($col * 260), $y)
-    $cb.Size = New-Object System.Drawing.Size(255, 22)
-    $cb.Checked = $true
-    $cb.ForeColor = $fgColor
-    $cb.BackColor = $panelColor
-    $grpOptions.Controls.Add($cb)
-    $checkboxes[$opt.Key] = $cb
-    $col++
-    if ($col -ge 2) { $col = 0; $y += 24 }
+function Set-Busy([bool]$Busy) {
+    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton')) { $ui[$name].IsEnabled = -not $Busy }
+    $ui.CleanButton.IsEnabled = -not $Busy -and $null -ne $script:scan -and -not $script:scan.Cancelled -and @($script:scan.Files).Count -gt 0
+    $ui.DetailsButton.IsEnabled = -not $Busy -and $null -ne $script:scan
+    $ui.Categories.IsEnabled = -not $Busy
+    $ui.CancelButton.IsEnabled = $Busy -and $script:operation -ne 'Diagnose'
+    $ui.Progress.IsIndeterminate = $Busy
 }
-
-# DryRun checkbox
-$cbDry = New-Object System.Windows.Forms.CheckBox
-$cbDry.Text = "🔍 Modo simulação (DryRun) — não executa, apenas mostra"
-$cbDry.Location = New-Object System.Drawing.Point(15, 335)
-$cbDry.Size = New-Object System.Drawing.Size(525, 22)
-$cbDry.ForeColor = $fgColor
-$cbDry.BackColor = $bgColor
-$form.Controls.Add($cbDry)
-
-# Projects path
-$lblProj = New-Object System.Windows.Forms.Label
-$lblProj.Text = "Pasta de projetos (opcional, apenas análise):"
-$lblProj.Location = New-Object System.Drawing.Point(15, 362)
-$lblProj.Size = New-Object System.Drawing.Size(300, 18)
-$lblProj.ForeColor = $fgColor
-$form.Controls.Add($lblProj)
-
-$txtProj = New-Object System.Windows.Forms.TextBox
-$txtProj.Location = New-Object System.Drawing.Point(15, 382)
-$txtProj.Size = New-Object System.Drawing.Size(525, 24)
-$txtProj.BackColor = $panelColor
-$txtProj.ForeColor = $fgColor
-$form.Controls.Add($txtProj)
-
-# Progress bar
-$progressBar = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Location = New-Object System.Drawing.Point(15, 412)
-$progressBar.Size = New-Object System.Drawing.Size(525, 18)
-$progressBar.Style = "Continuous"
-$progressBar.Value = 0
-$form.Controls.Add($progressBar)
-
-# Log box
-$txtLog = New-Object System.Windows.Forms.TextBox
-$txtLog.Location = New-Object System.Drawing.Point(15, 436)
-$txtLog.Size = New-Object System.Drawing.Size(525, 160)
-$txtLog.Multiline = $true
-$txtLog.ScrollBars = "Vertical"
-$txtLog.ReadOnly = $true
-$txtLog.Font = New-Object System.Drawing.Font("Consolas", 8)
-$txtLog.BackColor = [System.Drawing.Color]::FromArgb(20, 20, 25)
-$txtLog.ForeColor = [System.Drawing.Color]::FromArgb(0, 220, 120)
-$form.Controls.Add($txtLog)
-
-# Buttons
-$btnRun = New-Object System.Windows.Forms.Button
-$btnRun.Text = "▶ Executar"
-$btnRun.Location = New-Object System.Drawing.Point(15, 602)
-$btnRun.Size = New-Object System.Drawing.Size(130, 36)
-$btnRun.BackColor = $btnColor
-$btnRun.ForeColor = [System.Drawing.Color]::White
-$btnRun.FlatStyle = "Flat"
-$btnRun.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
-$form.Controls.Add($btnRun)
-
-$btnAll = New-Object System.Windows.Forms.Button
-$btnAll.Text = "⚡ Tudo"
-$btnAll.Location = New-Object System.Drawing.Point(155, 602)
-$btnAll.Size = New-Object System.Drawing.Size(100, 36)
-$btnAll.BackColor = [System.Drawing.Color]::FromArgb(46, 204, 113)
-$btnAll.ForeColor = [System.Drawing.Color]::White
-$btnAll.FlatStyle = "Flat"
-$btnAll.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
-$form.Controls.Add($btnAll)
-
-$btnClear = New-Object System.Windows.Forms.Button
-$btnClear.Text = "🗑️ Limpar log"
-$btnClear.Location = New-Object System.Drawing.Point(265, 602)
-$btnClear.Size = New-Object System.Drawing.Size(120, 36)
-$btnClear.BackColor = [System.Drawing.Color]::FromArgb(149, 165, 166)
-$btnClear.ForeColor = [System.Drawing.Color]::White
-$btnClear.FlatStyle = "Flat"
-$form.Controls.Add($btnClear)
-
-$btnClose = New-Object System.Windows.Forms.Button
-$btnClose.Text = "✕ Fechar"
-$btnClose.Location = New-Object System.Drawing.Point(395, 602)
-$btnClose.Size = New-Object System.Drawing.Size(145, 36)
-$btnClose.BackColor = [System.Drawing.Color]::FromArgb(231, 76, 60)
-$btnClose.ForeColor = [System.Drawing.Color]::White
-$btnClose.FlatStyle = "Flat"
-$form.Controls.Add($btnClose)
-
-# Tooltip
-$tooltip = New-Object System.Windows.Forms.ToolTip
-$tooltip.SetToolTip($btnRun, "Executa as opções selecionadas")
-$tooltip.SetToolTip($btnAll, "Executa todas as otimizações")
-$tooltip.SetToolTip($cbDry, "Simula sem executar (seguro)")
-
-# Status bar
-$statusBar = New-Object System.Windows.Forms.StatusStrip
-$statusLabel = New-Object System.Windows.Forms.ToolStripStatusLabel
-$statusLabel.Text = "Pronto"
-$statusBar.Items.Add($statusLabel) | Out-Null
-$statusBar.BackColor = $accentColor
-$statusLabel.ForeColor = [System.Drawing.Color]::White
-$form.Controls.Add($statusBar)
-
-function Update-Status($text) {
-    $statusLabel.Text = $text
-    $form.Refresh()
+function Start-Work([string]$Operation, $Payload) {
+    if ($null -ne $script:worker) { return }
+    $script:operation = $Operation
+    $script:state.Cancel = $false; $script:state.Error = $null; $script:state.Result = $null; $script:state.Message = 'Préparando...'
+    $script:worker = [PowerShell]::Create()
+    [void]$script:worker.AddScript({
+        param($ModulePath, $Operation, $Payload, $State)
+        try {
+            Import-Module $ModulePath -Force -ErrorAction Stop
+            switch ($Operation) {
+                'Scan' { $State.Result = Get-OptimizerScan -State $State }
+                'Clean' { $State.Result = Invoke-OptimizerCleanup -Scan $Payload.Scan -CategoryIds $Payload.Ids -State $State -Confirm:$false }
+                'Diagnose' { $State.Message = 'Consultando hardware e Windows...'; $State.Result = @(Get-OptimizerDiagnostics) }
+            }
+        } catch { $State.Error = $_.Exception.Message }
+    }).AddArgument($script:modulePath).AddArgument($Operation).AddArgument($Payload).AddArgument($script:state)
+    $script:handle = $script:worker.BeginInvoke()
+    Set-Busy $true
+    $timer.Start()
 }
-
-function Log($msg) {
-    $txtLog.AppendText("[$(Get-Date -Format 'HH:mm:ss')] $msg`r`n")
-    $txtLog.ScrollToCaret()
-}
-
-$btnRun.Add_Click({
-    $script:DryRun = $cbDry.Checked
-    $txtLog.Clear()
-    $progressBar.Value = 0
-    Update-Status "Executando..."
-
-    $steps = @()
-    if ($checkboxes["temp"].Checked) { $steps += { Log ">> Limpeza de temporários"; Clean-Temp } }
-    if ($checkboxes["browser"].Checked) { $steps += { Log ">> Caches navegadores"; Clean-BrowserCaches } }
-    if ($checkboxes["packages"].Checked) { $steps += { Log ">> Caches pacotes"; Clean-PackageCaches } }
-    if ($checkboxes["appcaches"].Checked) { $steps += { Log ">> Caches apps"; Clean-AppCaches } }
-    if ($checkboxes["startup"].Checked) { $steps += { Log ">> Otimizar startup"; Optimize-Startup } }
-    if ($checkboxes["system"].Checked) { $steps += { Log ">> Ajustes sistema"; System-Tweaks } }
-    if ($checkboxes["disk"].Checked) { $steps += { Log ">> Otimizar disco"; Optimize-Disk } }
-    if ($checkboxes["events"].Checked) { $steps += { Log ">> Limpar logs"; Clear-EventLogs } }
-    if ($checkboxes["bgapps"].Checked) { $steps += { Log ">> Apps background"; Disable-BackgroundApps } }
-    if ($checkboxes["cleanmgr"].Checked) { $steps += { Log ">> cleanmgr"; Run-CleanMgr } }
-    if ($checkboxes["dns"].Checked) { $steps += { Log ">> DNS/Winsock"; Flush-DNS } }
-    if ($checkboxes["storage"].Checked) { $steps += { Log ">> Storage Sense"; Enable-StorageSense } }
-    if ($checkboxes["defender"].Checked) { $steps += { Log ">> Defender scan"; Run-DefenderScan } }
-
-    $total = $steps.Count
-    $i = 0
-    foreach ($step in $steps) {
-        & $step
-        $i++
-        $progressBar.Value = [math]::Min(100, [math]::Round(($i / $total) * 100))
-        $form.Refresh()
+$timer = New-Object Windows.Threading.DispatcherTimer
+$timer.Interval = [TimeSpan]::FromMilliseconds(200)
+$timer.Add_Tick({
+    $ui.Status.Text = $script:state.Message
+    if (-not $script:handle.IsCompleted) { return }
+    $timer.Stop()
+    try {
+        [void]$script:worker.EndInvoke($script:handle)
+        if ($script:state.Error) { throw $script:state.Error }
+        switch ($script:operation) {
+            'Scan' {
+                $script:scan = $script:state.Result
+                $ui.Categories.ItemsSource = @($script:scan.Categories)
+                $ui.ScanWarnings.Text = $script:scan.Warnings -join "`n"
+                $ui.ScanMetric.Text = Format-OptimizerSize $script:scan.Bytes
+                $ui.Status.Text = if ($script:scan.Cancelled) { 'Análise interrompida. Analise novamente para liberar a limpeza.' } else { 'Análise concluída. Revise as categorias e a lista de arquivos.' }
+            }
+            'Clean' {
+                $script:cleanup = $script:state.Result
+                $ui.CleanMetric.Text = Format-OptimizerSize $script:cleanup.RemovedBytes
+                $ui.CleanupSummary.Text = '{0} liberados • {1} removidos • {2} ignorados • Interrompido: {3}' -f (Format-OptimizerSize $script:cleanup.RemovedBytes), $script:cleanup.RemovedCount, $script:cleanup.SkippedCount, $script:cleanup.Cancelled
+                $ui.Status.Text = 'Resultado registrado. Faça uma nova análise antes de outra limpeza.'
+                $ui.ScanWarnings.Text = (@($script:cleanup.Results | Where-Object Status -eq 'Ignorado' | Select-Object -First 30 | ForEach-Object { "$($_.Path): $($_.Detail)" }) -join "`n")
+                $script:scan = $null
+                $ui.Categories.ItemsSource = @()
+            }
+            'Diagnose' { $script:diagnostics = @($script:state.Result); $ui.DiagnosticsGrid.ItemsSource = $script:diagnostics; $ui.Status.Text = 'Diagnóstico concluído. Confira itens indisponíveis e observações.' }
+        }
+    } catch {
+        $ui.Status.Text = 'Falha: ' + $_.Exception.Message
+        if ($script:operation -eq 'Clean') { $script:scan = $null }
+        if (-not $ValidateUI) { [void][Windows.MessageBox]::Show($window, $_.Exception.Message, 'Operação não concluída', 'OK', 'Warning') }
+    } finally { $script:worker.Dispose(); $script:worker = $null; Set-Busy $false }
+})
+$ui.ScanButton.Add_Click({ Start-Work 'Scan' $null })
+$ui.GoClean.Add_Click({ $ui.Pages.SelectedIndex = 1; Start-Work 'Scan' $null })
+$ui.DiagnoseHome.Add_Click({ $ui.Pages.SelectedIndex = 2; Start-Work 'Diagnose' $null })
+$ui.DiagnoseButton.Add_Click({ Start-Work 'Diagnose' $null })
+$ui.CancelButton.Add_Click({ $script:state.Cancel = $true; $ui.CancelButton.IsEnabled = $false; $ui.Status.Text = 'Interrompendo após o arquivo atual...' })
+$ui.CleanButton.Add_Click({
+    [void]$ui.Categories.CommitEdit([Windows.Controls.DataGridEditingUnit]::Cell, $true)
+    [void]$ui.Categories.CommitEdit([Windows.Controls.DataGridEditingUnit]::Row, $true)
+    $selected = @($script:scan.Categories | Where-Object Selected)
+    if ($selected.Count -eq 0) { $ui.Status.Text = 'Selecione pelo menos uma categoria.'; return }
+    $size = Format-OptimizerSize (($selected | Measure-Object Bytes -Sum).Sum)
+    $answer = [Windows.MessageBox]::Show($window, "Excluir permanentemente os arquivos analisados das $($selected.Count) categorias selecionadas ($size)?`n`nA exclusão não passa pela Lixeira. Arquivos em uso ou alterados serão ignorados.", 'Confirmar limpeza', 'YesNo', 'Warning', 'No')
+    if ($answer -eq 'Yes') { Start-Work 'Clean' @{Scan=$script:scan; Ids=@($selected | ForEach-Object Id)} }
+})
+$ui.DetailsButton.Add_Click({
+    $detail = New-Object Windows.Window
+    $detail.Title = 'Arquivos candidatos — prévia sem exclusão'; $detail.Width = 960; $detail.Height = 560; $detail.Owner = $window; $detail.WindowStartupLocation = 'CenterOwner'
+    $grid = New-Object Windows.Controls.DataGrid
+    $grid.IsReadOnly = $true; $grid.AutoGenerateColumns = $false; $grid.CanUserAddRows = $false
+    foreach ($column in @(@('Categoria','CategoryName',220), @('Caminho','Path',550), @('Bytes','Bytes',100))) {
+        $c = New-Object Windows.Controls.DataGridTextColumn; $c.Header = $column[0]; $c.Binding = New-Object Windows.Data.Binding $column[1]; $c.Width = $column[2]; [void]$grid.Columns.Add($c)
     }
-
-    Log "=== CONCLUIDO ==="
-    Update-Status "Concluído!"
-    [System.Windows.Forms.MessageBox]::Show("Otimização concluída com sucesso!", "OK", "OK", "Information")
+    $grid.ItemsSource = @($script:scan.Files); $detail.Content = $grid; [void]$detail.ShowDialog()
 })
-
-$btnAll.Add_Click({
-    $script:DryRun = $cbDry.Checked
-    foreach ($cb in $checkboxes.Values) { $cb.Checked = $true }
-    $btnRun.PerformClick()
+$ui.ExportButton.Add_Click({
+    $dialog = New-Object Microsoft.Win32.SaveFileDialog
+    $dialog.Filter = 'Relatório HTML (*.html)|*.html'; $dialog.FileName = 'Manutencao-' + (Get-Date -Format 'yyyyMMdd-HHmm') + '.html'
+    if ($dialog.ShowDialog($window)) {
+        try {
+            Export-OptimizerReport -Path $dialog.FileName -Customer $ui.Customer.Text -Notes $ui.Notes.Text -Diagnostics $script:diagnostics -Cleanup $script:cleanup
+            $ui.Status.Text = 'Relatório salvo: ' + $dialog.FileName
+        } catch { [void][Windows.MessageBox]::Show($window, $_.Exception.Message, 'Não foi possível salvar', 'OK', 'Error') }
+    }
 })
-
-$btnClear.Add_Click({ $txtLog.Clear() })
-
-$btnClose.Add_Click({ $form.Close() })
-
-[void]$form.ShowDialog()
+$toolActions = @{
+    StartupTool='ms-settings:startupapps'; AppsTool='ms-settings:appsfeatures'; StorageTool='ms-settings:storagesense'; SecurityTool='windowsdefender:'
+    DiskTool='dfrgui.exe'; RestoreTool='SystemPropertiesProtection.exe'; EventsTool='eventvwr.msc'; TaskTool='taskmgr.exe'
+}
+foreach ($name in $toolActions.Keys) {
+    $ui[$name].Tag = $toolActions[$name]
+    $ui[$name].Add_Click({
+        param($sender, $eventArgs)
+        try { Start-Process -FilePath $sender.Tag -ErrorAction Stop }
+        catch { [void][Windows.MessageBox]::Show($window, $_.Exception.Message, 'Ferramenta indisponível', 'OK', 'Warning') }
+    })
+}
+$window.Add_Closing({
+    param($sender, $eventArgs)
+    if ($null -ne $script:worker) { $eventArgs.Cancel = $true; $script:state.Cancel = $true; $ui.Status.Text = 'Aguarde a operação terminar antes de fechar. A interrupção foi solicitada.' }
+})
+if ($ValidateUI) {
+    if ($PreviewPath) {
+        $surface = $window.Content
+        $surface.Measure((New-Object Windows.Size(1160, 760)))
+        $surface.Arrange((New-Object Windows.Rect(0, 0, 1160, 760)))
+        $surface.UpdateLayout()
+        $bitmap = New-Object Windows.Media.Imaging.RenderTargetBitmap(1160, 760, 96, 96, [Windows.Media.PixelFormats]::Pbgra32)
+        $bitmap.Render($surface)
+        $encoder = New-Object Windows.Media.Imaging.PngBitmapEncoder
+        $encoder.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($bitmap))
+        $stream = [IO.File]::Create($PreviewPath)
+        try { $encoder.Save($stream) } finally { $stream.Dispose() }
+    }
+    # Exercise real runspace + Dispatcher flow using only a disposable profile.
+    $fixture = Join-Path ([IO.Path]::GetTempPath()) ('optimizer-ui-' + [guid]::NewGuid().ToString('N'))
+    $previousLocalAppData = $env:LOCALAPPDATA
+    try {
+        [void](New-Item -ItemType Directory -Path (Join-Path $fixture 'Temp') -Force)
+        $sample = Join-Path $fixture 'Temp/sample.tmp'
+        [IO.File]::WriteAllText($sample, 'UI test fixture')
+        (Get-Item $sample).LastWriteTimeUtc = [DateTime]::UtcNow.AddDays(-10)
+        $env:LOCALAPPDATA = $fixture
+        Start-Work 'Scan' $null
+        $deadline = [DateTime]::UtcNow.AddSeconds(20)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or $null -eq $script:scan -or @($script:scan.Files).Count -ne 1 -or -not $ui.CleanButton.IsEnabled) { throw 'UI scan/runspace integration failed.' }
+        Start-Work 'Clean' @{Scan=$script:scan; Ids=@('temp')}
+        $deadline = [DateTime]::UtcNow.AddSeconds(20)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or (Test-Path $sample) -or $script:cleanup.RemovedCount -ne 1 -or $ui.CleanButton.IsEnabled) { throw 'UI cleanup/result integration failed.' }
+    } finally {
+        $env:LOCALAPPDATA = $previousLocalAppData
+        $timer.Stop()
+        if ($null -ne $script:worker) { $script:worker.Stop(); $script:worker.Dispose(); $script:worker=$null }
+        $window.Close()
+        if (Test-Path $fixture) { Remove-Item -LiteralPath $fixture -Recurse -Force }
+    }
+    Write-Output 'WPF layout, bindings, asynchronous scan and cleanup passed.'
+    return
+}
+try { [void]$window.ShowDialog() } finally { $timer.Stop(); if ($null -ne $script:worker) { $script:worker.Dispose() } }

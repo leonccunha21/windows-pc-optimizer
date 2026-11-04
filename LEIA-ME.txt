@@ -1,40 +1,11 @@
-OTIMIZADOR DE PC - Instrucoes
-==============================
+PC OPTIMIZER - CENTRAL DE MANUTENCAO 4.0
 
-1. Copie a pasta "OtimizadorPC" para o outro PC (pendrive, etc.).
-2. No outro PC, clique com o botao direito em "Executar-Otimizador.bat"
-   e escolha "Executar como administrador".
-3. Siga o menu interativo. Recomendado: opcao 15 (Executar TUDO).
+1. Extraia a pasta inteira do ZIP.
+2. Abra Executar-Otimizador.bat na conta do cliente, sem elevar.
+3. Consulte o diagnostico e analise os arquivos antes de limpar.
+4. Revise categorias e arquivos. A exclusao confirmada e permanente.
+5. Salve o relatorio de atendimento na aba Relatorio.
 
-Modos avancados (linha de comando):
-  .\Otimizar-PC.ps1 -Auto
-      Executa todas as otimizacoes recomendadas sem perguntar.
-
-  .\Otimizar-PC.ps1 -Auto -ProjectsPath "C:\Users\Nome\Documents"
-      Tambem limpa lixo de projetos (node_modules, build, dist, etc.) nessa pasta.
-
-  .\Otimizar-PC.ps1 -Auto -DryRun
-      Apenas mostra o que seria feito, sem executar (seguro para testar).
-
-  .\Otimizador-PC.ps1 -Auto -SkipLong
-      Pula SFC/DISM e Defender full scan (demorados).
-
-PROTECOES:
-- Pastas do Epic Games / Fortnite NUNCA sao removidas.
-- Arquivos de projetos (codigo-fonte, node_modules, build, etc.) NUNCA sao removidos.
-- Apenas caches e arquivos temporarios sao limpos.
-- Backup do registro de inicializacao e salvo em %TEMP%\OtimizadorPC_backup.
-
-REQUISITOS:
-- Windows 10/11
-- PowerShell 5.1+ (ja vem no Windows)
-- Executar como Administrador
-- Para SFC/DISM, aguarde 15-30 min (roda em background)
-
-LOG:
-- Todas as acoes sao registradas em %TEMP%\OtimizadorPC_log.txt
-
-AVISO:
-- A opcao de pagefile fixo (8GB) requer reinicio do PC.
-- Winsock reset requer reinicio.
-- Desative temporariamente o antivirus se bloquear a execucao (falso positivo).
+A interface nao faz ajustes automaticos de Registro, servicos ou rede.
+O console antigo Otimizar-PC.ps1 foi isolado e exige -Legacy.
+Leia README.md para limites e docs/VALIDACAO.md para testes de bancada.
