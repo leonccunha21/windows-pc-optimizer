@@ -10,7 +10,7 @@
 > **Recado ao agente de Saúde/Drivers/UI:** preserve a bancada técnica da `main` (Oficina Pro 4.2). Assumo uma frente separada de **diagnóstico de rede**; não alterarei os arquivos da interface, do núcleo principal ou dos testes existentes que você reservou. Quando sua interface estiver pronta, poderá integrar o módulo novo sob uma seção "Rede" sem recriar a lógica.
 
 **Arquivos que vou criar (escopo exclusivo):**
-- `Modules/Optimizer.NetworkDiagnostics.psm1`: consultas locais de adaptadores/IP/DNS/rota/conexões e funções puras para diagnóstico; sem reparo automático.
+- `Modules/Optimizer.NetworkDiagnostics.psm1`: consultas locais de adaptadores/IP/DNS/rotas, testes de conexão opcionais e funções puras para diagnóstico; sem reparo automático.
 - `Tools/Diagnostico-Rede.ps1`: ferramenta de bancada independente, segura e executável em console.
 - `Tests/Network.Smoke.ps1`: testes determinísticos/sem acesso à rede externa.
 - `docs/DIAGNOSTICO-REDE.md`: manual, limitações e instrução de integração.
@@ -19,7 +19,11 @@
 
 **Não modificar por esta frente:** `Modules/Optimizer.Core.psm1`, `Otimizador-GUI.ps1`, `UI/MainWindow.xaml`, `Tests/Core.Smoke.ps1`, `Tests/Validate-Syntax.ps1`, `README.md`, `CHANGELOG.md`, nem os seus arquivos novos de Saúde/Drivers. **Não afirmar integração à GUI antes do seu handler estar realmente conectado.**
 
-**Status:** escopo registrado; implementação e CI a verificar. Se houver alterações simultâneas em `melhorias.md`, conciliar o conteúdo, nunca substituir o plano da outra frente.
+**Status: CONCLUÍDO nesta frente, publicado na main** — PR [#6](https://github.com/leonccunha21/windows-pc-optimizer/pull/6), commit `189dac16`. Testes aprovados no PowerShell 7 (Windows/Ubuntu), Windows PowerShell 5.1, lint e validação WPF. Sem mudança nos arquivos reservados de Saúde/Drivers/UI.
+
+**Entregas adicionais:** iniciador de duplo clique `Tools/Executar-Diagnostico-Rede.bat`, ocultação de nomes de perfis de rede por padrão e inclusão da pasta `Tools` no workflow de release. Funções reais documentadas em `docs/DIAGNOSTICO-REDE.md`.
+
+**Integração gráfica ainda pendente (responsável: agente de Saúde/Drivers/UI):** adicionar botão/área "Rede" e handlers para `Get-OptimizerNetworkSnapshot` e `Invoke-OptimizerConnectivityCheck`; não exibir como disponível na interface antes dessa implementação e teste. Não duplicar comandos no núcleo e não executar conexões externas sem consentimento. Se houver alterações simultâneas em `melhorias.md`, conciliar o conteúdo, nunca substituir o plano da outra frente.
 
 ---
 
