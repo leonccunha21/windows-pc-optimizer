@@ -5,6 +5,17 @@
 
 ---
 
+## Integração complementar da interface 4.x — 04/11/2026
+
+- **Implementado**: seleção/desmarcação em massa, detalhe de removidos/ignorados, atalhos F5/Esc/Ctrl+E, progresso na limpeza e exportação HTML/JSON.
+- **Proteção adicional**: rotinas de self-update e auto-push do console legado desativadas, assim como `-Auto` e `-Schedule` de alto impacto.
+- **Qualidade**: testes portáveis com `LOCALAPPDATA` temporário no Linux, documentação de segurança, arquitetura, templates e workflow para ZIP e SHA-256 (ainda sem tag publicada).
+- **Ainda pendente**: assinatura Authenticode, testes em bancada real, configuração externa, acessibilidade de alto contraste, exportação CSV e preferência persistente.
+
+> Esta nota complementa a rodada histórica registrada abaixo e prevalece nos pontos em que houve mudança posterior.
+
+---
+
 ## Status: o que a v4.0 já resolveu
 
 | Item anterior | Situação |

@@ -852,62 +852,17 @@ th{background:#3498db;color:#fff}</style></head><body>
     if (-not $Silent) { Start-Process $ReportFile }
 }
 
+# Legacy source updates and Git publishing are disabled by design.
+# Review new releases, verify checksums, and perform Git changes outside this app.
 function Invoke-SelfUpdate {
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding()]
     param()
-    Write-Log "=== Self-update ==="
-    if (-not $PSCommandPath) { Write-Log "  Caminho do script indisponivel; atualizacao ignorada." "WARN"; return }
-    try {
-        $latest = Invoke-WebRequest -Uri $GitHubRaw -UseBasicParsing -TimeoutSec 15
-        $remoteVersion = $null
-        if ($latest.Content -match '(?m)^\s*\$Version\s*=\s*"([^"]+)"') { $remoteVersion = $matches[1] }
-        if (-not $remoteVersion) { Write-Log "  Nao foi possivel identificar a versao remota." "WARN"; return }
-        if ([version]$remoteVersion -le [version]$Version) {
-            Write-Log "  Ja esta na versao mais recente ($Version)."
-            return
-        }
-        Write-Log "  Nova versao disponivel: $remoteVersion (local: $Version)."
-        if ($Auto -or $Silent) {
-            Write-Log "  Atualizacao automatica desativada em -Auto/-Silent. Baixe manualmente." "WARN"
-            return
-        }
-        $answer = Read-Host "Baixar e substituir o script pela versao $remoteVersion? [S/N]"
-        if ($answer -notmatch '^[sS]') { Write-Log "  Atualizacao cancelada."; return }
-        if (-not $PSCmdlet.ShouldProcess($PSCommandPath, "Substituir script pela versao $remoteVersion")) { return }
-        $temp = "$PSCommandPath.new"
-        [IO.File]::WriteAllText($temp, $latest.Content, (New-Object Text.UTF8Encoding $true))
-        $hash = (Get-FileHash $temp -Algorithm SHA256).Hash
-        Copy-Item $PSCommandPath "$PSCommandPath.bak" -Force
-        Move-Item $temp $PSCommandPath -Force
-        Write-Log "  Script atualizado para $remoteVersion (SHA256 $hash). Backup: $PSCommandPath.bak"
-    } catch { Write-Log "  Nao foi possivel verificar atualizacoes: $($_.Exception.Message)" "WARN" }
+    Write-Log "Atualizacao automatica desativada. Consulte releases oficiais e verifique o SHA-256." "WARN"
 }
-
 function Push-ToGitHub {
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding()]
     param()
-    Write-Log "=== Auto-push para GitHub ==="
-    $git = (Get-Command git -ErrorAction SilentlyContinue).Source
-    if (-not $git -and (Test-Path "C:\Program Files\Git\bin\git.exe")) { $git = "C:\Program Files\Git\bin\git.exe" }
-    if (-not $git) { Write-Log "  Git nao encontrado, pulando push" "WARN"; return }
-    $repoDir = Split-Path -Parent $PSCommandPath
-    if (-not (Test-Path (Join-Path $repoDir ".git"))) { Write-Log "  Nao e um repositorio git, pulando push" "WARN"; return }
-    try {
-        $status = @(& $git -C $repoDir status --porcelain 2>&1)
-        if ($status.Count -eq 0) { Write-Log "  Nenhuma mudanca para commitar"; return }
-        $untracked = @($status | Where-Object { $_ -match '^\?\?' })
-        if ($untracked.Count -gt 0) {
-            Write-Log "  Arquivos nao rastreados NAO serao enviados: $($untracked -join ', ')" "WARN"
-        }
-        if (-not (Confirm-Action "Commitar alteracoes rastreadas e enviar para origin/main?")) { return }
-        if (-not $PSCmdlet.ShouldProcess($repoDir, "Commitar e enviar alteracoes")) { return }
-        & $git -C $repoDir add -u 2>&1 | Out-Null
-        $staged = @(& $git -C $repoDir diff --cached --name-only 2>&1)
-        if ($staged.Count -eq 0) { Write-Log "  Nenhuma alteracao rastreada para commitar"; return }
-        & $git -C $repoDir commit -m "Auto-update: $(Get-Date -Format 'yyyy-MM-dd HH:mm')" 2>&1 | Out-Null
-        & $git -C $repoDir push origin main 2>&1 | Out-Null
-        Write-Log "  Push para GitHub concluido"
-    } catch { Write-Log "  Erro no push: $($_.Exception.Message)" "WARN" }
+    Write-Log "Publicacao Git automatica desativada. Revise e publique mudancas manualmente." "WARN"
 }
 
 function Show-ExternalTools {
@@ -1368,8 +1323,8 @@ function Show-Menu {
     Write-Host "23. Ferramentas externas recomendadas (links)"
     Write-Host "24. Analise de espaco em disco (top pastas)"
     Write-Host "25. Executar TUDO (recomendado)"
-    Write-Host "26. Self-update (verificar nova versao no GitHub)"
-    Write-Host "27. Auto-push para GitHub"
+    Write-Host "26. Verificar atualizacoes manualmente (link)"
+    Write-Host "27. Publicacao Git desativada"
     Write-Host "28. Verificar temperaturas (CPU/GPU)"
     Write-Host "29. Limpar cache do Explorer"
     Write-Host "30. Verificar integridade do disco (chkdsk)"
@@ -1403,6 +1358,9 @@ if ($LoadOnly) { return }
 if (-not $Legacy) {
     throw 'Este console contém rotinas antigas de alto impacto. Use Executar-Otimizador.bat para a interface 4.0. Somente para compatibilidade técnica, acrescente -Legacy após revisar as operações.'
 }
+if ($Auto) { throw 'Modo -Auto do console legado desativado por seguranca. Use a interface com confirmacao.' }
+if ($AutoPush) { throw 'AutoPush desativado por seguranca. Publique suas alteracoes Git manualmente.' }
+if ($Schedule) { throw 'Agendamento legado desativado: nao execute rotinas de alto impacto sem revisao.' }
 Write-Warning 'Modo legado: pode alterar serviços, memória virtual, rede e apagar logs. Não é a limpeza recomendada da interface 4.0.'
 "=== Inicio $(Get-Date) - v$Version - Modo $Mode ===" | Out-File $LogFile -Encoding UTF8
 

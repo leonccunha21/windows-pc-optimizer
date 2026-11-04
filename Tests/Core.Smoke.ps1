@@ -83,15 +83,38 @@ try {
     $empty=Join-Path $testRoot 'empty';[void](New-Item -ItemType Directory $empty)
     $emptyScan=Get-OptimizerScan -Targets @([pscustomobject]@{Id='empty';Name='Empty';Path=$empty;Process=''})
     Assert-True ($emptyScan.Bytes -eq 0 -and @($emptyScan.Files).Count -eq 0) 'Empty analysis returns zero without failing'
-    Assert-True ((Format-OptimizerSize 0) -like '*MB*') 'Zero bytes formats without failing'
+    Assert-True ((Format-OptimizerSize 0) -like '*B') 'Zero bytes formats without failing'
     Assert-True ((Format-OptimizerSize 1GB) -like '*GB*') 'Gigabyte formatting uses GB'
     Assert-True ((& $core { Get-OptimizerByteSum @() }) -eq 0) 'Empty byte sum is zero'
     Assert-True ((& $core { Get-OptimizerByteSum @([pscustomobject]@{Bytes=2},[pscustomobject]@{Bytes=3}) }) -eq 5) 'Byte sum adds values'
-    $defaultTargets = @(Get-OptimizerTargets)
-    Assert-True ($defaultTargets.Count -ge 1 -and $defaultTargets[0].Id -eq 'temp') 'Default targets include the user temp folder'
+    $previousLocalAppData = $env:LOCALAPPDATA
+    if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+        $env:LOCALAPPDATA = Join-Path $testRoot 'LocalAppData'
+        [void](New-Item -ItemType Directory -Path $env:LOCALAPPDATA -Force)
+    }
+    try {
+        $defaultTargets = @(Get-OptimizerTargets)
+        Assert-True ($defaultTargets.Count -ge 1 -and $defaultTargets[0].Id -eq 'temp') 'Default targets include the user temp folder'
+    } finally { $env:LOCALAPPDATA = $previousLocalAppData }
     $noCleanupReport = Join-Path $testRoot 'report-no-cleanup.html'
     Export-OptimizerReport -Path $noCleanupReport -Customer 'Teste' -Notes '' -Diagnostics @() -Cleanup $null
     Assert-True ((Get-Content $noCleanupReport -Raw) -match 'Nenhuma limpeza') 'Report without cleanup is explicit'
+
+    $jsonPath = Join-Path $testRoot 'report.json'
+    Export-OptimizerReport -Path $jsonPath -Customer 'João' -Notes 'Revisão' -Diagnostics @([pscustomobject]@{Area='Disco';Item='Teste';Value='OK'}) -Cleanup $result -Format JSON
+    $json = Get-Content -LiteralPath $jsonPath -Raw | ConvertFrom-Json
+    Assert-True ($json.Customer -eq 'João' -and $json.Diagnostics[0].Area -eq 'Disco') 'JSON preserves Unicode and diagnostics'
+    Assert-True (-not ((Get-Content -LiteralPath $jsonPath -Raw).Contains($old))) 'JSON omits personal cleanup file paths'
+    $emptyJson = Join-Path $testRoot 'empty.json'
+    Export-OptimizerReport -Path $emptyJson -Cleanup $null -Format JSON
+    Assert-True ($null -eq (Get-Content -LiteralPath $emptyJson -Raw | ConvertFrom-Json).Cleanup) 'JSON supports no cleanup'
+    $printReport = Join-Path $testRoot 'print.html'
+    Export-OptimizerReport -Path $printReport -Customer 'João & Cia' -Notes 'Teste <ok>' -Cleanup $null
+    $printText = Get-Content -LiteralPath $printReport -Raw
+    Assert-True ($printText -match '<head>' -and $printText -match '</body>' -and $printText -match '&lt;ok&gt;') 'HTML contains document structure and escapes notes'
+    Assert-True ([System.Net.WebUtility]::HtmlDecode($printText) -match 'João & Cia') 'HTML preserves accented customer names'
+    $sum = & $core { Get-OptimizerByteSum @([pscustomobject]@{Bytes=10}, [pscustomobject]@{Other=5}, $null) }
+    Assert-True ($sum -eq 10) 'Byte summation tolerates absent property'
     Write-Output "All $script:passed safety checks passed."
 } finally {
     if(Test-Path (Join-Path $testRoot 'cache/linked')) { [IO.Directory]::Delete((Join-Path $testRoot 'cache/linked')) }

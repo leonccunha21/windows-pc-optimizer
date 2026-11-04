@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Bloqueados atualização automática de código, publicação Git e execução desassistida no console legado (sem alterar a interface segura).
+- Relatórios JSON não serializam caminhos dos arquivos removidos.
+
 ### Added
+- Interface WPF: seleção/desmarcação em massa, progresso por arquivo, resultado detalhado e atalhos F5/Esc/Ctrl+E.
+- Relatórios de atendimento em JSON, além de HTML com <head>/<body> válidos.
+- Política de segurança, arquitetura, formulários de issue/PR e workflow de releases ZIP/SHA-256.
+- Mais cenários de teste incluindo Unicode, relatórios nulos e propriedades ausentes.
 - `PSScriptAnalyzerSettings.psd1` e job `lint` bloqueante no CI, executado antes do job `safety`.
 - Cobertura do núcleo ampliada para 30 verificações: formatação de tamanho, soma de bytes, alvos padrão e relatório sem limpeza.
 - `[CmdletBinding(SupportsShouldProcess)]` em `Remove-Safe`, `New-RestorePoint`, `Set-Pagefile`, `Invoke-SelfUpdate` e `Push-ToGitHub`.

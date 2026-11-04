@@ -18,10 +18,10 @@ Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil 
 | Área | Recursos |
 |---|---|
 | Visão geral | Fluxo de atendimento, espaço analisado e resultado real da última limpeza |
-| Limpeza | Prévia por categoria e arquivo; temporários do usuário e caches Chrome, Edge e Brave; retenção mínima de 7 dias |
+| Limpeza | Prévia por categoria e arquivo, seleção em massa, progresso por arquivo e resultado de removidos/ignorados; temporários e caches Chrome, Edge e Brave; retenção mínima de 7 dias |
 | Diagnóstico | Sistema, fabricante/modelo, CPU, RAM, discos, espaço livre, bateria e estado do Defender quando disponível |
 | Ferramentas | Atalhos para inicialização, aplicativos, armazenamento, segurança, otimização de unidades, restauração, eventos e tarefas |
-| Relatório | Cliente/OS, observações, diagnóstico e resultado; HTML local que pode ser impresso em PDF no navegador |
+| Relatório | Cliente/OS, observações, diagnóstico e resultado; HTML para impressão em PDF ou JSON opcional sem caminhos dos arquivos excluídos |
 
 Análise e limpeza rodam em um runspace separado. A janela permanece disponível e permite solicitar interrupção entre arquivos. A consulta de hardware termina antes de fechar a janela. Relatórios são salvos apenas por escolha do usuário; não há histórico persistente automático com dados de clientes.
 
@@ -57,12 +57,14 @@ Não há limpeza de Registro, alteração automática de serviços, pagefile, re
 powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI
 ```
 
+Atalhos da interface: **F5** para analisar, **Esc** para interromper e **Ctrl+E** para exportar. A análise usa barra indeterminada; na limpeza, o progresso acompanha arquivos processados.
+
 Os testes de segurança usam uma pasta temporária própria; nunca executam a limpeza real do computador. CI valida o núcleo no Linux/Windows, Windows PowerShell 5.1 e o fluxo real de análise/limpeza pela interface WPF com arquivos de teste. A validação visual em bancada (DPI, leitores de tela e diferentes versões do Windows) segue o [roteiro de testes](docs/VALIDACAO.md).
 
 ## Console legado 3.3
 
-`Otimizar-PC.ps1` permanece para compatibilidade técnica, com 255 definições duplicadas removidas, preservando a última implementação de cada função. O console exige agora **`-Legacy` explícito**. Agendamentos antigos devem ser revisados: não acrescente essa opção sem avaliar o que executam.
+`Otimizar-PC.ps1` permanece para compatibilidade técnica, com 255 definições duplicadas removidas, preservando a última implementação de cada função. O console exige agora **`-Legacy` explícito**. Agendamentos antigos devem ser revisados e desativados: o modo `-Auto` legado foi bloqueado por segurança.
 
-As rotinas legadas não têm as garantias do novo núcleo e **não são chamadas pela interface 4.0**. Incluem mudanças de serviços/pagefile e limpeza de logs; `-Auto` não é indicado para manutenção rotineira. `-LoadOnly` não cria nem sobrescreve logs.
+As rotinas legadas não têm as garantias do novo núcleo e **não são chamadas pela interface 4.0**. Incluem mudanças de serviços/pagefile e limpeza de logs; `-Auto`, `-AutoPush` e o agendamento automático legado estão desativados. A atualização do código também exige processo manual fora do aplicativo. `-LoadOnly` não cria nem sobrescreve logs.
 
 Licença MIT. Projeto independente; não afiliado ao CCleaner. A versão 4.0 melhora a base de uso profissional, sem alegar equivalência de cobertura ou superioridade comprovada a produtos comerciais.
