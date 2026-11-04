@@ -11,7 +11,7 @@
    <StackPanel><Border Background="#2ADCC2" CornerRadius="12" Width="52" Height="52" HorizontalAlignment="Left"><TextBlock Text="PC" Foreground="#102638" FontSize="23" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="PC Optimizer" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,17,0,5"/><TextBlock Text="OFICINA PRO / 4.2" FontSize="11" Foreground="#6AE3D0" FontWeight="SemiBold"/></StackPanel>
    <ScrollViewer Grid.Row="1" Margin="0,32,0,0" VerticalScrollBarVisibility="Auto"><StackPanel>
     <TextBlock Text="NAVEGAÇÃO" FontSize="10" Foreground="#87ACC1" Margin="0,0,0,15"/>
-    <Button x:Name="NavHome" Content="Visão geral" Background="#203B50" Margin="0,0,0,8" AutomationProperties.Name="Visão geral"/>
+    <Button x:Name="NavHome" Content="Visão geral" Background="#008C80" Margin="0,0,0,8" AutomationProperties.Name="Visão geral"/>
     <Button x:Name="NavClean" Content="Limpeza segura" Background="#203B50" Margin="0,0,0,8" AutomationProperties.Name="Limpeza segura"/>
     <Button x:Name="NavDiagnostic" Content="Diagnóstico" Background="#203B50" Margin="0,0,0,8" AutomationProperties.Name="Diagnóstico"/>
     <Button x:Name="NavWorkbench" Content="Bancada técnica" Background="#203B50" Margin="0,0,0,8" AutomationProperties.Name="Bancada técnica"/>
@@ -30,6 +30,9 @@
     <TextBlock Text="Diagnóstico, inventário, limpeza e reparos assistidos em um único espaço." Foreground="#C7DEEC" FontSize="12" Margin="0,7,0,0"/>
    </StackPanel></Border>
    <TabControl x:Name="Pages" Grid.Row="1" BorderThickness="0" Background="Transparent">
+    <TabControl.Template><ControlTemplate TargetType="TabControl"><Border Background="{TemplateBinding Background}">
+     <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent"/>
+    </Border></ControlTemplate></TabControl.Template>
     <TabItem Header="Visão geral"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="0,20,0,0">
      <Border Style="{StaticResource Card}" Background="#E2F3EE"><StackPanel><TextBlock Text="Comece conhecendo o equipamento" FontSize="22" FontWeight="SemiBold"/><TextBlock Text="Consulte hardware, bateria, espaço disponível e proteção do Windows." TextWrapping="Wrap" Margin="0,10,0,20"/><WrapPanel><Button x:Name="DiagnoseHome" Content="Verificar equipamento"/><Button x:Name="GoWorkbench" Content="Abrir bancada técnica" Background="#40566C"/></WrapPanel></StackPanel></Border>
      <UniformGrid Columns="2"><Border Style="{StaticResource Card}" Margin="0,0,10,18"><StackPanel><TextBlock Text="ESPAÇO ANALISADO" Foreground="#60758A" FontSize="11"/><TextBlock x:Name="ScanMetric" Text="Ainda não analisado" FontSize="24" FontWeight="SemiBold" Margin="0,12,0,5"/><TextBlock Text="Temporários e caches com mais de 7 dias" Foreground="#60758A" TextWrapping="Wrap"/></StackPanel></Border><Border Style="{StaticResource Card}" Margin="10,0,0,18"><StackPanel><TextBlock Text="ÚLTIMA LIMPEZA" Foreground="#60758A" FontSize="11"/><TextBlock x:Name="CleanMetric" Text="0 MB" FontSize="28" FontWeight="SemiBold" Foreground="#117B6D" Margin="0,8,0,5"/><TextBlock Text="Somente exclusões confirmadas" Foreground="#60758A"/></StackPanel></Border></UniformGrid>

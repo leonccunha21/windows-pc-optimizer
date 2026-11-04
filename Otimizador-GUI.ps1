@@ -283,7 +283,15 @@ if ($ValidateUI) {
             $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
             Start-Sleep -Milliseconds 20
         }
-        if ($null -ne $script:worker -or (Test-Path $sample) -or $script:cleanup.RemovedCount -ne 1 -or $ui.CleanButton.IsEnabled) { throw 'UI cleanup/result integration failed.' }
+        if ($null -ne $script:worker -or (Test-Path $sample) -or $script:cleanup.RemovedCount -ne 1 -or $ui.CleanButton.IsEnabled -or -not $ui.ExportResultsButton.IsEnabled) { throw 'UI cleanup/result integration failed.' }
+        # Verify the asynchronous technician workflow without modifying the Windows runner.
+        Start-Work 'Inspect' @{ Area='Processes' }
+        $deadline = [DateTime]::UtcNow.AddSeconds(20)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or @($ui.WorkbenchGrid.ItemsSource).Count -lt 1) { throw 'Technician inventory runspace/UI integration failed.' }
     } finally {
         $env:LOCALAPPDATA = $previousLocalAppData
         $timer.Stop()

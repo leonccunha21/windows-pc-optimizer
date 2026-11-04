@@ -32,7 +32,8 @@ if ($Mode -eq 'CHKDSK-Scan' -and [string]::IsNullOrWhiteSpace($env:SystemDrive))
 Write-Host "PC Optimizer | $Mode" -ForegroundColor Cyan
 Write-Host 'Execute somente após verificar backup e autorização do proprietário.' -ForegroundColor Yellow
 Write-Host ('Comando: {0} {1}' -f $action.Exe, ($action.Args -join ' '))
-& $action.Exe @($action.Args)
+$arguments = [string[]]$action.Args
+& $action.Exe @arguments
 $code = $LASTEXITCODE
 Write-Host ("Processo encerrado com código {0}. Leia as mensagens acima; o código isolado não confirma reparo." -f $code)
 if ($code -ne 0) { exit $code }
