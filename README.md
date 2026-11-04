@@ -61,8 +61,8 @@ Os testes de segurança usam uma pasta temporária própria; nunca executam a li
 
 ## Console legado 3.3
 
-`Otimizar-PC.ps1` permanece para compatibilidade técnica, com 255 definições duplicadas removidas, preservando a última implementação de cada função. O console exige agora **`-Legacy` explícito**. Agendamentos antigos devem ser revisados: não acrescente essa opção sem avaliar o que executam.
+`Otimizar-PC.ps1` permanece para compatibilidade técnica, com 255 definições duplicadas removidas, preservando a última implementação de cada função. O console exige agora **`-Legacy` explícito**. Agendamentos antigos devem ser revisados e desativados: o `-Auto` legado foi bloqueado por segurança. O console legado exige administrador; `-LoadOnly` permite carregar definições sem elevação.
 
-As rotinas legadas não têm as garantias do novo núcleo e **não são chamadas pela interface 4.0**. Incluem mudanças de serviços/pagefile e limpeza de logs; `-Auto` não é indicado para manutenção rotineira. `-LoadOnly` não cria nem sobrescreve logs.
+As rotinas legadas não têm as garantias do novo núcleo e **não são chamadas pela interface 4.0**. Incluem mudanças de serviços/pagefile e limpeza de logs; `-Auto`, `-AutoPush` e a atualização automática de código estão desativados. Para atualizar, revise o código publicado no GitHub e substitua manualmente após validação. `-LoadOnly` não cria nem sobrescreve logs.
 
 Licença MIT. Projeto independente; não afiliado ao CCleaner. A versão 4.0 melhora a base de uso profissional, sem alegar equivalência de cobertura ou superioridade comprovada a produtos comerciais.

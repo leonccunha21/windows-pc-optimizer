@@ -9,7 +9,7 @@
     NEVER removes project files, source code, or Epic Games / Fortnite files.
 
 .PARAMETER Auto
-    Run all recommended optimizations without prompts.
+    Deprecated: automatic legacy maintenance is disabled for safety.
 
 .PARAMETER Mode
     Safe (default) or Aggressive.
@@ -27,7 +27,7 @@
     No console output (logs only).
 
 .PARAMETER SelfUpdate
-    Check GitHub for a newer version.
+    Show the release page; never download or overwrite code automatically.
 
 .PARAMETER Schedule
     Create a scheduled task to run weekly.
@@ -36,7 +36,7 @@
     Generate an HTML report at the end.
 
 .PARAMETER AutoPush
-    Commit and push changes to GitHub after completion.
+    Disabled: Git changes require deliberate review outside the optimizer.
 
 .PARAMETER TechMode
     Technical mode: more details, fewer prompts.
@@ -46,9 +46,9 @@
     Interactive menu.
 
 .EXAMPLE
-    .\Otimizar-PC.ps1 -Auto -Mode Aggressive -Report -AutoPush
+    .\Otimizar-PC.ps1 -Legacy -DryRun
 #>
-#Requires -RunAsAdministrator
+
 
 param(
     [switch]$Auto,
@@ -798,6 +798,10 @@ function Generate-Report {
     $usedGB = [math]::Round(($disk.Size-$disk.FreeSpace)/1GB,2)
     $hw = Get-CimInstance Win32_Processor | Select-Object -First 1
     $os = Get-CimInstance Win32_OperatingSystem
+    $safeLog = if (Test-Path -LiteralPath $LogFile) { [System.Net.WebUtility]::HtmlEncode([string](Get-Content -LiteralPath $LogFile -Raw)) } else { '' }
+    $safeCpu = [System.Net.WebUtility]::HtmlEncode([string]$hw.Name)
+    $safeOs = [System.Net.WebUtility]::HtmlEncode([string]$os.Caption)
+    $safeVersion = [System.Net.WebUtility]::HtmlEncode([string]$os.Version)
     $html = @"
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>OtimizadorPC Report</title>
@@ -809,15 +813,15 @@ th{background:#3498db;color:#fff}</style></head><body>
 <h1>OtimizadorPC - Relatorio</h1>
 <div class="card"><h2>Sistema</h2>
 <table><tr><th>Item</th><th>Valor</th></tr>
-<tr><td>CPU</td><td>$($hw.Name)</td></tr>
+<tr><td>CPU</td><td>$safeCpu</td></tr>
 <tr><td>RAM</td><td>$([math]::Round($os.TotalVisibleMemorySize/1MB,2)) GB</td></tr>
-<tr><td>SO</td><td>$($os.Caption) $($os.Version)</td></tr>
+<tr><td>SO</td><td>$safeOs $safeVersion</td></tr>
 <tr><td>Modo</td><td>$Mode</td></tr>
 <tr><td>DryRun</td><td>$DryRun</td></tr>
 <tr><td>Data</td><td>$(Get-Date)</td></tr></table></div>
 <div class="card"><h2>Disco C:</h2>
 <p>Total: $totalGB GB | Usado: $usedGB GB | Livre: <span class="ok">$freeGB GB</span></p></div>
-<div class="card"><h2>Log</h2><pre>$(Get-Content $LogFile -Raw)</pre></div>
+<div class="card"><h2>Log</h2><pre>$safeLog</pre></div>
 </body></html>
 "@
     $html | Out-File $ReportFile -Encoding UTF8
@@ -825,39 +829,13 @@ th{background:#3498db;color:#fff}</style></head><body>
     if (-not $Silent) { Start-Process $ReportFile }
 }
 
+# Legacy maintenance must never replace its own source or publish a worktree.
+# Updates and Git publishing remain manual and require an independent review.
 function Invoke-SelfUpdate {
-    Write-Log "=== Self-update ==="
-    try {
-        $latest = Invoke-WebRequest -Uri $GitHubRaw -UseBasicParsing -TimeoutSec 15
-        $localHash = (Get-FileHash $PSCommandPath -Algorithm SHA256).Hash
-        $remoteHash = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($latest.Content))) -replace "-"
-        if ($localHash -ne $remoteHash) {
-            Write-Log "  Nova versao disponivel. Atualizando..."
-            $latest.Content | Out-File $PSCommandPath -Encoding UTF8 -Force
-            Write-Log "  Script atualizado. Reinicie para usar a nova versao."
-        } else {
-            Write-Log "  Ja esta na versao mais recente."
-        }
-    } catch { Write-Log "  Nao foi possivel verificar atualizacoes: $_" "WARN" }
+    Write-Log "Atualização automática desativada por segurança. Consulte: https://github.com/leonccunha21/windows-pc-optimizer/releases" "WARN"
 }
-
 function Push-ToGitHub {
-    Write-Log "=== Auto-push para GitHub ==="
-    $git = "C:\Program Files\Git\bin\git.exe"
-    if (-not (Test-Path $git)) { Write-Log "  Git nao encontrado, pulando push" "WARN"; return }
-    $repoDir = Split-Path -Parent $PSCommandPath
-    if (-not (Test-Path (Join-Path $repoDir ".git"))) { Write-Log "  Nao e um repositorio git, pulando push" "WARN"; return }
-    try {
-        & $git -C $repoDir add -A 2>&1 | Out-Null
-        $status = & $git -C $repoDir status --porcelain 2>&1
-        if ($status) {
-            & $git -C $repoDir -c user.email="leo@example.com" -c user.name="Leo" commit -m "Auto-update: $(Get-Date -Format 'yyyy-MM-dd HH:mm')" 2>&1 | Out-Null
-            & $git -C $repoDir push origin main 2>&1 | Out-Null
-            Write-Log "  Push para GitHub concluido"
-        } else {
-            Write-Log "  Nenhuma mudanca para commitar"
-        }
-    } catch { Write-Log "  Erro no push: $_" "WARN" }
+    Write-Log "Auto-push desativado por segurança. Revise e publique alterações manualmente usando o Git." "WARN"
 }
 
 function Show-ExternalTools {
@@ -1318,8 +1296,8 @@ function Show-Menu {
     Write-Host "23. Ferramentas externas recomendadas (links)"
     Write-Host "24. Analise de espaco em disco (top pastas)"
     Write-Host "25. Executar TUDO (recomendado)"
-    Write-Host "26. Self-update (verificar nova versao no GitHub)"
-    Write-Host "27. Auto-push para GitHub"
+    Write-Host "26. Verificar atualizacoes (sem instalacao automatica)"
+    Write-Host "27. Git: publicacao automatica desativada"
     Write-Host "28. Verificar temperaturas (CPU/GPU)"
     Write-Host "29. Limpar cache do Explorer"
     Write-Host "30. Verificar integridade do disco (chkdsk)"
@@ -1341,7 +1319,6 @@ function Show-Menu {
     Write-Host "46. Backup de favoritos do navegador"
     Write-Host "47. Otimizar servicos (Safe)"
     Write-Host "48. Executar TUDO + extras (completo)"
-    Write-Host "23. Ferramentas externas recomendadas (links)"
     Write-Host " 0. Sair"
     Write-Host ""
     Write-Host "  NOTA: Nao remove arquivos de projetos/codigo-fonte. Projetos preservados." -ForegroundColor Yellow
@@ -1354,6 +1331,14 @@ if ($LoadOnly) { return }
 if (-not $Legacy) {
     throw 'Este console contém rotinas antigas de alto impacto. Use Executar-Otimizador.bat para a interface 4.0. Somente para compatibilidade técnica, acrescente -Legacy após revisar as operações.'
 }
+if ($env:OS -ne 'Windows_NT') { throw 'Console legado é exclusivo de Windows.' }
+$adminIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$adminPrincipal = New-Object Security.Principal.WindowsPrincipal($adminIdentity)
+if (-not $adminPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    throw 'O console legado exige PowerShell aberto como administrador. A interface 4.0 não exige elevação.'
+}
+if ($Auto) { throw 'O modo -Auto do console legado está desativado por segurança. Use a interface 4.0 com análise e confirmação.' }
+if ($AutoPush) { throw 'A opção -AutoPush está desativada. Revise e publique alterações Git manualmente.' }
 Write-Warning 'Modo legado: pode alterar serviços, memória virtual, rede e apagar logs. Não é a limpeza recomendada da interface 4.0.'
 "=== Inicio $(Get-Date) - v$Version - Modo $Mode ===" | Out-File $LogFile -Encoding UTF8
 

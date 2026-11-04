@@ -1,5 +1,24 @@
-# 4.0.0 — Central de manutenção (2026-11-04)
+# Changelog
 
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [4.0.1] - 2026-11-04
+
+### Security
+- Desativadas a atualização de código sem assinatura e a publicação Git automática no console legado.
+- `-Auto` legado bloqueado por executar alterações de alto impacto sem revisão.
+- Elevação exigida somente ao executar o console legado; `-LoadOnly` permanece disponível sem administrador.
+- Relatório legado passa a escapar conteúdo do log e valores de identificação do sistema.
+
+### Fixed
+- Removida opção duplicada do menu legado; histórico de versões reorganizado.
+
+## [4.0.0] - 2026-11-04
+
+### Added
 - Nova interface WPF com painel, prévia de limpeza, diagnóstico, ferramentas e relatório de atendimento.
 - Núcleo independente com raízes permitidas, retenção, proteção de projetos, rejeição de links e revalidação antes da exclusão.
 - Trabalho em segundo plano, interrupção cooperativa e resultado baseado em exclusões confirmadas.
@@ -8,12 +27,6 @@
 - Removidas 255 definições duplicadas do legado, sem trocar as implementações efetivas.
 - Testes de segurança isolados e validação Windows PowerShell 5.1/WPF no CI.
 
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [3.3.0] - 2026-11-04
 
