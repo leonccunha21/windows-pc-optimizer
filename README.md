@@ -13,20 +13,29 @@ Interface desktop em português para o dia a dia de manutenção de computadores
 
 Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil analisado. Em computadores gerenciados, respeite a política de execução da organização. Não execute o BAT dentro do ZIP. Windows 10/11 com interface desktop; a compatibilidade do aplicativo não altera o ciclo de suporte do Windows.
 
-## O que a edição 4.2 oferece
+## O que a edição 4.4 oferece
 
 | Área | Recursos |
 |---|---|
 | Visão geral | Fluxo de atendimento, espaço analisado e resultado real da última limpeza |
-| Limpeza | Prévia por categoria e arquivo, seleção/desmarcação em massa, resultado detalhado e progresso por arquivo; caches Chrome, Edge e Brave; retenção mínima de 7 dias |
+| Limpeza | Prévia por categoria e arquivo, seleção/desmarcação em massa, resultado detalhado, CSV opcional (com aviso de privacidade) e progresso por arquivo; caches Chrome, Edge e Brave; retenção mínima de 7 dias |
 | Diagnóstico | Sistema, fabricante/modelo, CPU, RAM, discos, espaço livre, bateria e estado do Defender quando disponível |
 | Rede | Diagnóstico local de adaptadores, IPv4, gateway, DNS e perfis; testes DNS/TCP com destino explícito |
 | Saúde | Bateria com relatório oficial do Windows (powercfg), capacidade de projeto e ciclos; discos físicos com contadores SMART, temperatura, desgaste e volumes |
 | Manutenção | Drivers instalados com status (assinatura/idosidade), atualizações de driver via Windows Update; aplicativos instalados com sugestões de remoção e exclusão confirmada; otimizações seguras (plano de energia, Sensor de Armazenamento, cache de entrega, Lixeira) |
+| Bancada integrada | Inventário de processos, inicialização, programas, adaptadores, atualizações e unidades; diagnóstico local de rede; testes DNS/TCP autorizados; histórico de falhas de disco/WHEA/NTFS/desligamento; ferramentas SFC, DISM e CHKDSK com confirmação e UAC |
 | Atalhos do Windows | Inicialização, aplicativos, armazenamento, segurança, otimização de unidades, restauração, eventos, tarefas, recursos opcionais, dispositivos, energia, Windows Update, informações de sistema |
 | Relatório | Cliente/OS, observações, diagnóstico e resultado; HTML imprimível em PDF ou JSON sem caminhos de arquivos excluídos |
 
 Análise e limpeza rodam em um runspace separado. A janela permanece disponível e permite solicitar interrupção entre arquivos. A consulta de hardware termina antes de fechar a janela. Relatórios são salvos apenas por escolha do usuário; não há histórico persistente automático com dados de clientes.
+
+## Interface e acessibilidade
+
+A partir da edição 4.4, a barra lateral é **navegável por clique** e indica a área ativa, em vez de apenas descrever um roteiro. Em **Manutenção → Bancada**, as ferramentas foram separadas em quatro guias: **Inventário**, **Rede**, **Histórico** e **Reparos**. A reorganização não altera as regras de segurança dos módulos.
+
+Atalhos para navegar: **Ctrl+1** Visão geral, **Ctrl+2** Diagnóstico, **Ctrl+3** Saúde, **Ctrl+4** Limpeza, **Ctrl+5** Manutenção, **Ctrl+6** Relatório e **Ctrl+B** Bancada. Permanecem **F5** para análise de limpeza, **Esc** para solicitar interrupção e **Ctrl+E** para relatório.
+
+Todos os botões visíveis receberam rótulos de automação, e a navegação lateral possui destaque para foco de teclado. As principais combinações de texto/fundo foram ajustadas para contraste mínimo de 4,5:1; uma validação estática é executada no CI. Isso **não equivale a certificação completa de acessibilidade**: leitor de tela, temas de alto contraste e resoluções com DPI acima de 100% ainda exigem testes manuais no Windows.
 
 ## Saúde e manutenção
 
@@ -43,7 +52,15 @@ A janela WPF define o estilo de borda (`SingleBorderWindow`) com `ResizeMode` aj
 
 ## Bancada técnica
 
-As consultas da bancada são executadas em segundo plano; informações de inicialização são somente para leitura. Reparos e verificações abrem um novo console Windows, após confirmação e solicitação UAC. O relatório HTML/JSON não inclui caminhos de arquivos removidos; o CSV detalhado **inclui**, sendo exportado apenas após aviso de privacidade.
+Na interface, abra **Manutenção → Bancada** (ou o atalho na visão geral). Os botões estão conectados aos módulos locais publicados, não são apenas atalhos: inventário de processos, inicialização, programas, interfaces, atualizações e armazenamento; rede local; histórico de falhas; e comandos de integridade.
+
+As consultas rodam em segundo plano. A rede **não** acessa destinos externos na consulta local; o técnico deve informar um host/IP e consentir antes de testar DNS e TCP. IPs, gateway, DNS e nomes de perfis locais são ocultos por padrão. O histórico usa IDs e provedores do log System sem exibir mensagens originais, nomes de usuário ou caminhos.
+
+SFC /verifyonly, DISM /ScanHealth e CHKDSK /scan verificam o sistema; SFC /scannow e DISM /RestoreHealth podem repará-lo. A execução ocorre num novo console Windows, com confirmação e UAC, **nunca automaticamente**. Verificações e resultados dependem do Windows, drivers e permissões; ausência de avisos não certifica saúde.
+
+Os relatórios HTML/JSON não incluem caminhos de arquivos excluídos; o CSV detalhado **inclui**, por isso é salvo apenas mediante escolha do técnico e aviso de privacidade. As ferramentas independentes em `Tools/` continuam disponíveis.
+
+Para mais detalhes, leia `docs/DIAGNOSTICO-REDE.md` e `docs/DIAGNOSTICO-EVENTOS.md`.
 
 ## Rede e conectividade
 

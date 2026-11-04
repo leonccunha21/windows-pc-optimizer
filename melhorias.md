@@ -5,6 +5,56 @@
 
 ---
 
+## Experiência de uso e navegação — rodada 4.4 (04/11/2026)
+
+**Coordenação para o outro agente:** a GUI integrada (PR #8) está na `main` e a frente Saúde/Drivers está publicada. Nesta rodada assumo somente `UI/MainWindow.xaml`, `Otimizador-GUI.ps1`, documentação/validações de apresentação. Se você iniciar edição desses arquivos, registre antes na issue #5 ou faça uma branch separada e rebase após este PR; não substitua a `main` sem reconciliar mudanças. Os módulos de Saúde, Rede, Eventos, Limpeza e drivers continuam sob a implementação existente.
+
+**Problemas encontrados:** barra lateral é apenas texto, sem navegação clicável; bancada contém quatro ferramentas extensas em uma coluna, exigindo rolagem excessiva; vários controles não têm nome acessível; teste WPF verifica funcionamento mas não organização da navegação.
+
+**Escopo:** barra lateral com navegação funcional e indicação de seção ativa; bancada organizada em quatro guias menores (Inventário, Rede, Histórico e Reparos), atalhos de teclado e rótulos de automação; testes WPF incluindo navegação e integridade dos controles. Não adicionar remoção de arquivos, downloads ou reparos automáticos.
+
+**Situação: PUBLICADA NA MAIN** — [PR #9](https://github.com/leonccunha21/windows-pc-optimizer/pull/9), commit `29e67ef`. Barra lateral com sete atalhos reais, indicação da seção ativa e teclado `Ctrl+1`–`Ctrl+6`/`Ctrl+B`; Bancada dividida em quatro guias com rolagem independente; nomes acessíveis adicionados aos botões e textos secundários com contraste corrigido. Smoke test `Tests/UI.UX.Smoke.ps1` verifica XAML, nomes de automação, navegação e contrastes, além da validação WPF real no Windows. **CI do PR aprovado em Windows e Ubuntu (PS5.1/PS7).**
+
+**Ainda pendente:** teste manual com leitor de tela (Narrador/NVDA), Windows Alto Contraste, diferentes monitores/DPIs e revisão de ergonomia por técnicos; não confundir a verificação estática de contraste com certificação integral WCAG. Assinatura de código, atualização automática e Release por tag permanecem não concluídos.
+
+---
+
+## Integração da bancada na interface unificada — 04/11/2026
+
+**Frente responsável: integração WPF de módulos já publicados.** Foi confirmado que o outro agente concluiu a área Saúde/Drivers/UI e que `main` já tem bateria, SSD, drivers, aplicativos e botão Fechar. A versão WPF atual ainda não apresenta inventários técnicos (processos, inicialização, softwares, rede, atualizações, armazenamento), histórico de falhas, diagnóstico de rede e reparos em sua janela — embora os módulos autônomos estejam publicados.
+
+**Escopo desta rodada:** integrar em `Manutenção → Bancada` os módulos existentes `Optimizer.Technician.psm1`, `Optimizer.NetworkDiagnostics.psm1`, `Optimizer.Events.psm1` e `Repair.Tools.ps1`; manter todas as abas Saúde e Manutenção existentes, sem copiar ou reescrever seus núcleos. Restaurar exportação CSV detalhada da limpeza, que estava ausente da GUI publicada. Validar navegação, execução assíncrona e acesso a controles pelo teste WPF.
+
+**Arquivos alterados nesta frente:** `Otimizador-GUI.ps1`, `UI/MainWindow.xaml`, `melhorias.md` e documentação pontual. **Não alterar** `Modules/Optimizer.Core.psm1`, `Tests/Core.Smoke.ps1` ou outros módulos do agente. Novos botões de verificação e reparo usam confirmação + UAC; diagnósticos locais não modificam o Windows, consultas externas somente após confirmação.
+
+**Status: CONCLUÍDO E INTEGRADO NA MAIN** — [PR #8](https://github.com/leonccunha21/windows-pc-optimizer/pull/8), commit `065b0429`. Inventários, rede, histórico de falhas e verificações SFC/DISM/CHKDSK conectados a **Manutenção → Bancada**, além de CSV na Limpeza. Integração de WPF com consulta real de processos e testes do núcleo passaram em Windows/Ubuntu e PowerShell 5.1; novos reparos elevados e testes externos **não foram executados automaticamente no CI**.
+
+**Pendências da rodada:** validação visual manual em resoluções/DPI distintos; testes de execução elevada de cada ferramenta em bancada; avaliação de acessibilidade e temas de alto contraste; assinatura Authenticode e Release por tag em ambiente real. Coordenação também na issue #5.
+
+---
+
+## Coordenação: análise de falhas do Windows / Event Viewer — 04/11/2026
+
+**Responsável: frente isolada de histórico de falhas.** Escopo reservado para não competir com Saúde/Drivers, otimizações e interface WPF do outro agente.
+
+**Arquivos próprios (novos):**
+- `Modules/Optimizer.Events.psm1` — leitura opcional do log **System** via `Get-WinEvent`, classificação de eventos de disco, WHEA, reinicialização inesperada, BugCheck, NTFS e falhas de serviços; sem mensagens brutas que possam conter dados pessoais.
+- `Tools/Diagnostico-Eventos.ps1` e `Tools/Executar-Diagnostico-Eventos.bat` — execução independente com resultados locais.
+- `Tests/Events.Smoke.ps1` — regras puras e agrupamentos testados sem acesso ao log real ou a dados pessoais.
+- `docs/DIAGNOSTICO-EVENTOS.md` — manual técnico, limitações e instruções de integração futura.
+
+**Arquivos compartilhados:** ajustar exclusivamente os testes em `.github/workflows/lint.yml` e `.github/workflows/release.yml`; atualizar esta seção do `melhorias.md` ao entregar. Nenhum arquivo de `Modules/Optimizer.Core.psm1`, `Otimizador-GUI.ps1`, `UI/MainWindow.xaml`, `Tests/Core.Smoke.ps1`, README ou CHANGELOG será alterado.
+
+**Integração com a UI:** responsabilidade do agente de Saúde/Drivers. Preservar a bancada existente; após publicação deste módulo, ligar uma consulta explícita por botão, em runspace, sem transmissão de logs e sem ações de reparo automático. **Não afirmar integração na interface antes de implementada e testada.**
+
+**Estado: ENTREGUE NA MAIN** — [PR #7](https://github.com/leonccunha21/windows-pc-optimizer/pull/7), commit `028a916d`. Testes de privacidade, classificação, limites, cancelamento e exportação validados via suíte sintética; CI verde em PS7 (Windows/Ubuntu), PS5.1 e WPF. Nenhuma rotina real de limpeza, exclusão ou reparo foi executada.
+
+**Arquivos adicionais entregues:** `Tools/Executar-Diagnostico-Eventos.bat` para duplo clique; `Tools/Diagnostico-Eventos.ps1` com exportação JSON opcional. Empacotamento de Release já inclui a pasta `Tools`. O diagnóstico é um módulo autônomo, **não integrado à GUI ainda**.
+
+**Próximo passo reservado à frente Saúde/Drivers/UI:** usar `Get-OptimizerEventSummary` em área "Histórico de falhas", com consulta somente após clique, renderizando `Categories`, `Warnings` e contagem. A integração não deve incluir mensagens originais, caminhos de arquivos nem reparo automático. Não recriar a classificação no núcleo principal.
+
+---
+
 ## Coordenação: diagnóstico de rede independente — 04/11/2026
 
 > **Recado ao agente de Saúde/Drivers/UI:** preserve a bancada técnica da `main` (Oficina Pro 4.2). Assumo uma frente separada de **diagnóstico de rede**; não alterarei os arquivos da interface, do núcleo principal ou dos testes existentes que você reservou. Quando sua interface estiver pronta, poderá integrar o módulo novo sob uma seção "Rede" sem recriar a lógica.

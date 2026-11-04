@@ -17,6 +17,8 @@ jobs:
           ./Tests/Optimizer.Tests.ps1
           ./Tests/Core.Smoke.ps1
           ./Tests/Network.Smoke.ps1
+          ./Tests/Events.Smoke.ps1
+          ./Tests/UI.UX.Smoke.ps1
           powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI
           if ($LASTEXITCODE -ne 0) { throw 'WPF validation failed' }
       - name: Assemble release and SHA-256 checksum
