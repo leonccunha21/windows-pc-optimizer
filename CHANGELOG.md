@@ -1,3 +1,13 @@
+# 4.0.0 — Central de manutenção (2026-11-04)
+
+- Nova interface WPF com painel, prévia de limpeza, diagnóstico, ferramentas e relatório de atendimento.
+- Núcleo independente com raízes permitidas, retenção, proteção de projetos, rejeição de links e revalidação antes da exclusão.
+- Trabalho em segundo plano, interrupção cooperativa e resultado baseado em exclusões confirmadas.
+- Relatório HTML local com escape de dados e sem caminhos pessoais.
+- BAT abre a interface sem exigir administrador; console antigo exige `-Legacy` explícito.
+- Removidas 255 definições duplicadas do legado, sem trocar as implementações efetivas.
+- Testes de segurança isolados e validação Windows PowerShell 5.1/WPF no CI.
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

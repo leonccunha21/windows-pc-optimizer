@@ -1,7 +1,11 @@
 @echo off
-:: Launcher para Otimizar-PC.ps1
-:: Execute como Administrador
-title Otimizador de PC
+setlocal
 cd /d "%~dp0"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Otimizar-PC.ps1"
-pause
+title PC Optimizer - Central de manutencao
+powershell.exe -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "%~dp0Otimizador-GUI.ps1"
+if errorlevel 1 (
+  echo.
+  echo Nao foi possivel abrir o PC Optimizer. Confira a mensagem acima.
+  pause
+)
+endlocal

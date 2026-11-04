@@ -1,156 +1,65 @@
-# Windows PC Optimizer
+# PC Optimizer — Central de manutenção
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue.svg)](https://github.com/PowerShell/PowerShell)
-[![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D6.svg)](https://www.microsoft.com/windows)
-[![Version](https://img.shields.io/badge/version-3.1.0-brightgreen.svg)](CHANGELOG.md)
+Interface desktop em português para o dia a dia de manutenção de computadores e notebooks. PowerShell 5.1 + WPF, sem instalação de dependências, conta, publicidade ou envio de dados.
 
-> Ferramenta completa de otimização e manutenção de PC para Windows 10/11.
-> Limpa lixo, otimiza desempenho, diagnostica hardware e gera relatórios — **sem tocar em projetos, código-fonte ou arquivos do Epic Games/Fortnite**.
+## Abrir
 
----
+1. Baixe o [ZIP do projeto](https://github.com/leonccunha21/windows-pc-optimizer/archive/refs/heads/main.zip).
+2. **Extraia a pasta inteira**, mantendo `Modules` e `UI` ao lado dos scripts.
+3. Abra `Executar-Otimizador.bat`. A interface comum **não exige administrador**.
+4. Faça o diagnóstico, analise a limpeza, revise os arquivos e confirme as categorias desejadas.
 
-## ✨ Destaques
+Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil analisado. Em computadores gerenciados, respeite a política de execução da organização. Não execute o BAT dentro do ZIP. Windows 10/11 com interface desktop; a compatibilidade do aplicativo não altera o ciclo de suporte do Windows.
 
-- 🛡️ **Seguro**: nunca remove projetos, código-fonte, `.git`, Epic Games ou Fortnite
-- 🎨 **GUI moderna** (WinForms) com tema escuro e barra de progresso
-- 📊 **Relatório HTML** com métricas de disco, sistema e log
-- 🔧 **28 opções** de otimização + modo "Executar TUDO"
-- 🧪 **22 testes automatizados** (Pester) — todos passando
-- 🔄 **Self-update** e **auto-push** para GitHub
-- 📅 **Agendamento semanal** via Task Scheduler
-- 🖥️ **Diagnóstico profissional** (SMART, drivers, updates, portas, tarefas suspeitas)
+## O que a edição 4.0 oferece
 
----
-
-## 📦 O que faz
-
-### Limpeza
-- Temporários (≥7 dias)
-- Caches de navegadores (Chrome, Edge, Firefox, Brave, Opera, Vivaldi)
-- Caches de pacotes (npm, pnpm, pip, Gradle, Maven, Cargo, Go, NuGet, Playwright, Cypress)
-- Caches de aplicativos (Spotify, Discord, Slack, Teams, OneDrive, VS Code)
-- Caches de sistema (Store, OneDrive logs)
-- Caches de disco (WinSxS, prefetch, ícones, miniaturas, fontes)
-- Logs de eventos do Windows
-
-### Otimização
-- Plano de energia → Alto Desempenho
-- Desativa telemetria, SysMain, Delivery Optimization
-- Efeitos visuais → melhor desempenho
-- Transparência, Cortana, sugestões desativadas
-- Pagefile fixo em 8 GB
-- TRIM (SSD) / Desfragmentação (HDD) — auto-detecta
-- TCP auto-tuning (modo agressivo)
-
-### Diagnóstico e reparo
-- Informações de hardware (CPU, RAM, GPU, placa-mãe, BIOS)
-- Saúde do disco (SMART)
-- Drivers com problemas
-- Atualizações pendentes do Windows
-- Portas abertas e tarefas agendadas suspeitas
-- Reparo do Windows Update, Store e rede
-
-### Manutenção avançada
-- Desinstalar bloatware UWP (lista segura)
-- Busca de arquivos duplicados, grandes e antigos
-- Backup de drivers e registro
-- Agendamento semanal
-- Relatório HTML
-
----
-
-## 🚀 Como usar
-
-1. Copie a pasta (ou o `.zip`) para o PC alvo.
-2. Clique com o **botão direito** em `Executar-Otimizador.bat` → **"Executar como administrador"**.
-3. Escolha a opção **25 (Executar TUDO)** ou opções individuais.
-
-### GUI
-Execute `Otimizador-GUI.ps1` como administrador para interface gráfica com checkboxes, barra de progresso e tema escuro.
-
-### Linha de comando
-```powershell
-.\Otimizar-PC.ps1 -Auto                              # tudo, sem perguntas
-.\Otimizar-PC.ps1 -Auto -Mode Aggressive             # modo agressivo
-.\Otimizar-PC.ps1 -Auto -DryRun                      # simulação (seguro)
-.\Otimizar-PC.ps1 -Auto -SkipLong                    # pula SFC/DISM
-.\Otimizar-PC.ps1 -Auto -Report -AutoPush            # gera relatório e envia ao GitHub
-.\Otimizar-PC.ps1 -Schedule                          # agenda limpeza semanal
-.\Otimizar-PC.ps1 -SelfUpdate                        # atualiza o script
-```
-
----
-
-## 🛡️ Garantias de segurança
-
-- ✅ **Epic Games / Fortnite**: nunca removidos
-- ✅ **Projetos / código-fonte**: nunca tocados
-- ✅ **`.git`**: nunca removido
-- ✅ **Downloads protegidos** (Storage Sense não limpa Downloads)
-- ✅ **Backup automático** de registro antes de mudanças
-- ✅ **Ponto de restauração** automático
-- ✅ **DryRun** para simular antes de executar
-- ✅ **Logs** de todas as ações em `%TEMP%\OtimizadorPC_log.txt`
-
----
-
-## 📁 Estrutura do projeto
-
-```
-windows-pc-optimizer/
-├── Otimizar-PC.ps1          # Script principal (menu + auto + CLI)
-├── Otimizador-GUI.ps1       # Interface gráfica (WinForms)
-├── Executar-Otimizador.bat  # Launcher (executar como admin)
-├── README.md
-├── LEIA-ME.txt
-├── LICENSE                  # MIT
-├── CHANGELOG.md
-├── CONTRIBUTING.md
-├── .editorconfig
-├── .github/workflows/lint.yml
-└── Tests/Optimizer.Tests.ps1
-```
-
----
-
-## 🧪 Testes
-
-```powershell
-Invoke-Pester -Path './Tests'
-# Passed: 22 Failed: 0
-```
-
----
-
-## 🔗 Links
-
-- **Repositório:** https://github.com/leonccunha21/windows-pc-optimizer
-- **Último commit:** v3.1.0
-
----
-
-## 📝 Licença
-
-MIT — veja [LICENSE](LICENSE).
-
----
-
-## 🤝 Contribuindo
-
-Veja [CONTRIBUTING.md](CONTRIBUTING.md).
-
----
-
-## 🔗 Ferramentas externas recomendadas
-
-| Ferramenta | Link |
+| Área | Recursos |
 |---|---|
-| AdwCleaner | https://www.malwarebytes.com/adwcleaner |
-| Malwarebytes | https://www.malwarebytes.com/ |
-| CrystalDiskInfo | https://crystalmark.info/en/software/crystaldiskinfo/ |
-| HWiNFO | https://www.hwinfo.com/ |
-| BleachBit | https://www.bleachbit.org/ |
-| Revo Uninstaller | https://www.revouninstaller.com/ |
-| Everything | https://www.voidtools.com/ |
-| CCleaner | https://www.ccleaner.com/ |
+| Visão geral | Fluxo de atendimento, espaço analisado e resultado real da última limpeza |
+| Limpeza | Prévia por categoria e arquivo; temporários do usuário e caches Chrome, Edge e Brave; retenção mínima de 7 dias |
+| Diagnóstico | Sistema, fabricante/modelo, CPU, RAM, discos, espaço livre, bateria e estado do Defender quando disponível |
+| Ferramentas | Atalhos para inicialização, aplicativos, armazenamento, segurança, otimização de unidades, restauração, eventos e tarefas |
+| Relatório | Cliente/OS, observações, diagnóstico e resultado; HTML local que pode ser impresso em PDF no navegador |
+
+Análise e limpeza rodam em um runspace separado. A janela permanece disponível e permite solicitar interrupção entre arquivos. A consulta de hardware termina antes de fechar a janela. Relatórios são salvos apenas por escolha do usuário; não há histórico persistente automático com dados de clientes.
+
+## Critérios de limpeza
+
+- Somente raízes permitidas do perfil atual. Não percorre Documents, Downloads ou outras contas.
+- Não apaga senhas, cookies ou histórico de navegação.
+- Navegadores abertos são ignorados na análise e verificados novamente na exclusão.
+- Preserva arquivos recentes, extensões comuns de código/documentos/mídia/arquivos compactados e pastas com marcadores de projeto (`.git`, `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`).
+- Um arquivo vazio chamado `.optimizer-protect` protege a pasta e seus descendentes.
+- Não percorre junctions ou links simbólicos. Antes de excluir, verifica novamente os ancestrais, tamanho e data de modificação.
+- Apaga arquivos individuais, nunca diretórios recursivamente. Arquivos em uso ou sem permissão são registrados como ignorados.
+- A análise expira em 30 minutos. Após uma limpeza, uma nova análise é obrigatória.
+- A exclusão é permanente: revise a prévia. Um ponto de restauração não recupera arquivos pessoais excluídos.
+
+Não há limpeza de Registro, alteração automática de serviços, pagefile, rede ou exclusão de logs na nova interface. Espaço liberado representa os bytes dos arquivos cuja exclusão foi confirmada; não é promessa de ganho de velocidade nem medição de alocação física em discos comprimidos.
+
+## Fluxo de oficina
+
+1. Confirme o backup e registre os sintomas nas observações do atendimento.
+2. Consulte o diagnóstico. Status de disco via WMI não substitui SMART completo, e o estado do Defender não certifica ausência de malware.
+3. Feche os navegadores, analise e confira os candidatos.
+4. Limpe somente as categorias autorizadas e confira removidos/ignorados.
+5. Utilize as ferramentas nativas conforme a necessidade e registre o serviço.
+6. Salve o relatório. Para PDF, abra o HTML no navegador e escolha **Imprimir → Salvar como PDF**.
+
+## Desenvolvimento e validação
+
+```powershell
+./Tests/Validate-Syntax.ps1
+./Tests/Core.Smoke.ps1
+powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI
+```
+
+Os testes de segurança usam uma pasta temporária própria; nunca executam a limpeza real do computador. CI valida o núcleo no Linux/Windows, Windows PowerShell 5.1 e carregamento WPF. A validação visual em bancada (DPI, leitores de tela e diferentes versões do Windows) segue o [roteiro de testes](docs/VALIDACAO.md).
+
+## Console legado 3.3
+
+`Otimizar-PC.ps1` permanece para compatibilidade técnica, com 255 definições duplicadas removidas, preservando a última implementação de cada função. O console exige agora **`-Legacy` explícito**. Agendamentos antigos devem ser revisados: não acrescente essa opção sem avaliar o que executam.
+
+As rotinas legadas não têm as garantias do novo núcleo e **não são chamadas pela interface 4.0**. Incluem mudanças de serviços/pagefile e limpeza de logs; `-Auto` não é indicado para manutenção rotineira. `-LoadOnly` não cria nem sobrescreve logs.
+
+Licença MIT. Projeto independente; não afiliado ao CCleaner. A versão 4.0 melhora a base de uso profissional, sem alegar equivalência de cobertura ou superioridade comprovada a produtos comerciais.

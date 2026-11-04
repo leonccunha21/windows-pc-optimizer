@@ -1,4 +1,4 @@
-# Pester 3 compatible tests
+﻿# Pester 3 compatible tests
 if (-not $PSScriptRoot) { $PSScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path }
 $script:ScriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) "Otimizar-PC.ps1"
 . $script:ScriptPath -LoadOnly
