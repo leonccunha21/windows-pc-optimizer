@@ -90,6 +90,65 @@ $ui.GoClean.Add_Click({ $ui.Pages.SelectedIndex = 1; Start-Work 'Scan' $null })
 $ui.GoWorkbench.Add_Click({ $ui.Pages.SelectedIndex = 3 })
 $ui.DiagnoseHome.Add_Click({ $ui.Pages.SelectedIndex = 2; Start-Work 'Diagnose' $null })
 $ui.DiagnoseButton.Add_Click({ Start-Work 'Diagnose' $null })
+# Real navigation; the sidebar is not a static instructional illustration.
+$navigation = @{ NavHome=0; NavClean=1; NavDiagnostic=2; NavWorkbench=3; NavTools=4; NavReport=5 }
+foreach ($buttonName in $navigation.Keys) {
+    $ui[$buttonName].Tag = [int]$navigation[$buttonName]
+    $ui[$buttonName].Add_Click({
+        param($navSender)
+        $ui.Pages.SelectedIndex = [int]$navSender.Tag
+    })
+}
+$ui.Pages.Add_SelectionChanged({
+    if ($ui.Pages.SelectedIndex -lt 0) { return }
+    foreach ($name in $navigation.Keys) {
+        $selected = [int]$navigation[$name] -eq $ui.Pages.SelectedIndex
+        $ui[$name].Background = if ($selected) { [Windows.Media.Brushes]::Teal } else { [Windows.Media.Brushes]::Transparent }
+    }
+})
+# Every inventory command is genuinely executed in the worker runspace.
+foreach ($pair in @(
+    @('ProcessButton','Processes'), @('StartupButton','Startup'), @('SoftwareButton','Software'),
+    @('NetworkButton','Network'), @('UpdatesButton','Updates'), @('DrivesButton','Storage')
+)) {
+    $ui[$pair[0]].Tag = $pair[1]
+    $ui[$pair[0]].Add_Click({
+        param($inspectionSender)
+        $ui.Pages.SelectedIndex = 3
+        $ui.WorkbenchCount.Text = 'Consultando...'
+        Start-Work 'Inspect' @{ Area = [string]$inspectionSender.Tag }
+    })
+}
+# No repair is triggered by loading the app or by its analysis operations.
+$repairs = @{
+    SfcVerifyButton='SFC-Verify'
+    DismScanButton='DISM-Scan'
+    ChkdskScanButton='CHKDSK-Scan'
+    SfcRepairButton='SFC-Repair'
+    DismRepairButton='DISM-Repair'
+}
+foreach ($buttonName in $repairs.Keys) {
+    $ui[$buttonName].Tag = $repairs[$buttonName]
+    $ui[$buttonName].Add_Click({
+        param($repairSender)
+        if ($null -ne $script:worker) { return }
+        $mode = [string]$repairSender.Tag
+        $intent = if ($mode.EndsWith('Repair')) { 'reparar arquivos do Windows' } else { 'verificar a integridade do Windows' }
+        $message = "Executar $mode para $intent em console elevado?" + [Environment]::NewLine + [Environment]::NewLine + 'Confirme backup, autorização e energia estável. O processo pode demorar.'
+        $answer = [Windows.MessageBox]::Show($window, $message, 'Confirmar ação técnica', 'YesNo', 'Warning', 'No')
+        if ($answer -ne 'Yes') { return }
+        try {
+            $binary = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+            $repairFile = Join-Path $PSScriptRoot 'Modules\Repair.Tools.ps1'
+            $arguments = '-NoProfile -NoExit -ExecutionPolicy Bypass -File "{0}" -Mode {1}' -f $repairFile.Replace('"',''), $mode
+            Start-Process -FilePath $binary -ArgumentList $arguments -Verb RunAs -ErrorAction Stop | Out-Null
+            $ui.Status.Text = 'Console técnico iniciado: ' + $mode
+        } catch {
+            [void][Windows.MessageBox]::Show($window, $_.Exception.Message, 'Console não disponível', 'OK', 'Warning')
+        }
+    })
+}
+
 $ui.CancelButton.Add_Click({ $script:state.Cancel = $true; $ui.CancelButton.IsEnabled = $false; $ui.Status.Text = 'Interrompendo após o arquivo atual...' })
 $ui.CleanButton.Add_Click({
     [void]$ui.Categories.CommitEdit([Windows.Controls.DataGridEditingUnit]::Cell, $true)
@@ -109,6 +168,22 @@ $ui.SelectNoneButton.Add_Click({
     if ($null -eq $script:scan) { return }
     foreach ($category in $script:scan.Categories) { $category.Selected = $false }
     $ui.Categories.Items.Refresh()
+})
+
+$ui.ExportResultsButton.Add_Click({
+    if ($null -eq $script:cleanup) { return }
+    $dialog = New-Object Microsoft.Win32.SaveFileDialog
+    $dialog.Filter = 'Resultado CSV (*.csv)|*.csv'
+    $dialog.FileName = 'Resultado-Limpeza-' + (Get-Date -Format 'yyyyMMdd-HHmm') + '.csv'
+    if (-not $dialog.ShowDialog($window)) { return }
+    $warning = [Windows.MessageBox]::Show($window, 'A exportação detalhada contém caminhos de arquivos do cliente. Salve apenas em local autorizado.', 'Privacidade dos dados', 'YesNo', 'Warning', 'No')
+    if ($warning -ne 'Yes') { return }
+    try {
+        @($script:cleanup.Results | Select-Object Category,Status,Bytes,Detail,Path) | Export-Csv -LiteralPath $dialog.FileName -NoTypeInformation -Encoding UTF8
+        $ui.Status.Text = 'Resultado detalhado exportado para o local escolhido.'
+    } catch {
+        [void][Windows.MessageBox]::Show($window, $_.Exception.Message, 'Falha ao salvar CSV', 'OK', 'Error')
+    }
 })
 $ui.DetailsButton.Add_Click({
     $detail = New-Object Windows.Window
