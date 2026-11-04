@@ -539,6 +539,17 @@ if ($ValidateUI) {
         $stream = [IO.File]::Create($PreviewPath)
         try { $encoder.Save($stream) } finally { $stream.Dispose() }
     }
+    foreach ($required in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport','WorkbenchTabs')) {
+        if ($null -eq $ui[$required]) { throw "Navegação não encontrada: $required" }
+    }
+    $ui.NavBench.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+    if ($ui.Pages.SelectedIndex -ne 4 -or $ui.MaintenanceTabs.SelectedIndex -ne 4) { throw 'Sidebar did not open the workbench.' }
+    $ui.WorkbenchTabs.SelectedIndex = 3
+    if ([string]$ui.WorkbenchTabs.SelectedItem.Header -ne 'Reparos') { throw 'Workbench tab selection failed.' }
+    $ui.NavReport.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+    if ($ui.Pages.SelectedIndex -ne 5) { throw 'Sidebar report navigation failed.' }
+    $ui.NavOverview.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+    if ($ui.Pages.SelectedIndex -ne 0) { throw 'Sidebar overview navigation failed.' }
     # Exercise real runspace + Dispatcher flow using only a disposable profile.
     $fixture = Join-Path ([IO.Path]::GetTempPath()) ('optimizer-ui-' + [guid]::NewGuid().ToString('N'))
     $previousLocalAppData = $env:LOCALAPPDATA
@@ -579,17 +590,6 @@ if ($ValidateUI) {
     foreach ($required in @('CloseButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','HealthAnalyzeButton','BatteryReportButton','WorkbenchShortcut','WorkbenchGrid','InvProcessesButton','InvSoftwareButton','NetworkGrid','NetworkSnapshotButton','NetworkProbeButton','EventsGrid','EventsAnalyzeButton','SfcVerifyButton','ExportResultsButton')) {
         if ($null -eq $ui[$required]) { throw "Controle ausente na interface: $required" }
     }
-    foreach ($required in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport','WorkbenchTabs')) {
-        if ($null -eq $ui[$required]) { throw "Navegação não encontrada: $required" }
-    }
-    $ui.NavBench.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
-    if ($ui.Pages.SelectedIndex -ne 4 -or $ui.MaintenanceTabs.SelectedIndex -ne 4) { throw 'Sidebar did not open the workbench.' }
-    $ui.WorkbenchTabs.SelectedIndex = 3
-    if ([string]$ui.WorkbenchTabs.SelectedItem.Header -ne 'Reparos') { throw 'Workbench tab selection failed.' }
-    $ui.NavReport.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
-    if ($ui.Pages.SelectedIndex -ne 5) { throw 'Sidebar report navigation failed.' }
-    $ui.NavOverview.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
-    if ($ui.Pages.SelectedIndex -ne 0) { throw 'Sidebar overview navigation failed.' }
     if (@($ui.OptimizationGrid.Items).Count -lt 5) { throw 'Catálogo de otimizações não foi carregado.' }
     Write-Output 'WPF layout, accessible sidebar navigation, workbench tabs and async scan/cleanup passed.'
     return
