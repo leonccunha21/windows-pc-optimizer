@@ -8,13 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Integração real da bancada na interface **Manutenção → Bancada**: módulos de inventário técnico, rede e eventos conectados a runspaces, com botões e resultados na própria janela.
+- Consentimento explícito para testes externos DNS/TCP, exibição opcional de endereços locais e classificação de falhas do log System sem mensagens privadas.
+- Comandos de integridade SFC/DISM/CHKDSK em console com confirmação e UAC; exportação CSV restaurada na limpeza.
+- Teste de inventário via interface WPF com processo em segundo plano.
 - Nova bancada técnica com inventários Windows realmente consultados (processos, inicialização, programas, rede, atualizações e discos).
 - Comandos nativos SFC, DISM e CHKDSK via console com confirmação e UAC, sem execução automática.
 - Exportação CSV detalhada de resultados após aviso de privacidade e navegação lateral funcional.
 - Testes do módulo técnico e da allowlist de reparos.
 
 ### Changed
-- Nova organização visual "Oficina Pro", distinguindo consultas, reparos elevados e atalhos.
+- Nova organização visual "Oficina Pro", distinguindo consultas, reparos elevados e atalhos. O subpainel de bancada integra as ferramentas diretamente ao lado das abas Saúde, Drivers, Aplicativos e Otimização.
 
 ## [4.1] - 2026-11-04
 

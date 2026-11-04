@@ -13,15 +13,16 @@ Interface desktop em português para o dia a dia de manutenção de computadores
 
 Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil analisado. Em computadores gerenciados, respeite a política de execução da organização. Não execute o BAT dentro do ZIP. Windows 10/11 com interface desktop; a compatibilidade do aplicativo não altera o ciclo de suporte do Windows.
 
-## O que a edição 4.2 oferece
+## O que a edição 4.3 oferece
 
 | Área | Recursos |
 |---|---|
 | Visão geral | Fluxo de atendimento, espaço analisado e resultado real da última limpeza |
-| Limpeza | Prévia por categoria e arquivo, seleção/desmarcação em massa, resultado detalhado e progresso por arquivo; caches Chrome, Edge e Brave; retenção mínima de 7 dias |
+| Limpeza | Prévia por categoria e arquivo, seleção/desmarcação em massa, resultado detalhado, CSV opcional (com aviso de privacidade) e progresso por arquivo; caches Chrome, Edge e Brave; retenção mínima de 7 dias |
 | Diagnóstico | Sistema, fabricante/modelo, CPU, RAM, discos, espaço livre, bateria e estado do Defender quando disponível |
 | Saúde | Bateria com relatório oficial do Windows (powercfg), capacidade de projeto e ciclos; discos físicos com contadores SMART, temperatura, desgaste e volumes |
 | Manutenção | Drivers instalados com status (assinatura/idosidade), atualizações de driver via Windows Update; aplicativos instalados com sugestões de remoção e exclusão confirmada; otimizações seguras (plano de energia, Sensor de Armazenamento, cache de entrega, Lixeira) |
+| Bancada integrada | Inventário de processos, inicialização, programas, adaptadores, atualizações e unidades; diagnóstico local de rede; testes DNS/TCP autorizados; histórico de falhas de disco/WHEA/NTFS/desligamento; ferramentas SFC, DISM e CHKDSK com confirmação e UAC |
 | Atalhos do Windows | Inicialização, aplicativos, armazenamento, segurança, otimização de unidades, restauração, eventos, tarefas, recursos opcionais, dispositivos, energia, Windows Update, informações de sistema |
 | Relatório | Cliente/OS, observações, diagnóstico e resultado; HTML imprimível em PDF ou JSON sem caminhos de arquivos excluídos |
 
@@ -42,7 +43,15 @@ A janela WPF define o estilo de borda (`SingleBorderWindow`) com `ResizeMode` aj
 
 ## Bancada técnica
 
-As consultas da bancada são executadas em segundo plano; informações de inicialização são somente para leitura. Reparos e verificações abrem um novo console Windows, após confirmação e solicitação UAC. O relatório HTML/JSON não inclui caminhos de arquivos removidos; o CSV detalhado **inclui**, sendo exportado apenas após aviso de privacidade.
+Na interface, abra **Manutenção → Bancada** (ou o atalho na visão geral). Os botões estão conectados aos módulos locais publicados, não são apenas atalhos: inventário de processos, inicialização, programas, interfaces, atualizações e armazenamento; rede local; histórico de falhas; e comandos de integridade.
+
+As consultas rodam em segundo plano. A rede **não** acessa destinos externos na consulta local; o técnico deve informar um host/IP e consentir antes de testar DNS e TCP. IPs, gateway, DNS e nomes de perfis locais são ocultos por padrão. O histórico usa IDs e provedores do log System sem exibir mensagens originais, nomes de usuário ou caminhos.
+
+SFC /verifyonly, DISM /ScanHealth e CHKDSK /scan verificam o sistema; SFC /scannow e DISM /RestoreHealth podem repará-lo. A execução ocorre num novo console Windows, com confirmação e UAC, **nunca automaticamente**. Verificações e resultados dependem do Windows, drivers e permissões; ausência de avisos não certifica saúde.
+
+Os relatórios HTML/JSON não incluem caminhos de arquivos excluídos; o CSV detalhado **inclui**, por isso é salvo apenas mediante escolha do técnico e aviso de privacidade. As ferramentas independentes em `Tools/` continuam disponíveis.
+
+Para mais detalhes, leia `docs/DIAGNOSTICO-REDE.md` e `docs/DIAGNOSTICO-EVENTOS.md`.
 
 ## Critérios de limpeza
 

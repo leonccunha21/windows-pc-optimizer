@@ -1,4 +1,4 @@
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="PC Optimizer | Central de manutenção" Width="1180" Height="820" MinWidth="980" MinHeight="700" WindowStartupLocation="CenterScreen" WindowStyle="SingleBorderWindow" ResizeMode="CanResize" ShowInTaskbar="True" Background="#F3F6FA" FontFamily="Segoe UI" Foreground="#192C42">
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="PC Optimizer | Oficina Pro" Width="1180" Height="820" MinWidth="980" MinHeight="700" WindowStartupLocation="CenterScreen" WindowStyle="SingleBorderWindow" ResizeMode="CanResize" ShowInTaskbar="True" Background="#F3F6FA" FontFamily="Segoe UI" Foreground="#192C42">
  <Window.Resources>
   <Style TargetType="Button">
    <Setter Property="Padding" Value="18,11"/>
@@ -92,7 +92,7 @@
     </StackPanel>
     <StackPanel Grid.Row="2">
      <TextBlock Text="LOCAL • SEM TELEMETRIA" Foreground="#67DDC6" FontSize="10"/>
-     <TextBlock Text="Edição oficina / 4.1" Foreground="#86A6C0" Margin="0,7,0,0"/>
+     <TextBlock Text="Edição oficina / 4.3" Foreground="#86A6C0" Margin="0,7,0,0"/>
     </StackPanel>
    </Grid>
   </Border>
@@ -143,7 +143,7 @@
          <WrapPanel>
           <Button x:Name="GoClean" Content="Analisar limpeza" Background="#40566C"/>
           <Button x:Name="HealthShortcut" Content="Saúde" Background="#40566C"/>
-          <Button x:Name="MaintenanceShortcut" Content="Manutenção" Background="#40566C"/>
+          <Button x:Name="MaintenanceShortcut" Content="Manutenção" Background="#40566C"/><Button x:Name="WorkbenchShortcut" Content="Bancada técnica" Background="#40566C"/>
          </WrapPanel>
         </StackPanel>
        </Border>
@@ -161,7 +161,7 @@
         <Button x:Name="CleanButton" Content="2. Limpar selecionados" AutomationProperties.Name="Limpar arquivos revisados - exige confirmação" IsEnabled="False"/>
         <Button x:Name="DetailsButton" Content="Prévia / resultado" Background="#40566C" IsEnabled="False"/>
         <Button x:Name="SelectAllButton" Content="Selecionar tudo" AutomationProperties.Name="Selecionar todas as categorias" Background="#40566C"/>
-        <Button x:Name="SelectNoneButton" Content="Desmarcar tudo" AutomationProperties.Name="Desmarcar todas as categorias" Background="#40566C"/>
+        <Button x:Name="SelectNoneButton" Content="Desmarcar tudo" AutomationProperties.Name="Desmarcar todas as categorias" Background="#40566C"/><Button x:Name="ExportResultsButton" Content="Exportar CSV" AutomationProperties.Name="Exportar resultado da limpeza em CSV" Background="#40566C" IsEnabled="False"/>
        </WrapPanel>
       </StackPanel>
       <DataGrid x:Name="Categories" Grid.Row="1">
@@ -339,6 +339,74 @@
          </Border>
         </StackPanel>
        </ScrollViewer>
+      </TabItem>
+      <TabItem Header="Bancada">
+       <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="0,16,0,0">
+        <Border Style="{StaticResource Card}"><StackPanel>
+         <TextBlock Text="Inventário técnico" FontSize="20" FontWeight="SemiBold"/>
+         <TextBlock Text="Processos, inicialização, aplicativos, interfaces, atualizações e discos. Consultas locais sem alterações." Foreground="#60758A" TextWrapping="Wrap" Margin="0,8,0,14"/>
+         <WrapPanel>
+          <Button x:Name="InvProcessesButton" Content="Processos"/><Button x:Name="InvStartupButton" Content="Inicialização"/>
+          <Button x:Name="InvSoftwareButton" Content="Programas"/><Button x:Name="InvNetworkButton" Content="Adaptadores"/>
+          <Button x:Name="InvUpdatesButton" Content="Atualizações"/><Button x:Name="InvStorageButton" Content="Unidades"/>
+         </WrapPanel>
+         <TextBlock x:Name="WorkbenchSummary" Text="Selecione uma consulta." Foreground="#60758A" Margin="0,0,0,9"/>
+         <DataGrid x:Name="WorkbenchGrid" Height="220" IsReadOnly="True" AutomationProperties.Name="Inventário técnico">
+          <DataGrid.Columns>
+           <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="2*"/>
+           <DataGridTextColumn Header="Informações" Binding="{Binding Detail}" Width="2*"/>
+           <DataGridTextColumn Header="Estado" Binding="{Binding Status}" Width="*"/>
+          </DataGrid.Columns>
+         </DataGrid>
+        </StackPanel></Border>
+        <Border Style="{StaticResource Card}"><StackPanel>
+         <TextBlock Text="Rede e conectividade" FontSize="20" FontWeight="SemiBold"/>
+         <TextBlock Text="Inventário local não gera tráfego externo; IP, gateway, DNS e perfis ficam ocultos por padrão." Foreground="#60758A" TextWrapping="Wrap" Margin="0,8,0,14"/>
+         <WrapPanel><Button x:Name="NetworkSnapshotButton" Content="Consultar rede"/><Button x:Name="NetworkRevealButton" Content="Mostrar endereços locais" Background="#40566C"/></WrapPanel>
+         <TextBlock Text="Teste externo opcional — destino autorizado e porta:" Foreground="#60758A" Margin="0,8,0,5"/>
+         <WrapPanel>
+          <TextBox x:Name="NetworkTarget" Width="225" MaxLength="253" AutomationProperties.Name="Host ou IP para teste TCP e DNS"/>
+          <TextBox x:Name="NetworkPort" Width="68" MaxLength="5" Text="443" AutomationProperties.Name="Porta TCP"/>
+          <Button x:Name="NetworkProbeButton" Content="Testar DNS e TCP" Background="#40566C"/>
+         </WrapPanel>
+         <TextBlock x:Name="NetworkSummary" Text="Sem consulta. Teste externo depende de confirmação." TextWrapping="Wrap" Foreground="#60758A" Margin="0,0,0,10"/>
+         <DataGrid x:Name="NetworkGrid" Height="215" IsReadOnly="True" AutomationProperties.Name="Resultados de rede">
+          <DataGrid.Columns>
+           <DataGridTextColumn Header="Área" Binding="{Binding Area}" Width="120"/>
+           <DataGridTextColumn Header="Item" Binding="{Binding Item}" Width="155"/>
+           <DataGridTextColumn Header="Resultado" Binding="{Binding Value}" Width="*"/>
+           <DataGridTextColumn Header="Nível" Binding="{Binding Level}" Width="80"/>
+          </DataGrid.Columns>
+         </DataGrid>
+        </StackPanel></Border>
+        <Border Style="{StaticResource Card}"><StackPanel>
+         <TextBlock Text="Histórico de falhas do Windows" FontSize="20" FontWeight="SemiBold"/>
+         <TextBlock Text="Contagem de alertas WHEA, disco, NTFS, desligamentos, tela azul e serviços. Sem copiar mensagens brutas de eventos." TextWrapping="Wrap" Foreground="#60758A" Margin="0,8,0,13"/>
+         <Button x:Name="EventsAnalyzeButton" Content="Analisar os últimos 14 dias" HorizontalAlignment="Left"/>
+         <TextBlock x:Name="EventsSummary" Text="Histórico não consultado." TextWrapping="Wrap" Foreground="#60758A" Margin="0,5,0,10"/>
+         <DataGrid x:Name="EventsGrid" Height="205" IsReadOnly="True" AutomationProperties.Name="Eventos de falhas agrupados">
+          <DataGrid.Columns>
+           <DataGridTextColumn Header="Categoria" Binding="{Binding Category}" Width="185"/>
+           <DataGridTextColumn Header="Qtde" Binding="{Binding Count}" Width="60"/>
+           <DataGridTextColumn Header="Alto" Binding="{Binding HighPriorityCount}" Width="60"/>
+           <DataGridTextColumn Header="Última ocorrência" Binding="{Binding LastSeen}" Width="140"/>
+           <DataGridTextColumn Header="Orientação" Binding="{Binding Guidance}" Width="*"/>
+          </DataGrid.Columns>
+         </DataGrid>
+        </StackPanel></Border>
+        <Border Style="{StaticResource Card}"><StackPanel>
+         <TextBlock Text="Verificação e reparos do sistema" FontSize="20" FontWeight="SemiBold"/>
+         <TextBlock Text="SFC, DISM e CHKDSK em console separado, com confirmação explícita e elevação do Windows (UAC). Confira backup antes de reparar." TextWrapping="Wrap" Foreground="#60758A" Margin="0,8,0,13"/>
+         <WrapPanel>
+          <Button x:Name="SfcVerifyButton" Content="SFC verificar" Background="#40566C"/>
+          <Button x:Name="DismScanButton" Content="DISM verificar" Background="#40566C"/>
+          <Button x:Name="ChkdskScanButton" Content="CHKDSK analisar" Background="#40566C"/>
+          <Button x:Name="SfcRepairButton" Content="SFC reparar" Background="#99601E"/>
+          <Button x:Name="DismRepairButton" Content="DISM reparar" Background="#99601E"/>
+         </WrapPanel>
+         <TextBlock Text="O resultado da execução elevada fica no console e não entra automaticamente no relatório." Foreground="#60758A" TextWrapping="Wrap"/>
+        </StackPanel></Border>
+       </StackPanel></ScrollViewer>
       </TabItem>
      </TabControl>
     </TabItem>
