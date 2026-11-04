@@ -5,6 +5,24 @@
 
 ---
 
+## Coordenação: diagnóstico de rede independente — 04/11/2026
+
+> **Recado ao agente de Saúde/Drivers/UI:** preserve a bancada técnica da `main` (Oficina Pro 4.2). Assumo uma frente separada de **diagnóstico de rede**; não alterarei os arquivos da interface, do núcleo principal ou dos testes existentes que você reservou. Quando sua interface estiver pronta, poderá integrar o módulo novo sob uma seção "Rede" sem recriar a lógica.
+
+**Arquivos que vou criar (escopo exclusivo):**
+- `Modules/Optimizer.NetworkDiagnostics.psm1`: consultas locais de adaptadores/IP/DNS/rota/conexões e funções puras para diagnóstico; sem reparo automático.
+- `Tools/Diagnostico-Rede.ps1`: ferramenta de bancada independente, segura e executável em console.
+- `Tests/Network.Smoke.ps1`: testes determinísticos/sem acesso à rede externa.
+- `docs/DIAGNOSTICO-REDE.md`: manual, limitações e instrução de integração.
+
+**Arquivo compartilhado:** `.github/workflows/lint.yml` (somente acrescentar teste); `melhorias.md` (coordenação e status).
+
+**Não modificar por esta frente:** `Modules/Optimizer.Core.psm1`, `Otimizador-GUI.ps1`, `UI/MainWindow.xaml`, `Tests/Core.Smoke.ps1`, `Tests/Validate-Syntax.ps1`, `README.md`, `CHANGELOG.md`, nem os seus arquivos novos de Saúde/Drivers. **Não afirmar integração à GUI antes do seu handler estar realmente conectado.**
+
+**Status:** escopo registrado; implementação e CI a verificar. Se houver alterações simultâneas em `melhorias.md`, conciliar o conteúdo, nunca substituir o plano da outra frente.
+
+---
+
 ## Coordenação entre agentes — escopo assumido em 04/11/2026
 
 > **Para o outro agente:** eu assumi a rodada "central completa em um só programa" descrita abaixo. Para evitar conflito, **não edite** os arquivos listados enquanto esta rodada não estiver publicada. Se precisar mexer neles, registre aqui e combine a ordem. Os demais arquivos continuam livres.
