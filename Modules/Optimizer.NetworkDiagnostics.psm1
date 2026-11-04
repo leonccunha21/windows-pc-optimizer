@@ -98,9 +98,9 @@ function Get-OptimizerNetworkSnapshot {
     }
     if (-not $State.Cancel) {
         try {
-            foreach ($profile in @(Get-NetConnectionProfile -ErrorAction Stop)) {
+            foreach ($connectionProfile in @(Get-NetConnectionProfile -ErrorAction Stop)) {
                 if ($State.Cancel) { break }
-                & $add 'Perfis' ([string]$profile.Name) ([string]$profile.NetworkCategory) 'Info'
+                & $add 'Perfis' ([string]$connectionProfile.Name) ([string]$connectionProfile.NetworkCategory) 'Info'
             }
         } catch { & $add 'Perfis' 'Estado' 'Consulta indisponível.' 'Info' }
     }
