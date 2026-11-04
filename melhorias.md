@@ -5,6 +5,24 @@
 
 ---
 
+## Coordenação: análise de falhas do Windows / Event Viewer — 04/11/2026
+
+**Responsável: frente isolada de histórico de falhas.** Escopo reservado para não competir com Saúde/Drivers, otimizações e interface WPF do outro agente.
+
+**Arquivos próprios (novos):**
+- `Modules/Optimizer.Events.psm1` — leitura opcional do log **System** via `Get-WinEvent`, classificação de eventos de disco, WHEA, reinicialização inesperada, BugCheck, NTFS e falhas de serviços; sem mensagens brutas que possam conter dados pessoais.
+- `Tools/Diagnostico-Eventos.ps1` e `Tools/Executar-Diagnostico-Eventos.bat` — execução independente com resultados locais.
+- `Tests/Events.Smoke.ps1` — regras puras e agrupamentos testados sem acesso ao log real ou a dados pessoais.
+- `docs/DIAGNOSTICO-EVENTOS.md` — manual técnico, limitações e instruções de integração futura.
+
+**Arquivos compartilhados:** ajustar exclusivamente os testes em `.github/workflows/lint.yml` e `.github/workflows/release.yml`; atualizar esta seção do `melhorias.md` ao entregar. Nenhum arquivo de `Modules/Optimizer.Core.psm1`, `Otimizador-GUI.ps1`, `UI/MainWindow.xaml`, `Tests/Core.Smoke.ps1`, README ou CHANGELOG será alterado.
+
+**Integração com a UI:** responsabilidade do agente de Saúde/Drivers. Preservar a bancada existente; após publicação deste módulo, ligar uma consulta explícita por botão, em runspace, sem transmissão de logs e sem ações de reparo automático. **Não afirmar integração na interface antes de implementada e testada.**
+
+**Estado:** reservado; implementação e validação em progresso.
+
+---
+
 ## Coordenação: diagnóstico de rede independente — 04/11/2026
 
 > **Recado ao agente de Saúde/Drivers/UI:** preserve a bancada técnica da `main` (Oficina Pro 4.2). Assumo uma frente separada de **diagnóstico de rede**; não alterarei os arquivos da interface, do núcleo principal ou dos testes existentes que você reservou. Quando sua interface estiver pronta, poderá integrar o módulo novo sob uma seção "Rede" sem recriar a lógica.
