@@ -21,7 +21,7 @@ Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil 
 | Limpeza | Prévia por categoria e arquivo; temporários do usuário e caches Chrome, Edge e Brave; retenção mínima de 7 dias |
 | Diagnóstico | Sistema, fabricante/modelo, CPU, RAM, discos, espaço livre, bateria e estado do Defender quando disponível |
 | Ferramentas | Atalhos para inicialização, aplicativos, armazenamento, segurança, otimização de unidades, restauração, eventos e tarefas |
-| Relatório | Cliente/OS, observações, diagnóstico e resultado; HTML local que pode ser impresso em PDF no navegador |
+| Relatório | Cliente/OS, observações, diagnóstico e resultado; HTML imprimível em PDF ou JSON sem caminhos de arquivos excluídos |
 
 Análise e limpeza rodam em um runspace separado. A janela permanece disponível e permite solicitar interrupção entre arquivos. A consulta de hardware termina antes de fechar a janela. Relatórios são salvos apenas por escolha do usuário; não há histórico persistente automático com dados de clientes.
 

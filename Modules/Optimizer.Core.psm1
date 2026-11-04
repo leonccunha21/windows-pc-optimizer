@@ -4,17 +4,27 @@ Set-StrictMode -Version 2.0
 function Get-OptimizerByteSum {
     param($Items, [string]$Property = 'Bytes')
     [long]$total = 0
-    foreach ($item in $Items) { $total += [long]$item.$Property }
+    foreach ($item in @($Items)) {
+        if ($null -eq $item) { continue }
+        $value = $item.PSObject.Properties[$Property]
+        if ($null -ne $value -and $null -ne $value.Value) { $total += [long]$value.Value }
+    }
     return $total
 }
 
 function Format-OptimizerSize {
+    [CmdletBinding()]
     param([double]$Bytes)
-    if ($Bytes -ge 1GB) { return ('{0:N2} GB' -f ($Bytes / 1GB)) }
-    return ('{0:N1} MB' -f ($Bytes / 1MB))
+    if ($Bytes -lt 0) { throw 'Tamanho negativo não é permitido.' }
+    if ($Bytes -lt 1KB) { return ('{0:N0} B' -f $Bytes) }
+    if ($Bytes -lt 1MB) { return ('{0:N1} KB' -f ($Bytes / 1KB)) }
+    if ($Bytes -lt 1GB) { return ('{0:N1} MB' -f ($Bytes / 1MB)) }
+    return ('{0:N2} GB' -f ($Bytes / 1GB))
 }
 
 function Get-OptimizerTargets {
+    [CmdletBinding()]
+    param()
     # Explicit allowlist: no Documents, Downloads, registry, credentials or event logs.
     $targets = @([pscustomobject]@{ Id='temp'; Name='Temporários do usuário'; Path=(Join-Path $env:LOCALAPPDATA 'Temp'); Process='' })
     foreach ($browser in @(
@@ -34,6 +44,7 @@ function Get-OptimizerTargets {
 }
 
 function Test-OptimizerPath {
+    [CmdletBinding()]
     param([string]$Path, [string]$Root)
     try {
         $full = [IO.Path]::GetFullPath($Path)
@@ -56,6 +67,7 @@ function Test-OptimizerPath {
 }
 
 function Get-OptimizerScan {
+    [CmdletBinding()]
     param([object[]]$Targets = (Get-OptimizerTargets), [hashtable]$State = @{Cancel=$false; Message=''}, [int]$MinimumAgeDays = 7)
     if ($MinimumAgeDays -lt 7) { throw 'A retenção mínima é de sete dias.' }
     $cutoff = [DateTime]::UtcNow.AddDays(-$MinimumAgeDays)
@@ -125,6 +137,8 @@ function Invoke-OptimizerCleanup {
 }
 
 function Get-OptimizerDiagnostics {
+    [CmdletBinding()]
+    param()
     $rows = New-Object 'System.Collections.Generic.List[object]'
     $labels = @{ Caption='Windows'; Version='Versão'; LastBootUpTime='Última inicialização'; Manufacturer='Fabricante'; Model='Modelo'; TotalPhysicalMemory='Memória RAM'; Name='Identificação'; NumberOfCores='Núcleos'; NumberOfLogicalProcessors='Processadores lógicos'; Size='Capacidade'; Status='Status básico WMI'; EstimatedChargeRemaining='Carga restante (%)'; BatteryStatus='Estado da bateria (código WMI)' }
     foreach ($query in @(
@@ -159,19 +173,37 @@ function Get-OptimizerDiagnostics {
 }
 
 function Export-OptimizerReport {
-    param([Parameter(Mandatory)][string]$Path, [string]$Customer, [string]$Notes, [object[]]$Diagnostics, $Cleanup)
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path, [string]$Customer, [string]$Notes, [object[]]$Diagnostics, $Cleanup, [ValidateSet('HTML','JSON')][string]$Format = 'HTML')
     $encode = { param($value) [System.Net.WebUtility]::HtmlEncode([string]$value) }
+    if ($Format -eq 'JSON') {
+        # Files and private paths are intentionally excluded from the structured report.
+        $summary = $null
+        if ($null -ne $Cleanup) {
+            $summary = [ordered]@{ RemovedBytes = [long]$Cleanup.RemovedBytes; RemovedCount = [int]$Cleanup.RemovedCount; SkippedCount = [int]$Cleanup.SkippedCount; Cancelled = [bool]$Cleanup.Cancelled }
+        }
+        $payload = [ordered]@{
+            SchemaVersion = 1
+            GeneratedAt = (Get-Date).ToString('o')
+            Customer = [string]$Customer
+            Notes = [string]$Notes
+            Diagnostics = @($Diagnostics | ForEach-Object { [ordered]@{ Area = [string]$_.Area; Item = [string]$_.Item; Value = [string]$_.Value } })
+            Cleanup = $summary
+        }
+        [IO.File]::WriteAllText($Path, (ConvertTo-Json -InputObject $payload -Depth 6), (New-Object Text.UTF8Encoding $true))
+        return
+    }
     $rows = foreach ($row in $Diagnostics) { '<tr><td>{0}</td><td>{1}</td><td>{2}</td></tr>' -f (& $encode $row.Area), (& $encode $row.Item), (& $encode $row.Value) }
     $summary = 'Nenhuma limpeza realizada nesta sessão.'
     if ($null -ne $Cleanup) { $summary = '{0} liberados; {1} arquivos removidos; {2} ignorados. Interrompido: {3}.' -f (Format-OptimizerSize $Cleanup.RemovedBytes), $Cleanup.RemovedCount, $Cleanup.SkippedCount, $Cleanup.Cancelled }
     $html = @"
-<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Relatório de manutenção</title>
-<style>body{font:15px 'Segoe UI',sans-serif;color:#192c42;max-width:950px;margin:48px auto;padding:0 24px}h1{color:#116b60}header{border-bottom:3px solid #20b89e;padding-bottom:20px}table{border-collapse:collapse;width:100%}td,th{padding:12px;text-align:left;border-bottom:1px solid #dce5ed}th{background:#edf5f6}p{line-height:1.7;white-space:pre-wrap}.note{color:#526578} @media print{body{margin:0}}</style>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório de manutenção</title>
+<style>body{font:15px 'Segoe UI',sans-serif;color:#192c42;max-width:950px;margin:48px auto;padding:0 24px}h1{color:#116b60}header{border-bottom:3px solid #20b89e;padding-bottom:20px}table{border-collapse:collapse;width:100%}td,th{padding:12px;text-align:left;border-bottom:1px solid #dce5ed}th{background:#edf5f6}p{line-height:1.7;white-space:pre-wrap}.note{color:#526578} @media print{body{margin:0}}</style></head><body>
 <header><h1>PC Optimizer • Relatório de manutenção</h1><p>Atendimento: $(& $encode $Customer)<br>Emitido em: $(Get-Date -Format 'dd/MM/yyyy HH:mm')</p></header>
 <h2>Resultado da última limpeza</h2><p>$(& $encode $summary)</p>
 <h2>Equipamento</h2><table><tr><th>Área</th><th>Item</th><th>Resultado</th></tr>$($rows -join '')</table>
 <h2>Observações do técnico</h2><p>$(& $encode $Notes)</p>
-<p class="note">Consulta pontual. O status de disco informado pelo Windows não substitui um teste SMART completo. Este relatório não certifica ausência de defeitos ou malware. Caminhos pessoais e números de série não são incluídos.</p></html>
+<p class="note">Consulta pontual. O status de disco informado pelo Windows não substitui um teste SMART completo. Este relatório não certifica ausência de defeitos ou malware. Caminhos pessoais e números de série não são incluídos.</p></body></html>
 "@
     [IO.File]::WriteAllText($Path, $html, (New-Object Text.UTF8Encoding $true))
 }
