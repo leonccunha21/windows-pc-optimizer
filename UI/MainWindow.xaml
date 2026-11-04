@@ -103,13 +103,13 @@
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,26,0,16" KeyboardNavigation.TabNavigation="Continue">
      <StackPanel>
       <TextBlock Text="NAVEGAÇÃO" FontSize="10" Foreground="#9BB5C7" Margin="0,0,0,14" FontWeight="SemiBold"/>
-      <Button x:Name="NavOverview" Style="{StaticResource SidebarNavButton}" Background="#0E887A" Content="Visão geral" ToolTip="Ctrl+1"AutomationProperties.Name="Visão geral" />
-      <Button x:Name="NavDiagnose" Style="{StaticResource SidebarNavButton}" Content="Diagnóstico" ToolTip="Ctrl+2"AutomationProperties.Name="Diagnóstico" />
-      <Button x:Name="NavHealth" Style="{StaticResource SidebarNavButton}" Content="Saúde e discos" ToolTip="Ctrl+3"AutomationProperties.Name="Saúde e discos" />
-      <Button x:Name="NavCleanup" Style="{StaticResource SidebarNavButton}" Content="Limpeza segura" ToolTip="Ctrl+4"AutomationProperties.Name="Limpeza segura" />
-      <Button x:Name="NavMaintenance" Style="{StaticResource SidebarNavButton}" Content="Manutenção" ToolTip="Ctrl+5"AutomationProperties.Name="Manutenção" />
-      <Button x:Name="NavBench" Style="{StaticResource SidebarNavButton}" Content="Bancada técnica" ToolTip="Ctrl+B"AutomationProperties.Name="Bancada técnica" />
-      <Button x:Name="NavReport" Style="{StaticResource SidebarNavButton}" Content="Relatório" ToolTip="Ctrl+6"AutomationProperties.Name="Relatório" />
+      <Button x:Name="NavOverview" Style="{StaticResource SidebarNavButton}" Background="#0E887A" Content="Visão geral" ToolTip="Ctrl+1" AutomationProperties.Name="Visão geral" />
+      <Button x:Name="NavDiagnose" Style="{StaticResource SidebarNavButton}" Content="Diagnóstico" ToolTip="Ctrl+2" AutomationProperties.Name="Diagnóstico" />
+      <Button x:Name="NavHealth" Style="{StaticResource SidebarNavButton}" Content="Saúde e discos" ToolTip="Ctrl+3" AutomationProperties.Name="Saúde e discos" />
+      <Button x:Name="NavCleanup" Style="{StaticResource SidebarNavButton}" Content="Limpeza segura" ToolTip="Ctrl+4" AutomationProperties.Name="Limpeza segura" />
+      <Button x:Name="NavMaintenance" Style="{StaticResource SidebarNavButton}" Content="Manutenção" ToolTip="Ctrl+5" AutomationProperties.Name="Manutenção" />
+      <Button x:Name="NavBench" Style="{StaticResource SidebarNavButton}" Content="Bancada técnica" ToolTip="Ctrl+B" AutomationProperties.Name="Bancada técnica" />
+      <Button x:Name="NavReport" Style="{StaticResource SidebarNavButton}" Content="Relatório" ToolTip="Ctrl+6" AutomationProperties.Name="Relatório" />
       <Border Background="#203C50" CornerRadius="10" Padding="13" Margin="0,20,0,0">
        <StackPanel>
         <TextBlock Text="SEGURANÇA EM PRIMEIRO LUGAR" FontSize="10" FontWeight="SemiBold" Foreground="#6DE0D0"/>
@@ -143,8 +143,8 @@
          <TextBlock Text="Comece conhecendo o equipamento" FontSize="22" FontWeight="SemiBold"/>
          <TextBlock Text="Consulte hardware, bateria, discos, drivers e espaço disponível antes de qualquer alteração." TextWrapping="Wrap" Margin="0,10,0,18"/>
          <WrapPanel>
-          <Button x:Name="DiagnoseHome" Content="Verificar equipamento"AutomationProperties.Name="Verificar equipamento" />
-          <Button x:Name="HealthHome" Content="Saúde e ferramentas" Background="#40566C"AutomationProperties.Name="Saúde e ferramentas" />
+          <Button x:Name="DiagnoseHome" Content="Verificar equipamento" AutomationProperties.Name="Verificar equipamento" />
+          <Button x:Name="HealthHome" Content="Saúde e ferramentas" Background="#40566C" AutomationProperties.Name="Saúde e ferramentas" />
          </WrapPanel>
         </StackPanel>
        </Border>
@@ -169,9 +169,9 @@
          <TextBlock Text="Ferramentas que realmente importam" FontSize="18" FontWeight="SemiBold"/>
          <TextBlock Text="Saúde da bateria e capacidade de projeto, SMART e desgaste dos discos, inventário de drivers, atualizações de driver disponíveis no Windows Update, remoção de aplicativos pré-instalados e ajustes seguros de energia e armazenamento." TextWrapping="Wrap" Foreground="#60758A" LineHeight="23" Margin="0,12,0,18"/>
          <WrapPanel>
-          <Button x:Name="GoClean" Content="Analisar limpeza" Background="#40566C"AutomationProperties.Name="Analisar limpeza" />
-          <Button x:Name="HealthShortcut" Content="Saúde" Background="#40566C"AutomationProperties.Name="Saúde" />
-          <Button x:Name="MaintenanceShortcut" Content="Manutenção" Background="#40566C"AutomationProperties.Name="Manutenção" /><Button x:Name="WorkbenchShortcut" Content="Bancada técnica" Background="#40566C"AutomationProperties.Name="Bancada técnica" />
+          <Button x:Name="GoClean" Content="Analisar limpeza" Background="#40566C" AutomationProperties.Name="Analisar limpeza" />
+          <Button x:Name="HealthShortcut" Content="Saúde" Background="#40566C" AutomationProperties.Name="Saúde" />
+          <Button x:Name="MaintenanceShortcut" Content="Manutenção" Background="#40566C" AutomationProperties.Name="Manutenção" /><Button x:Name="WorkbenchShortcut" Content="Bancada técnica" Background="#40566C" AutomationProperties.Name="Bancada técnica" />
          </WrapPanel>
         </StackPanel>
        </Border>
@@ -187,7 +187,7 @@
        <WrapPanel>
         <Button x:Name="ScanButton" Content="1. Analisar arquivos" AutomationProperties.Name="Analisar arquivos temporários - F5"/>
         <Button x:Name="CleanButton" Content="2. Limpar selecionados" AutomationProperties.Name="Limpar arquivos revisados - exige confirmação" IsEnabled="False"/>
-        <Button x:Name="DetailsButton" Content="Prévia / resultado" Background="#40566C" IsEnabled="False"AutomationProperties.Name="Prévia / resultado" />
+        <Button x:Name="DetailsButton" Content="Prévia / resultado" Background="#40566C" IsEnabled="False" AutomationProperties.Name="Prévia / resultado" />
         <Button x:Name="SelectAllButton" Content="Selecionar tudo" AutomationProperties.Name="Selecionar todas as categorias" Background="#40566C"/>
         <Button x:Name="SelectNoneButton" Content="Desmarcar tudo" AutomationProperties.Name="Desmarcar todas as categorias" Background="#40566C"/><Button x:Name="ExportResultsButton" Content="Exportar CSV" AutomationProperties.Name="Exportar resultado da limpeza em CSV" Background="#40566C" IsEnabled="False"/>
        </WrapPanel>
@@ -207,7 +207,7 @@
     <TabItem Header="Diagnóstico">
      <Grid Margin="0,20,0,0">
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-      <WrapPanel Margin="0,0,0,18"><Button x:Name="DiagnoseButton" Content="Atualizar diagnóstico"AutomationProperties.Name="Atualizar diagnóstico" /><TextBlock Text="Consulta sem alterar configurações" VerticalAlignment="Center" Foreground="#60758A"/></WrapPanel>
+      <WrapPanel Margin="0,0,0,18"><Button x:Name="DiagnoseButton" Content="Atualizar diagnóstico" AutomationProperties.Name="Atualizar diagnóstico" /><TextBlock Text="Consulta sem alterar configurações" VerticalAlignment="Center" Foreground="#60758A"/></WrapPanel>
       <DataGrid x:Name="DiagnosticsGrid" Grid.Row="1" IsReadOnly="True">
        <DataGrid.Columns>
         <DataGridTextColumn Header="Área" Binding="{Binding Area}" Width="130"/>
@@ -226,8 +226,8 @@
          <TextBlock Text="Bateria e armazenamento" FontSize="20" FontWeight="SemiBold"/>
          <TextBlock Text="A bateria usa o relatório oficial do Windows (powercfg). Os discos usam o status do subsistema de armazenamento e os contadores SMART disponíveis. Leituras não alteram nada." TextWrapping="Wrap" Foreground="#60758A" Margin="0,10,0,16"/>
          <WrapPanel>
-          <Button x:Name="HealthAnalyzeButton" Content="Analisar bateria e discos"AutomationProperties.Name="Analisar bateria e discos" />
-          <Button x:Name="BatteryReportButton" Content="Salvar relatório de bateria" Background="#40566C"AutomationProperties.Name="Salvar relatório de bateria" />
+          <Button x:Name="HealthAnalyzeButton" Content="Analisar bateria e discos" AutomationProperties.Name="Analisar bateria e discos" />
+          <Button x:Name="BatteryReportButton" Content="Salvar relatório de bateria" Background="#40566C" AutomationProperties.Name="Salvar relatório de bateria" />
          </WrapPanel>
          <TextBlock x:Name="BatterySummary" Text="Nenhuma análise executada nesta sessão." TextWrapping="Wrap" Foreground="#60758A"/>
         </StackPanel>
@@ -284,10 +284,10 @@
        <Grid Margin="0,16,0,0">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <WrapPanel>
-         <Button x:Name="DriverScanButton" Content="Listar drivers instalados"AutomationProperties.Name="Listar drivers instalados" />
-         <Button x:Name="DriverUpdatesButton" Content="Procurar atualizações de driver" Background="#40566C"AutomationProperties.Name="Procurar atualizações de driver" />
-         <Button x:Name="DriverUpdateTool" Content="Abrir Windows Update"AutomationProperties.Name="Abrir Windows Update" />
-         <Button x:Name="DeviceManagerTool" Content="Gerenciador de dispositivos" Background="#40566C"AutomationProperties.Name="Gerenciador de dispositivos" />
+         <Button x:Name="DriverScanButton" Content="Listar drivers instalados" AutomationProperties.Name="Listar drivers instalados" />
+         <Button x:Name="DriverUpdatesButton" Content="Procurar atualizações de driver" Background="#40566C" AutomationProperties.Name="Procurar atualizações de driver" />
+         <Button x:Name="DriverUpdateTool" Content="Abrir Windows Update" AutomationProperties.Name="Abrir Windows Update" />
+         <Button x:Name="DeviceManagerTool" Content="Gerenciador de dispositivos" Background="#40566C" AutomationProperties.Name="Gerenciador de dispositivos" />
         </WrapPanel>
         <TextBlock x:Name="DriverSummary" Grid.Row="1" Text="Nenhum inventário carregado. A consulta não instala nada." TextWrapping="Wrap" Foreground="#60758A" Margin="0,4,0,12"/>
         <DataGrid x:Name="DriverGrid" Grid.Row="2" IsReadOnly="True">
@@ -314,8 +314,8 @@
        <Grid Margin="0,16,0,0">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <WrapPanel>
-         <Button x:Name="AppxScanButton" Content="Listar aplicativos instalados"AutomationProperties.Name="Listar aplicativos instalados" />
-         <Button x:Name="AppxRemoveButton" Content="Remover selecionados" Background="#C0392B"AutomationProperties.Name="Remover selecionados" />
+         <Button x:Name="AppxScanButton" Content="Listar aplicativos instalados" AutomationProperties.Name="Listar aplicativos instalados" />
+         <Button x:Name="AppxRemoveButton" Content="Remover selecionados" Background="#C0392B" AutomationProperties.Name="Remover selecionados" />
          <CheckBox x:Name="AppxBloatOnly" Content="Mostrar só sugestões" VerticalAlignment="Center" Margin="8,0,0,10"/>
         </WrapPanel>
         <TextBlock x:Name="AppxSummary" Grid.Row="1" Text="A lista mostra aplicativos da Microsoft Store do usuário atual. A remoção é confirmada e pode ser desfeita reinstalando pela Store." TextWrapping="Wrap" Foreground="#60758A" Margin="0,4,0,12"/>
@@ -333,7 +333,7 @@
       <TabItem Header="Otimização">
        <Grid Margin="0,16,0,0">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <WrapPanel><Button x:Name="OptimizationRunButton" Content="Aplicar selecionadas"AutomationProperties.Name="Aplicar selecionadas" /></WrapPanel>
+        <WrapPanel><Button x:Name="OptimizationRunButton" Content="Aplicar selecionadas" AutomationProperties.Name="Aplicar selecionadas" /></WrapPanel>
         <TextBlock x:Name="OptimizationSummary" Grid.Row="1" Text="Marque apenas o que faz sentido para este equipamento. Toda ação pede confirmação." TextWrapping="Wrap" Foreground="#60758A" Margin="0,4,0,12"/>
         <DataGrid x:Name="OptimizationGrid" Grid.Row="2">
          <DataGrid.Columns>
@@ -353,10 +353,10 @@
           <StackPanel>
            <TextBlock Text="Ferramentas do Windows" FontSize="20" FontWeight="SemiBold"/>
            <TextBlock Text="Abra a ferramenta, avalie o equipamento e escolha a ação. Nenhum reparo é iniciado automaticamente." TextWrapping="Wrap" Foreground="#60758A" Margin="0,10,0,16"/>
-           <WrapPanel Margin="0,0,0,4"><Button x:Name="StartupTool" Content="Inicialização"AutomationProperties.Name="Inicialização" /><Button x:Name="AppsTool" Content="Aplicativos instalados"AutomationProperties.Name="Aplicativos instalados" /><Button x:Name="StorageTool" Content="Armazenamento"AutomationProperties.Name="Armazenamento" /></WrapPanel>
-           <WrapPanel Margin="0,0,0,4"><Button x:Name="SecurityTool" Content="Segurança do Windows"AutomationProperties.Name="Segurança do Windows" /><Button x:Name="DiskTool" Content="Otimizar unidades"AutomationProperties.Name="Otimizar unidades" /><Button x:Name="RestoreTool" Content="Proteção do sistema"AutomationProperties.Name="Proteção do sistema" /></WrapPanel>
-           <WrapPanel Margin="0,0,0,4"><Button x:Name="EventsTool" Content="Visualizador de eventos"AutomationProperties.Name="Visualizador de eventos" /><Button x:Name="TaskTool" Content="Gerenciador de tarefas"AutomationProperties.Name="Gerenciador de tarefas" /><Button x:Name="OptionalFeaturesTool" Content="Recursos opcionais"AutomationProperties.Name="Recursos opcionais" /></WrapPanel>
-           <WrapPanel><Button x:Name="WindowsUpdateTool" Content="Windows Update"AutomationProperties.Name="Windows Update" /><Button x:Name="PowerOptionsTool" Content="Opções de energia"AutomationProperties.Name="Opções de energia" /><Button x:Name="SystemInfoTool" Content="Informações do sistema"AutomationProperties.Name="Informações do sistema" /></WrapPanel>
+           <WrapPanel Margin="0,0,0,4"><Button x:Name="StartupTool" Content="Inicialização" AutomationProperties.Name="Inicialização" /><Button x:Name="AppsTool" Content="Aplicativos instalados" AutomationProperties.Name="Aplicativos instalados" /><Button x:Name="StorageTool" Content="Armazenamento" AutomationProperties.Name="Armazenamento" /></WrapPanel>
+           <WrapPanel Margin="0,0,0,4"><Button x:Name="SecurityTool" Content="Segurança do Windows" AutomationProperties.Name="Segurança do Windows" /><Button x:Name="DiskTool" Content="Otimizar unidades" AutomationProperties.Name="Otimizar unidades" /><Button x:Name="RestoreTool" Content="Proteção do sistema" AutomationProperties.Name="Proteção do sistema" /></WrapPanel>
+           <WrapPanel Margin="0,0,0,4"><Button x:Name="EventsTool" Content="Visualizador de eventos" AutomationProperties.Name="Visualizador de eventos" /><Button x:Name="TaskTool" Content="Gerenciador de tarefas" AutomationProperties.Name="Gerenciador de tarefas" /><Button x:Name="OptionalFeaturesTool" Content="Recursos opcionais" AutomationProperties.Name="Recursos opcionais" /></WrapPanel>
+           <WrapPanel><Button x:Name="WindowsUpdateTool" Content="Windows Update" AutomationProperties.Name="Windows Update" /><Button x:Name="PowerOptionsTool" Content="Opções de energia" AutomationProperties.Name="Opções de energia" /><Button x:Name="SystemInfoTool" Content="Informações do sistema" AutomationProperties.Name="Informações do sistema" /></WrapPanel>
           </StackPanel>
          </Border>
          <Border Style="{StaticResource Card}">
@@ -377,9 +377,9 @@
          <TextBlock Text="Inventário técnico" FontSize="20" FontWeight="SemiBold"/>
          <TextBlock Text="Processos, inicialização, aplicativos, interfaces, atualizações e discos. Consultas locais sem alterações." Foreground="#60758A" TextWrapping="Wrap" Margin="0,8,0,14"/>
          <WrapPanel>
-          <Button x:Name="InvProcessesButton" Content="Processos"AutomationProperties.Name="Processos" /><Button x:Name="InvStartupButton" Content="Inicialização"AutomationProperties.Name="Inicialização" />
-          <Button x:Name="InvSoftwareButton" Content="Programas"AutomationProperties.Name="Programas" /><Button x:Name="InvNetworkButton" Content="Adaptadores"AutomationProperties.Name="Adaptadores" />
-          <Button x:Name="InvUpdatesButton" Content="Atualizações"AutomationProperties.Name="Atualizações" /><Button x:Name="InvStorageButton" Content="Unidades"AutomationProperties.Name="Unidades" />
+          <Button x:Name="InvProcessesButton" Content="Processos" AutomationProperties.Name="Processos" /><Button x:Name="InvStartupButton" Content="Inicialização" AutomationProperties.Name="Inicialização" />
+          <Button x:Name="InvSoftwareButton" Content="Programas" AutomationProperties.Name="Programas" /><Button x:Name="InvNetworkButton" Content="Adaptadores" AutomationProperties.Name="Adaptadores" />
+          <Button x:Name="InvUpdatesButton" Content="Atualizações" AutomationProperties.Name="Atualizações" /><Button x:Name="InvStorageButton" Content="Unidades" AutomationProperties.Name="Unidades" />
          </WrapPanel>
          <TextBlock x:Name="WorkbenchSummary" Text="Selecione uma consulta." Foreground="#60758A" Margin="0,0,0,9"/>
          <DataGrid x:Name="WorkbenchGrid" Height="220" IsReadOnly="True" AutomationProperties.Name="Inventário técnico">
@@ -399,12 +399,12 @@
         <Border Style="{StaticResource Card}"><StackPanel>
          <TextBlock Text="Rede e conectividade" FontSize="20" FontWeight="SemiBold"/>
          <TextBlock Text="Inventário local não gera tráfego externo; IP, gateway, DNS e perfis ficam ocultos por padrão." Foreground="#60758A" TextWrapping="Wrap" Margin="0,8,0,14"/>
-         <WrapPanel><Button x:Name="NetworkSnapshotButton" Content="Consultar rede"AutomationProperties.Name="Consultar rede" /><Button x:Name="NetworkRevealButton" Content="Mostrar endereços locais" Background="#40566C"AutomationProperties.Name="Mostrar endereços locais" /></WrapPanel>
+         <WrapPanel><Button x:Name="NetworkSnapshotButton" Content="Consultar rede" AutomationProperties.Name="Consultar rede" /><Button x:Name="NetworkRevealButton" Content="Mostrar endereços locais" Background="#40566C" AutomationProperties.Name="Mostrar endereços locais" /></WrapPanel>
          <TextBlock Text="Teste externo opcional — destino autorizado e porta:" Foreground="#60758A" Margin="0,8,0,5"/>
          <WrapPanel>
           <TextBox x:Name="NetworkTarget" Width="225" MaxLength="253" AutomationProperties.Name="Host ou IP para teste TCP e DNS"/>
           <TextBox x:Name="NetworkPort" Width="68" MaxLength="5" Text="443" AutomationProperties.Name="Porta TCP"/>
-          <Button x:Name="NetworkProbeButton" Content="Testar DNS e TCP" Background="#40566C"AutomationProperties.Name="Testar DNS e TCP" />
+          <Button x:Name="NetworkProbeButton" Content="Testar DNS e TCP" Background="#40566C" AutomationProperties.Name="Testar DNS e TCP" />
          </WrapPanel>
          <TextBlock x:Name="NetworkSummary" Text="Sem consulta. Teste externo depende de confirmação." TextWrapping="Wrap" Foreground="#60758A" Margin="0,0,0,10"/>
          <DataGrid x:Name="NetworkGrid" Height="215" IsReadOnly="True" AutomationProperties.Name="Resultados de rede">
@@ -425,7 +425,7 @@
         <Border Style="{StaticResource Card}"><StackPanel>
          <TextBlock Text="Histórico de falhas do Windows" FontSize="20" FontWeight="SemiBold"/>
          <TextBlock Text="Contagem de alertas WHEA, disco, NTFS, desligamentos, tela azul e serviços. Sem copiar mensagens brutas de eventos." TextWrapping="Wrap" Foreground="#60758A" Margin="0,8,0,13"/>
-         <Button x:Name="EventsAnalyzeButton" Content="Analisar os últimos 14 dias" HorizontalAlignment="Left"AutomationProperties.Name="Analisar os últimos 14 dias" />
+         <Button x:Name="EventsAnalyzeButton" Content="Analisar os últimos 14 dias" HorizontalAlignment="Left" AutomationProperties.Name="Analisar os últimos 14 dias" />
          <TextBlock x:Name="EventsSummary" Text="Histórico não consultado." TextWrapping="Wrap" Foreground="#60758A" Margin="0,5,0,10"/>
          <DataGrid x:Name="EventsGrid" Height="205" IsReadOnly="True" AutomationProperties.Name="Eventos de falhas agrupados">
           <DataGrid.Columns>
@@ -447,11 +447,11 @@
          <TextBlock Text="Verificação e reparos do sistema" FontSize="20" FontWeight="SemiBold"/>
          <TextBlock Text="SFC, DISM e CHKDSK em console separado, com confirmação explícita e elevação do Windows (UAC). Confira backup antes de reparar." TextWrapping="Wrap" Foreground="#60758A" Margin="0,8,0,13"/>
          <WrapPanel>
-          <Button x:Name="SfcVerifyButton" Content="SFC verificar" Background="#40566C"AutomationProperties.Name="SFC verificar" />
-          <Button x:Name="DismScanButton" Content="DISM verificar" Background="#40566C"AutomationProperties.Name="DISM verificar" />
-          <Button x:Name="ChkdskScanButton" Content="CHKDSK analisar" Background="#40566C"AutomationProperties.Name="CHKDSK analisar" />
-          <Button x:Name="SfcRepairButton" Content="SFC reparar" Background="#99601E"AutomationProperties.Name="SFC reparar" />
-          <Button x:Name="DismRepairButton" Content="DISM reparar" Background="#99601E"AutomationProperties.Name="DISM reparar" />
+          <Button x:Name="SfcVerifyButton" Content="SFC verificar" Background="#40566C" AutomationProperties.Name="SFC verificar" />
+          <Button x:Name="DismScanButton" Content="DISM verificar" Background="#40566C" AutomationProperties.Name="DISM verificar" />
+          <Button x:Name="ChkdskScanButton" Content="CHKDSK analisar" Background="#40566C" AutomationProperties.Name="CHKDSK analisar" />
+          <Button x:Name="SfcRepairButton" Content="SFC reparar" Background="#99601E" AutomationProperties.Name="SFC reparar" />
+          <Button x:Name="DismRepairButton" Content="DISM reparar" Background="#99601E" AutomationProperties.Name="DISM reparar" />
          </WrapPanel>
          <TextBlock Text="O resultado da execução elevada fica no console e não entra automaticamente no relatório." Foreground="#60758A" TextWrapping="Wrap"/>
         </StackPanel></Border>
@@ -473,7 +473,7 @@
          <TextBox x:Name="Customer" MaxLength="180" AutomationProperties.Name="Cliente ou ordem de serviço"/>
          <TextBlock Text="Sintomas, serviços realizados e recomendações"/>
          <TextBox x:Name="Notes" AcceptsReturn="True" Height="130" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MaxLength="10000" AutomationProperties.Name="Observações do atendimento"/>
-         <Button x:Name="ExportButton" Content="Salvar relatório HTML / imprimir em PDF" HorizontalAlignment="Left"AutomationProperties.Name="Salvar relatório HTML / imprimir em PDF" />
+         <Button x:Name="ExportButton" Content="Salvar relatório HTML / imprimir em PDF" HorizontalAlignment="Left" AutomationProperties.Name="Salvar relatório HTML / imprimir em PDF" />
          <TextBlock Text="O HTML pode ser aberto no navegador e impresso em PDF. Nenhum dado é enviado à internet." TextWrapping="Wrap" Foreground="#60758A" Margin="0,15,0,0"/>
         </StackPanel>
        </Border>
