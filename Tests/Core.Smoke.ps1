@@ -91,31 +91,7 @@ try {
     Assert-True ($json.Customer -eq 'João' -and $json.Diagnostics[0].Area -eq 'Disco') 'JSON exports unicode and diagnostic details'
     Assert-True (-not ((Get-Content -LiteralPath $jsonPath -Raw).Contains($old))) 'JSON excludes private cleanup paths'
     Export-OptimizerReport -Path (Join-Path $testRoot 'empty.json') -Cleanup $null -Format JSON
-    Assert-True ((Format-OptimizerSize 0) -match 'B[void](New-Item -ItemType Directory $empty)
-    $emptyScan=Get-OptimizerScan -Targets @([pscustomobject]@{Id='empty';Name='Empty';Path=$empty;Process=''})
-    Assert-True ($emptyScan.Bytes -eq 0 -and @($emptyScan.Files).Count -eq 0) 'Empty analysis returns zero without failing'
-    Write-Output "All $script:passed safety checks passed."
-} finally {
-    if(Test-Path (Join-Path $testRoot 'cache/linked')) { [IO.Directory]::Delete((Join-Path $testRoot 'cache/linked')) }
-    Remove-Item -LiteralPath $testRoot -Recurse -Force
-}
- -and (Format-OptimizerSize 1MB) -match 'MB[void](New-Item -ItemType Directory $empty)
-    $emptyScan=Get-OptimizerScan -Targets @([pscustomobject]@{Id='empty';Name='Empty';Path=$empty;Process=''})
-    Assert-True ($emptyScan.Bytes -eq 0 -and @($emptyScan.Files).Count -eq 0) 'Empty analysis returns zero without failing'
-    Write-Output "All $script:passed safety checks passed."
-} finally {
-    if(Test-Path (Join-Path $testRoot 'cache/linked')) { [IO.Directory]::Delete((Join-Path $testRoot 'cache/linked')) }
-    Remove-Item -LiteralPath $testRoot -Recurse -Force
-}
- -and (Format-OptimizerSize 1GB) -match 'GB[void](New-Item -ItemType Directory $empty)
-    $emptyScan=Get-OptimizerScan -Targets @([pscustomobject]@{Id='empty';Name='Empty';Path=$empty;Process=''})
-    Assert-True ($emptyScan.Bytes -eq 0 -and @($emptyScan.Files).Count -eq 0) 'Empty analysis returns zero without failing'
-    Write-Output "All $script:passed safety checks passed."
-} finally {
-    if(Test-Path (Join-Path $testRoot 'cache/linked')) { [IO.Directory]::Delete((Join-Path $testRoot 'cache/linked')) }
-    Remove-Item -LiteralPath $testRoot -Recurse -Force
-}
-) 'Formatter handles B, MB and GB'
+    Assert-True ((Format-OptimizerSize 0) -like '*B' -and (Format-OptimizerSize 1MB) -like '*MB' -and (Format-OptimizerSize 1GB) -like '*GB') 'Formatter handles B, MB and GB'
     $sum = & (Get-Module Optimizer.Core) { Get-OptimizerByteSum @([pscustomobject]@{Bytes=10}, [pscustomobject]@{Other=2}, $null) }
     Assert-True ($sum -eq 10) 'Byte summation tolerates missing properties'
     $empty=Join-Path $testRoot 'empty';[void](New-Item -ItemType Directory $empty)
