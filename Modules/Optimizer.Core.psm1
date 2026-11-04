@@ -191,7 +191,7 @@ function Export-OptimizerReport {
             GeneratedAt = (Get-Date).ToString('o')
             Customer = [string]$Customer
             Notes = [string]$Notes
-            Diagnostics = @($Diagnostics | ForEach-Object { [ordered]@{ Area = [string]$_.Area; Item = [string]$_.Item; Value = [string]$_.Value } })
+            Diagnostics = @($Diagnostics | Where-Object { $null -ne $_ } | ForEach-Object { [ordered]@{ Area = [string]$_.Area; Item = [string]$_.Item; Value = [string]$_.Value } })
             Cleanup = $summary
         }
         [IO.File]::WriteAllText($Path, (ConvertTo-Json -InputObject $payload -Depth 6), (New-Object Text.UTF8Encoding $true))
