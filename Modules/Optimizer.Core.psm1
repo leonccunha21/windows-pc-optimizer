@@ -4,7 +4,7 @@ Set-StrictMode -Version 2.0
 function Get-OptimizerByteSum {
     param($Items, [string]$Property = 'Bytes')
     [long]$total = 0
-    foreach ($item in @($Items)) {
+    foreach ($item in $Items) {
         if ($null -eq $item) { continue }
         $value = $item.PSObject.Properties[$Property]
         if ($null -ne $value -and $null -ne $value.Value) { $total += [long]$value.Value }
