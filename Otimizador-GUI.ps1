@@ -16,6 +16,9 @@ $script:scan = $null; $script:cleanup = $null; $script:diagnostics = @(); $scrip
 $script:battery = $null; $script:disks = $null; $script:appx = @(); $script:optimizations = @(); $script:driverUpdates = $null
 $script:state = [hashtable]::Synchronized(@{Cancel=$false; Message=''; Result=$null; Error=$null; Total=0; Processed=0})
 $script:modulePath = Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1'
+$script:technicianPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Technician.psm1'
+$script:networkPath = Join-Path $PSScriptRoot 'Modules\Optimizer.NetworkDiagnostics.psm1'
+$script:eventsPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Events.psm1'
 $script:isAdmin = $false
 try {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -24,9 +27,10 @@ try {
 } catch { Write-Verbose 'Não foi possível verificar elevação.' }
 
 function Set-Busy([bool]$Busy) {
-    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','OptimizationRunButton','HealthShortcut','MaintenanceShortcut')) { $ui[$name].IsEnabled = -not $Busy }
+    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','OptimizationRunButton','HealthShortcut','MaintenanceShortcut','WorkbenchShortcut','InvProcessesButton','InvStartupButton','InvSoftwareButton','InvNetworkButton','InvUpdatesButton','InvStorageButton','NetworkSnapshotButton','NetworkRevealButton','NetworkProbeButton','EventsAnalyzeButton','SfcVerifyButton','DismScanButton','ChkdskScanButton','SfcRepairButton','DismRepairButton')) { $ui[$name].IsEnabled = -not $Busy }
     $ui.CleanButton.IsEnabled = -not $Busy -and $null -ne $script:scan -and -not $script:scan.Cancelled -and @($script:scan.Files).Count -gt 0
     $ui.DetailsButton.IsEnabled = -not $Busy -and ($null -ne $script:scan -or $null -ne $script:cleanup)
+    $ui.ExportResultsButton.IsEnabled = -not $Busy -and $null -ne $script:cleanup
     $ui.Categories.IsEnabled = -not $Busy
     $ui.CancelButton.IsEnabled = $Busy -and $script:operation -ne 'Diagnose'
     $ui.Progress.IsIndeterminate = $Busy -and $script:operation -ne 'Clean'
@@ -96,9 +100,12 @@ function Start-Work([string]$Operation, $Payload) {
     $script:state.Cancel = $false; $script:state.Error = $null; $script:state.Result = $null; $script:state.Message = 'Preparando...'; $script:state.Processed = 0; $script:state.Total = 0
     $script:worker = [PowerShell]::Create()
     [void]$script:worker.AddScript({
-        param($ModulePath, $Operation, $Payload, $State)
+        param($ModulePath, $TechnicianPath, $NetworkPath, $EventsPath, $Operation, $Payload, $State)
         try {
             Import-Module $ModulePath -Force -ErrorAction Stop
+            Import-Module $TechnicianPath -Force -ErrorAction Stop
+            Import-Module $NetworkPath -Force -ErrorAction Stop
+            Import-Module $EventsPath -Force -ErrorAction Stop
             switch ($Operation) {
                 'Scan' { $State.Result = Get-OptimizerScan -State $State }
                 'Clean' { $State.Result = Invoke-OptimizerCleanup -Scan $Payload.Scan -CategoryIds $Payload.Ids -State $State -Confirm:$false }
@@ -111,11 +118,15 @@ function Start-Work([string]$Operation, $Payload) {
                 'Drivers' { $State.Message = 'Inventariando drivers...'; $State.Result = @(Get-OptimizerDrivers) }
                 'DriverUpdates' { $State.Message = 'Consultando drivers no Windows Update...'; $State.Result = Get-OptimizerDriverUpdates }
                 'Appx' { $State.Message = 'Listando aplicativos instalados...'; $State.Result = @(Get-OptimizerAppInventory) }
+                'Inspect' { $State.Result = @(Get-OptimizerTechnicalInventory -Area ([string]$Payload.Area) -State $State) }
+                'NetworkSnapshot' { $State.Result = @(Get-OptimizerNetworkSnapshot -IncludeAddresses:([bool]$Payload.Reveal) -State $State) }
+                'NetworkProbe' { $State.Result = @(Invoke-OptimizerConnectivityCheck -Target ([string]$Payload.Host) -DnsName ([string]$Payload.Host) -Port ([int]$Payload.Port) -State $State) }
+                'Events' { $State.Result = Get-OptimizerEventSummary -Days 14 -State $State }
                 'RemoveAppx' { $State.Message = 'Removendo aplicativos selecionados...'; $State.Result = @(Invoke-OptimizerAppRemoval -PackageFullNames $Payload.Names -Confirm:$false) }
                 'Optimize' { $State.Message = 'Aplicando otimizações selecionadas...'; $State.Result = @(Invoke-OptimizerOptimization -Ids $Payload.Ids -Confirm:$false) }
             }
         } catch { $State.Error = $_.Exception.Message }
-    }).AddArgument($script:modulePath).AddArgument($Operation).AddArgument($Payload).AddArgument($script:state)
+    }).AddArgument($script:modulePath).AddArgument($script:technicianPath).AddArgument($script:networkPath).AddArgument($script:eventsPath).AddArgument($Operation).AddArgument($Payload).AddArgument($script:state)
     $script:handle = $script:worker.BeginInvoke()
     Set-Busy $true
     $timer.Start()
@@ -154,6 +165,31 @@ $timer.Add_Tick({
                 Update-BatteryView
                 Update-DiskView
                 $ui.Status.Text = 'Saúde consultada. Confira saúde da bateria, contadores SMART e espaço dos volumes.'
+            }
+            'Inspect' {
+                $rows = @($script:state.Result)
+                $ui.WorkbenchGrid.ItemsSource = $rows
+                $ui.WorkbenchSummary.Text = ('Consulta concluída: {0} registros • nenhuma alteração.' -f $rows.Count)
+                $ui.Status.Text = 'Inventário técnico atualizado.'
+            }
+            'NetworkSnapshot' {
+                $rows = @($script:state.Result)
+                $ui.NetworkGrid.ItemsSource = $rows
+                $ui.NetworkSummary.Text = ('Configuração local: {0} registros; nenhum teste externo realizado.' -f $rows.Count)
+                $ui.Status.Text = 'Consulta local de rede concluída.'
+            }
+            'NetworkProbe' {
+                $rows = @($script:state.Result)
+                $ui.NetworkGrid.ItemsSource = $rows
+                $ui.NetworkSummary.Text = ('Teste solicitado: {0} resultados; confira avisos.' -f $rows.Count)
+                $ui.Status.Text = 'Consulta DNS/TCP concluída.'
+            }
+            'Events' {
+                $summary = $script:state.Result
+                $ui.EventsGrid.ItemsSource = @($summary.Categories)
+                $warningText = @($summary.Warnings) -join ' • '
+                $ui.EventsSummary.Text = ('{0} examinados • {1} classificados • {2} categorias. {3}' -f $summary.Examined, $summary.Matched, @($summary.Categories).Count, $warningText)
+                $ui.Status.Text = if ($summary.Available) { 'Histórico consultado; eventos preservados.' } else { 'Consulta do log indisponível.' }
             }
             'Drivers' {
                 $drivers = @($script:state.Result)
