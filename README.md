@@ -13,7 +13,7 @@ Interface desktop em português para o dia a dia de manutenção de computadores
 
 Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil analisado. Em computadores gerenciados, respeite a política de execução da organização. Não execute o BAT dentro do ZIP. Windows 10/11 com interface desktop; a compatibilidade do aplicativo não altera o ciclo de suporte do Windows.
 
-## O que a edição 4.0 oferece
+## O que a edição 4.2 oferece
 
 | Área | Recursos |
 |---|---|
@@ -39,6 +39,10 @@ As ações de ajuste (plano de energia, Sensor de Armazenamento, cache de Otimiz
 ## Janela
 
 A janela WPF define o estilo de borda (`SingleBorderWindow`) com `ResizeMode` ajustável e exibe o botão **Fechar** na barra de título do aplicativo, no cabeçalho da janela. Durante uma operação em andamento, o fechamento é perguntado ao usuário e encerra o runspace em vez de ser ignorado. Atalhos: **F5** analisa, **Esc** solicita interrupção e **Ctrl+E** abre a exportação do relatório.
+
+## Bancada técnica
+
+As consultas da bancada são executadas em segundo plano; informações de inicialização são somente para leitura. Reparos e verificações abrem um novo console Windows, após confirmação e solicitação UAC. O relatório HTML/JSON não inclui caminhos de arquivos removidos; o CSV detalhado **inclui**, sendo exportado apenas após aviso de privacidade.
 
 ## Critérios de limpeza
 
@@ -69,6 +73,7 @@ Não há limpeza de Registro, alteração automática de serviços, pagefile, re
 ./Tests/Validate-Syntax.ps1
 ./Tests/Optimizer.Tests.ps1
 ./Tests/Core.Smoke.ps1
+./Tests/Technician.Smoke.ps1
 powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI
 ```
 

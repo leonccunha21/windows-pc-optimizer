@@ -5,16 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Nova bancada técnica com inventários Windows realmente consultados (processos, inicialização, programas, rede, atualizações e discos).
+- Comandos nativos SFC, DISM e CHKDSK via console com confirmação e UAC, sem execução automática.
+- Exportação CSV detalhada de resultados após aviso de privacidade e navegação lateral funcional.
+- Testes do módulo técnico e da allowlist de reparos.
+
+### Changed
+- Nova organização visual "Oficina Pro", distinguindo consultas, reparos elevados e atalhos.
+
 ## [4.1] - 2026-11-04
 
 ### Added
-- Nova aba **Saúde**: bateria com relatório oficial (`powercfg /batteryreport`), capacidade de projeto, ciclos e avaliação; discos físicos com status SMART, temperatura, desgaste e contadores; volumes com espaço livre.
+- Nova aba **Saúde**: bateria com relatório oficial (powercfg /batteryreport), capacidade de projeto, ciclos e avaliação; discos físicos com status SMART, temperatura, desgaste e contadores; volumes com espaço livre.
 - Nova aba **Manutenção**: inventário de drivers instalados com situação de assinatura e verificação; consulta de atualizações de driver via Windows Update; listagem de aplicativos com sugestões de remoção; remoção de aplicativos com confirmação explícita; ações seguras de otimização (plano de energia, Sensor de Armazenamento, cache de Otimização de Entrega, Lixeira, inicialização rápida).
-- Funções no núcleo: `Get-OptimizerBatteryHealth`, `Save-OptimizerBatteryReport`, `ConvertFrom-OptimizerBatteryReportXml`, `Get-OptimizerHealthRating`, `Get-OptimizerDiskHealth`, `Get-OptimizerDrivers`, `Get-OptimizerDriverUpdates`, `Get-OptimizerBloatCatalog`, `Get-OptimizerAppInventory`, `Invoke-OptimizerAppRemoval`, `Get-OptimizerOptimizations`, `Invoke-OptimizerOptimization`.
+- Funções no núcleo: Get-OptimizerBatteryHealth, Save-OptimizerBatteryReport, ConvertFrom-OptimizerBatteryReportXml, Get-OptimizerHealthRating, Get-OptimizerDiskHealth, Get-OptimizerDrivers, Get-OptimizerDriverUpdates, Get-OptimizerBloatCatalog, Get-OptimizerAppInventory, Invoke-OptimizerAppRemoval, Get-OptimizerOptimizations, Invoke-OptimizerOptimization.
 - Novos atalhos dentro da aba **Manutenção** para ferramentas nativas do Windows (recursos opcionais, dispositivos, energia, Windows Update, informações de sistema).
 
 ### Fixed
-- Janela WPF passa a declarar `WindowStyle` explícito e exibe botão **Fechar** no cabeçalho; durante operação ativa o fechamento pergunta antes de encerrar o runspace.
+- Janela WPF passa a declarar WindowStyle explícito e exibe botão Fechar no cabeçalho; durante operação ativa o fechamento pergunta antes de encerrar o runspace.
+
+---
 
 ## [4.0.1] - 2026-11-04
 

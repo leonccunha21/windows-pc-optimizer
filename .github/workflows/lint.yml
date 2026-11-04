@@ -43,6 +43,9 @@ jobs:
           Import-Module PSScriptAnalyzer -ErrorAction Stop
           $issues = @(@('Modules/Optimizer.Core.psm1','Otimizador-GUI.ps1') | ForEach-Object { Invoke-ScriptAnalyzer -Path $_ -Settings ./PSScriptAnalyzerSettings.psd1 -Severity Warning,Error })
           if ($issues.Count) { $issues | Format-Table -AutoSize | Out-String | Write-Host; throw 'PSScriptAnalyzer findings require triage.' }
+      - name: Technician inventory and repair allowlist tests
+        shell: pwsh
+        run: ./Tests/Technician.Smoke.ps1
       - name: Legacy regression checks without executing maintenance
         shell: pwsh
         run: ./Tests/Optimizer.Tests.ps1
