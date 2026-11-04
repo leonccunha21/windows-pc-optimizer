@@ -39,6 +39,10 @@ A PowerShell-based PC optimizer for Windows 10/11. Cleans junk, optimizes startu
 2. Right-click `Executar-Otimizador.bat` → **Run as administrator**.
 3. Choose option **15 (Run ALL)** for a full optimization, or individual options.
 
+### GUI version
+
+Run `Otimizador-GUI.ps1` as Administrator for a graphical interface with checkboxes.
+
 ### Advanced (command line)
 
 ```powershell

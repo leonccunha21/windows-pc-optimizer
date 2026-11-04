@@ -1,29 +1,70 @@
-# Otimizador de PC - Script PowerShell
-# Versao 1.0
-# Execute como Administrador: clique direito > "Executar com PowerShell" ou use o launcher .bat
-# NAO remove arquivos do Epic Games / Fortnite (protegidos).
+<#
+.SYNOPSIS
+    Windows PC Optimizer - PowerShell script to clean and optimize Windows 10/11.
+
+.DESCRIPTION
+    Cleans temporary files, browser/package caches, project build artifacts,
+    optimizes startup, tweaks system settings, and frees disk space.
+    Never removes Epic Games / Fortnite files.
+
+.PARAMETER Auto
+    Run all recommended optimizations without prompts.
+
+.PARAMETER Mode
+    Safe (default) or Aggressive. Aggressive also cleans WinSxS, prefetch,
+    disables more services, and removes more caches.
+
+.PARAMETER ProjectsPath
+    Folder to scan for project junk (node_modules, build, dist, etc.).
+
+.PARAMETER DryRun
+    Show what would be done without executing.
+
+.PARAMETER SkipLong
+    Skip SFC/DISM and Defender full scan.
+
+.PARAMETER SelfUpdate
+    Check GitHub for a newer version and update this script.
+
+.EXAMPLE
+    .\Otimizar-PC.ps1
+    Interactive menu.
+
+.EXAMPLE
+    .\Otimizar-PC.ps1 -Auto -Mode Aggressive -ProjectsPath "C:\Users\Leo\Documents"
+    Full aggressive optimization.
+
+.EXAMPLE
+    .\Otimizar-PC.ps1 -Auto -DryRun
+    Simulation only.
+#>
+#Requires -RunAsAdministrator
 
 param(
-    [switch]$Auto,        # Executa todas as otimizacoes recomendadas sem perguntar
-    [string]$ProjectsPath = "",  # Pasta a escanear em busca de lixo de projetos (node_modules, build, etc.)
-    [switch]$DryRun,      # Apenas mostra o que seria feito, sem executar
-    [switch]$SkipLong     # Pula SFC/DISM e Defender full scan (demorados)
+    [switch]$Auto,
+    [ValidateSet("Safe","Aggressive")]
+    [string]$Mode = "Safe",
+    [string]$ProjectsPath = "",
+    [switch]$DryRun,
+    [switch]$SkipLong,
+    [switch]$SelfUpdate,
+    [switch]$LoadOnly
 )
 
 $ErrorActionPreference = "Continue"
 $LogFile = "$env:TEMP\OtimizadorPC_log.txt"
 $Protected = @("Epic Games","Fortnite","EpicGames","FortniteGame")
+$Version = "1.1.0"
+$GitHubRaw = "https://raw.githubusercontent.com/leonccunha21/windows-pc-optimizer/main/Otimizar-PC.ps1"
 
-function Write-Log($msg) {
-    $line = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - $msg"
+function Write-Log($msg, $level = "INFO") {
+    $line = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [$level] $msg"
     Write-Host $line
     Add-Content -Path $LogFile -Value $line -Encoding UTF8
 }
 
 function Is-Protected($path) {
-    foreach ($p in $Protected) {
-        if ($path -like "*$p*") { return $true }
-    }
+    foreach ($p in $Protected) { if ($path -like "*$p*") { return $true } }
     return $false
 }
 
@@ -41,48 +82,30 @@ function Get-FolderSize($path) {
 }
 
 function Remove-Safe($path, $label) {
-    if (Is-Protected $path) {
-        Write-Log "  [PROTEGIDO] Pulando: $path"
-        return 0
-    }
+    if (Is-Protected $path) { Write-Log "  [PROTEGIDO] Pulando: $path" "WARN"; return 0 }
     if (-not (Test-Path $path)) { return 0 }
     $sz = Get-FolderSize $path
-    if ($DryRun) {
-        Write-Log "  [DRY-RUN] Removeria: $path ($([math]::Round($sz/1MB,1)) MB)"
-        return $sz
-    }
+    if ($DryRun) { Write-Log "  [DRY-RUN] Removeria: $path ($([math]::Round($sz/1MB,1)) MB)"; return $sz }
     Remove-Item $path -Recurse -Force -EA 0
     Write-Log "  Removido: $path ($([math]::Round($sz/1MB,1)) MB)"
     return $sz
 }
 
-# ---------------- MENU ----------------
-function Show-Menu {
-    Clear-Host
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "   OTIMIZADOR DE PC - Menu Principal" -ForegroundColor Cyan
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host " 1. Limpeza de temporarios (>=7 dias)"
-    Write-Host " 2. Limpeza de caches de navegadores (Chrome/Edge)"
-    Write-Host " 3. Limpeza de caches de pacotes (npm/pnpm/pip)"
-    Write-Host " 4. Limpeza de lixo de projetos (node_modules, build, dist, .next, .gradle, .venv, __pycache__)"
-    Write-Host " 5. Otimizar inicializacao (remover programas do boot)"
-    Write-Host " 6. Ajustes de sistema (energia, telemetria, SysMain, visual, pagefile)"
-    Write-Host " 7. Otimizar SSD (TRIM)"
-    Write-Host " 8. Limpar logs de eventos"
-    Write-Host " 9. Desativar apps em segundo plano"
-    Write-Host "10. Limpeza de Disco (cleanmgr)"
-    Write-Host "11. Flush DNS + reset Winsock"
-    Write-Host "12. Ativar Storage Sense (limpeza automatica)"
-    Write-Host "13. Verificacao de integridade (SFC + DISM) - demorado"
-    Write-Host "14. Varredura completa do Defender"
-    Write-Host "15. Executar TUDO (recomendado)"
-    Write-Host " 0. Sair"
-    Write-Host ""
+function New-RestorePoint {
+    if ($DryRun) { Write-Log "  [DRY-RUN] Ponto de restauracao seria criado"; return }
+    try {
+        Checkpoint-Computer -Description "OtimizadorPC v$Version" -RestorePointType "MODIFY_SETTINGS" -ErrorAction Stop
+        Write-Log "  Ponto de restauracao criado"
+    } catch { Write-Log "  Ponto de restauracao nao criado (limite de 24h?): $($_.Exception.Message)" "WARN" }
 }
 
-# ---------------- FUNCOES ----------------
+function Get-DriveType($letter) {
+    try {
+        $disk = Get-PhysicalDisk | Where-Object { $_.DeviceId -eq 0 } | Select-Object -First 1
+        if ($disk.MediaType -eq "SSD") { return "SSD" }
+        return "HDD"
+    } catch { return "Unknown" }
+}
 
 function Backup-Registry {
     $backupDir = "$env:TEMP\OtimizadorPC_backup"
@@ -91,6 +114,36 @@ function Backup-Registry {
     reg export "HKLM\Software\Microsoft\Windows\CurrentVersion\Run" "$backupDir\run_hklm.reg" /y 2>&1 | Out-Null
     Write-Log "Backup de registro salvo em $backupDir"
 }
+
+# ---------------- MENU ----------------
+function Show-Menu {
+    Clear-Host
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host "   OTIMIZADOR DE PC v$Version" -ForegroundColor Cyan
+    Write-Host "   Modo: $Mode | DryRun: $DryRun" -ForegroundColor Cyan
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host " 1. Limpeza de temporarios (>=7 dias)"
+    Write-Host " 2. Limpeza de caches de navegadores (Chrome/Edge)"
+    Write-Host " 3. Limpeza de caches de pacotes (npm/pnpm/pip)"
+    Write-Host " 4. Limpeza de lixo de projetos (node_modules, build, dist, .next, .gradle, .venv, __pycache__)"
+    Write-Host " 5. Otimizar inicializacao (remover programas do boot)"
+    Write-Host " 6. Ajustes de sistema (energia, telemetria, SysMain, visual, pagefile, TCP)"
+    Write-Host " 7. Otimizar disco (TRIM SSD / defrag HDD + WinSxS + prefetch + icon cache)"
+    Write-Host " 8. Limpar logs de eventos"
+    Write-Host " 9. Desativar apps em segundo plano + Game Bar/DVR"
+    Write-Host "10. Limpeza de Disco (cleanmgr)"
+    Write-Host "11. Flush DNS + reset Winsock"
+    Write-Host "12. Ativar Storage Sense (limpeza automatica)"
+    Write-Host "13. Verificacao de integridade (SFC + DISM) - demorado"
+    Write-Host "14. Varredura completa do Defender"
+    Write-Host "15. Executar TUDO (recomendado)"
+    Write-Host "16. Self-update (verificar nova versao no GitHub)"
+    Write-Host " 0. Sair"
+    Write-Host ""
+}
+
+# ---------------- FUNCOES ----------------
 
 function Clean-Temp {
     Write-Log "=== Limpeza de temporarios (>=7 dias) ==="
@@ -109,7 +162,7 @@ function Clean-Temp {
                     $dir = $_.FullName
                     if (-not (Is-Protected $dir)) {
                         $items = Get-ChildItem $dir -EA 0
-                        if ($null -eq $items -or $items.Count -eq 0) { Remove-Item $dir -Force -EA 0 }
+                        if ($null -eq $items -or @($items).Count -eq 0) { Remove-Item $dir -Force -EA 0 }
                     }
                 }
                 $after = Get-FolderSize $t
@@ -150,8 +203,11 @@ function Clean-PackageCaches {
         @{ Path = "$env:LOCALAPPDATA\ms-playwright"; Name = "playwright" },
         @{ Path = "$env:LOCALAPPDATA\Cypress"; Name = "cypress" }
     )
-    foreach ($c in $caches) {
-        Remove-Safe $c.Path $c.Name | Out-Null
+    foreach ($c in $caches) { Remove-Safe $c.Path $c.Name | Out-Null }
+    if ($Mode -eq "Aggressive") {
+        # Clear nuget cache
+        $nuget = "$env:USERPROFILE\.nuget\packages"
+        if (Test-Path $nuget) { Write-Log "  [AGGRESSIVE] NuGet packages em $nuget (nao removido automaticamente - revise manualmente)" "WARN" }
     }
 }
 
@@ -160,10 +216,7 @@ function Clean-ProjectJunk {
     if ([string]::IsNullOrWhiteSpace($RootPath)) {
         $RootPath = Read-Host "Caminho da pasta de projetos (ex: C:\Users\Leo\Documents)"
     }
-    if (-not (Test-Path $RootPath)) {
-        Write-Log "Caminho nao existe: $RootPath"
-        return
-    }
+    if (-not (Test-Path $RootPath)) { Write-Log "Caminho nao existe: $RootPath" "WARN"; return }
     Write-Log "=== Limpeza de lixo de projetos em $RootPath ==="
     $lixoNames = @("node_modules","build","dist",".next","target","__pycache__",".gradle",".cache","out",".turbo",".nuxt",".output","coverage",".parcel-cache",".vite",".svelte-kit")
     $freed = 0; $removed = 0
@@ -176,7 +229,6 @@ function Clean-ProjectJunk {
         $sz = Remove-Safe $_.FullName "lixo"
         $freed += $sz; $removed++
     }
-    # Remove .venv folders entirely
     Get-ChildItem $RootPath -Recurse -Directory -Filter ".venv" -EA 0 | Where-Object { -not (Is-Protected $_.FullName) } | ForEach-Object {
         $sz = Remove-Safe $_.FullName ".venv"
         $freed += $sz; $removed++
@@ -187,14 +239,11 @@ function Clean-ProjectJunk {
 function Optimize-Startup {
     Write-Log "=== Otimizacao de inicializacao ==="
     $runKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
-    $removeNames = @("EpicGamesLauncher","Steam","IDMan","EpicGamesLauncher")
+    $removeNames = @("EpicGamesLauncher","Steam","IDMan")
     foreach ($n in $removeNames) {
         if (Get-ItemProperty $runKey -Name $n -EA 0) {
             if ($DryRun) { Write-Log "  [DRY-RUN] Removeria do startup: $n" }
-            else {
-                Remove-ItemProperty $runKey -Name $n -Force -EA 0
-                Write-Log "  Removido do startup: $n"
-            }
+            else { Remove-ItemProperty $runKey -Name $n -Force -EA 0; Write-Log "  Removido do startup: $n" }
         }
     }
     $startup = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
@@ -210,33 +259,26 @@ function Optimize-Startup {
 
 function System-Tweaks {
     Write-Log "=== Ajustes de sistema ==="
-    if (-not $DryRun) {
-        # Power plan High Performance
-        try { powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2>&1 | Out-Null; Write-Log "  Energia: Alto Desempenho" } catch {}
-        # Disable DiagTrack
-        try { Stop-Service DiagTrack -Force -EA 0; Set-Service DiagTrack -StartupType Disabled -EA 0; Write-Log "  DiagTrack desativado" } catch {}
-        # Disable SysMain
-        try { Stop-Service SysMain -Force -EA 0; Set-Service SysMain -StartupType Disabled -EA 0; Write-Log "  SysMain desativado (SSD)" } catch {}
-        # DoSvc -> Disabled (via registry)
-        try { Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\DoSvc" -Name Start -Value 4 -EA 0; Write-Log "  DoSvc desativado" } catch {}
-        # Visual effects
-        try { Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" -Name VisualFXSetting -Value 2 -EA 0; Write-Log "  Efeitos visuais: melhor desempenho" } catch {}
-        # Transparency off
-        try { Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name EnableTransparency -Value 0 -EA 0; Write-Log "  Transparencia desativada" } catch {}
-        # Disable tips
-        $cdm = "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-        if (Test-Path $cdm) {
-            Set-ItemProperty -Path $cdm -Name "SubscribedContent-338389Enabled" -Value 0 -EA 0
-            Set-ItemProperty -Path $cdm -Name "SoftLandingEnabled" -Value 0 -EA 0
-            Write-Log "  Dicas desativadas"
-        }
-        # Disable background apps
-        $ba = "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications"
-        if (-not (Test-Path $ba)) { New-Item -Path $ba -Force | Out-Null }
-        Set-ItemProperty -Path $ba -Name "GlobalUserDisabled" -Value 1 -EA 0
-        Write-Log "  Apps em background desativados"
-    } else {
-        Write-Log "  [DRY-RUN] Ajustes de sistema seriam aplicados"
+    if ($DryRun) { Write-Log "  [DRY-RUN] Ajustes seriam aplicados"; return }
+    try { powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2>&1 | Out-Null; Write-Log "  Energia: Alto Desempenho" } catch {}
+    try { Stop-Service DiagTrack -Force -EA 0; Set-Service DiagTrack -StartupType Disabled -EA 0; Write-Log "  DiagTrack desativado" } catch {}
+    try { Stop-Service SysMain -Force -EA 0; Set-Service SysMain -StartupType Disabled -EA 0; Write-Log "  SysMain desativado (SSD)" } catch {}
+    try { Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\DoSvc" -Name Start -Value 4 -EA 0; Write-Log "  DoSvc desativado" } catch {}
+    try { Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" -Name VisualFXSetting -Value 2 -EA 0; Write-Log "  Efeitos visuais: melhor desempenho" } catch {}
+    try { Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name EnableTransparency -Value 0 -EA 0; Write-Log "  Transparencia desativada" } catch {}
+    $cdm = "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+    if (Test-Path $cdm) {
+        Set-ItemProperty -Path $cdm -Name "SubscribedContent-338389Enabled" -Value 0 -EA 0
+        Set-ItemProperty -Path $cdm -Name "SoftLandingEnabled" -Value 0 -EA 0
+        Write-Log "  Dicas desativadas"
+    }
+    $ba = "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications"
+    if (-not (Test-Path $ba)) { New-Item -Path $ba -Force | Out-Null }
+    Set-ItemProperty -Path $ba -Name "GlobalUserDisabled" -Value 1 -EA 0
+    Write-Log "  Apps em background desativados"
+    # TCP auto-tuning (aggressive)
+    if ($Mode -eq "Aggressive") {
+        try { netsh int tcp set global autotuninglevel=normal 2>&1 | Out-Null; Write-Log "  TCP autotuning: normal" } catch {}
     }
 }
 
@@ -256,19 +298,51 @@ function Set-Pagefile {
         $np.Put() | Out-Null
         Write-Log "  Pagefile fixado em 8GB (requer reinicio)"
     } catch {
-        # Fallback via registry
         reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v PagingFiles /t REG_MULTI_SZ /d "C:\pagefile.sys 8192 8192" /f 2>&1 | Out-Null
         Write-Log "  Pagefile configurado via registro (requer reinicio)"
     }
 }
 
-function Optimize-SSD {
-    Write-Log "=== TRIM no volume C: ==="
-    if ($DryRun) { Write-Log "  [DRY-RUN] TRIM seria executado"; return }
+function Optimize-Disk {
+    Write-Log "=== Otimizacao de disco ==="
+    $driveType = Get-DriveType "C"
+    Write-Log "  Tipo de disco: $driveType"
+    if ($DryRun) { Write-Log "  [DRY-RUN] Otimizacao seria executada"; return }
+    if ($driveType -eq "SSD") {
+        try { Optimize-Volume -DriveLetter C -ReTrim -Verbose 2>&1 | Out-Null; Write-Log "  TRIM concluido (SSD)" } catch { Write-Log "  Aviso TRIM: $_" "WARN" }
+    } else {
+        try { Optimize-Volume -DriveLetter C -Defrag -Verbose 2>&1 | Out-Null; Write-Log "  Desfrag concluido (HDD)" } catch { Write-Log "  Aviso defrag: $_" "WARN" }
+    }
+    # WinSxS cleanup (aggressive or always moderate)
     try {
-        Optimize-Volume -DriveLetter C -ReTrim -Verbose 2>&1 | Out-Null
-        Write-Log "  TRIM concluido"
-    } catch { Write-Log "  Aviso TRIM: $_" }
+        DISM /Online /Cleanup-Image /StartComponentCleanup 2>&1 | Out-Null
+        Write-Log "  WinSxS component cleanup concluido"
+        if ($Mode -eq "Aggressive") {
+            DISM /Online /Cleanup-Image /StartComponentCleanup /ResetBase 2>&1 | Out-Null
+            Write-Log "  WinSxS ResetBase concluido (agressivo)"
+        }
+    } catch { Write-Log "  Aviso WinSxS: $_" "WARN" }
+    # Prefetch clean
+    $prefetch = "$env:WINDIR\Prefetch"
+    if (Test-Path $prefetch) {
+        $sz = Get-FolderSize $prefetch
+        if ($Mode -eq "Aggressive") {
+            Remove-Item "$prefetch\*" -Force -EA 0
+            Write-Log "  Prefetch limpo ($([math]::Round($sz/1MB,1)) MB)"
+        } else {
+            Write-Log "  Prefetch: $([math]::Round($sz/1MB,1)) MB (use modo Aggressive para limpar)"
+        }
+    }
+    # Icon cache rebuild
+    if ($Mode -eq "Aggressive") {
+        try {
+            Stop-Process -Name explorer -Force -EA 0
+            Remove-Item "$env:LOCALAPPDATA\IconCache.db" -Force -EA 0
+            Remove-Item "$env:LOCALAPPDATA\Microsoft\Windows\Explorer\iconcache*" -Force -EA 0
+            Start-Process explorer
+            Write-Log "  Cache de icones reconstruido"
+        } catch { Write-Log "  Aviso icon cache: $_" "WARN" }
+    }
 }
 
 function Clear-EventLogs {
@@ -282,12 +356,32 @@ function Clear-EventLogs {
 }
 
 function Disable-BackgroundApps {
-    Write-Log "=== Apps em segundo plano ==="
+    Write-Log "=== Apps em segundo plano + Game Bar/DVR ==="
     if ($DryRun) { Write-Log "  [DRY-RUN] Seriam desativados"; return }
     $ba = "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications"
     if (-not (Test-Path $ba)) { New-Item -Path $ba -Force | Out-Null }
     Set-ItemProperty -Path $ba -Name "GlobalUserDisabled" -Value 1 -EA 0
     Write-Log "  Apps em background desativados"
+    # Disable Game Bar / DVR
+    $gameBar = "HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR"
+    if (-not (Test-Path $gameBar)) { New-Item -Path $gameBar -Force | Out-Null }
+    Set-ItemProperty -Path $gameBar -Name "AppCaptureEnabled" -Value 0 -EA 0
+    $gameConfig = "HKCU:\System\GameConfigStore"
+    if (Test-Path $gameConfig) { Set-ItemProperty -Path $gameConfig -Name "GameDVR_Enabled" -Value 0 -EA 0 }
+    Write-Log "  Game Bar / DVR desativados"
+}
+
+function Disable-Services {
+    if ($Mode -ne "Aggressive") { return }
+    Write-Log "=== Desativacao de servicos (Aggressive) ==="
+    if ($DryRun) { Write-Log "  [DRY-RUN] Servicos seriam desativados"; return }
+    $services = @("Fax","XblAuthManager","XblGameSave","MapsBroker","RetailDemo","SharedAccess","icssvc","lfsvc")
+    foreach ($s in $services) {
+        $svc = Get-Service $s -EA 0
+        if ($svc) {
+            try { Stop-Service $s -Force -EA 0; Set-Service $s -StartupType Disabled -EA 0; Write-Log "  $s desativado" } catch { Write-Log "  ${s}: $_" "WARN" }
+        }
+    }
 }
 
 function Flush-DNS {
@@ -317,7 +411,7 @@ function Run-CleanMgr {
     try {
         Start-Process cleanmgr -ArgumentList "/d C /AUTOCLEAN" -Wait -WindowStyle Hidden
         Write-Log "  cleanmgr concluido"
-    } catch { Write-Log "  Aviso cleanmgr: $_" }
+    } catch { Write-Log "  Aviso cleanmgr: $_" "WARN" }
 }
 
 function Run-SFC-DISM {
@@ -343,7 +437,23 @@ function Run-DefenderScan {
     try {
         Start-Process powershell -ArgumentList "-NoProfile -WindowStyle Hidden -Command `"Start-MpScan -ScanType FullScan`"" -WindowStyle Hidden
         Write-Log "  Full scan iniciado em background"
-    } catch { Write-Log "  Aviso: $_" }
+    } catch { Write-Log "  Aviso: $_" "WARN" }
+}
+
+function Invoke-SelfUpdate {
+    Write-Log "=== Self-update ==="
+    try {
+        $latest = Invoke-WebRequest -Uri $GitHubRaw -UseBasicParsing -TimeoutSec 15
+        $localHash = (Get-FileHash $PSCommandPath -Algorithm SHA256).Hash
+        $remoteHash = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($latest.Content))) -replace "-"
+        if ($localHash -ne $remoteHash) {
+            Write-Log "  Nova versao disponivel. Atualizando..."
+            $latest.Content | Out-File $PSCommandPath -Encoding UTF8 -Force
+            Write-Log "  Script atualizado. Reinicie para usar a nova versao."
+        } else {
+            Write-Log "  Ja esta na versao mais recente."
+        }
+    } catch { Write-Log "  Nao foi possivel verificar atualizacoes: $_" "WARN" }
 }
 
 function Show-DiskSpace {
@@ -352,11 +462,15 @@ function Show-DiskSpace {
 }
 
 # ---------------- MAIN ----------------
-Write-Host "Log: $LogFile" -ForegroundColor DarkGray
-"=== Inicio $(Get-Date) ===" | Out-File $LogFile -Encoding UTF8
+"=== Inicio $(Get-Date) - v$Version - Modo $Mode ===" | Out-File $LogFile -Encoding UTF8
+
+if ($LoadOnly) { return }
+
+if ($SelfUpdate) { Invoke-SelfUpdate; exit }
 
 if ($Auto) {
-    Write-Log "Modo AUTO: executando todas as otimizacoes recomendadas"
+    Write-Log "Modo AUTO: executando todas as otimizacoes recomendadas (Mode=$Mode)"
+    New-RestorePoint
     Backup-Registry
     Clean-Temp
     Clean-BrowserCaches
@@ -365,7 +479,8 @@ if ($Auto) {
     Optimize-Startup
     System-Tweaks
     Set-Pagefile
-    Optimize-SSD
+    Optimize-Disk
+    Disable-Services
     Clear-EventLogs
     Disable-BackgroundApps
     Flush-DNS
@@ -377,7 +492,6 @@ if ($Auto) {
     exit
 }
 
-# Modo interativo
 while ($true) {
     Show-Menu
     $choice = Read-Host "Escolha uma opcao"
@@ -388,7 +502,7 @@ while ($true) {
         "4"  { Clean-ProjectJunk }
         "5"  { Optimize-Startup }
         "6"  { System-Tweaks; Set-Pagefile }
-        "7"  { Optimize-SSD }
+        "7"  { Optimize-Disk }
         "8"  { Clear-EventLogs }
         "9"  { Disable-BackgroundApps }
         "10" { Run-CleanMgr }
@@ -397,6 +511,7 @@ while ($true) {
         "13" { Run-SFC-DISM }
         "14" { Run-DefenderScan }
         "15" {
+            New-RestorePoint
             Backup-Registry
             Clean-Temp
             Clean-BrowserCaches
@@ -406,7 +521,8 @@ while ($true) {
             Optimize-Startup
             System-Tweaks
             Set-Pagefile
-            Optimize-SSD
+            Optimize-Disk
+            Disable-Services
             Clear-EventLogs
             Disable-BackgroundApps
             Flush-DNS
@@ -416,6 +532,7 @@ while ($true) {
             Show-DiskSpace
             Write-Log "=== CONCLUIDO ==="
         }
+        "16" { Invoke-SelfUpdate }
         "0"  { Write-Host "Saindo."; break }
         default { Write-Host "Opcao invalida." }
     }
