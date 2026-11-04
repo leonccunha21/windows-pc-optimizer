@@ -2,6 +2,8 @@
 
 Interface desktop em português para o dia a dia de manutenção de computadores e notebooks. PowerShell 5.1 + WPF, sem instalação de dependências, conta, publicidade ou envio de dados.
 
+![Interface da Central de manutenção](docs/preview.png)
+
 ## Abrir
 
 1. Baixe o [ZIP do projeto](https://github.com/leonccunha21/windows-pc-optimizer/archive/refs/heads/main.zip).
@@ -50,11 +52,12 @@ Não há limpeza de Registro, alteração automática de serviços, pagefile, re
 
 ```powershell
 ./Tests/Validate-Syntax.ps1
+./Tests/Optimizer.Tests.ps1
 ./Tests/Core.Smoke.ps1
 powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI
 ```
 
-Os testes de segurança usam uma pasta temporária própria; nunca executam a limpeza real do computador. CI valida o núcleo no Linux/Windows, Windows PowerShell 5.1 e carregamento WPF. A validação visual em bancada (DPI, leitores de tela e diferentes versões do Windows) segue o [roteiro de testes](docs/VALIDACAO.md).
+Os testes de segurança usam uma pasta temporária própria; nunca executam a limpeza real do computador. CI valida o núcleo no Linux/Windows, Windows PowerShell 5.1 e o fluxo real de análise/limpeza pela interface WPF com arquivos de teste. A validação visual em bancada (DPI, leitores de tela e diferentes versões do Windows) segue o [roteiro de testes](docs/VALIDACAO.md).
 
 ## Console legado 3.3
 

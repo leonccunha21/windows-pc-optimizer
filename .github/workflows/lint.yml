@@ -30,6 +30,12 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI -PreviewPath "$env:TEMP/optimizer-preview.png"
+          powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI -PreviewPath "$env:RUNNER_TEMP/optimizer-preview.png"
           if ($LASTEXITCODE -ne 0) { throw "WPF validation failed" }
-          Write-Output ('PREVIEW_BASE64=' + [Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:TEMP/optimizer-preview.png")))
+      - name: Upload native interface preview
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-interface-preview
+          path: ${{ runner.temp }}/optimizer-preview.png
+          retention-days: 14

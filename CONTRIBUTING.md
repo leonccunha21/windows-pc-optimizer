@@ -1,38 +1,32 @@
-# Contributing
+# Contribuindo
 
-Contributions are welcome! Please follow these guidelines.
+A interface 4.0 está em `Otimizador-GUI.ps1` e `UI/MainWindow.xaml`. As operações de análise, limpeza e relatório estão em `Modules/Optimizer.Core.psm1`. O console `Otimizar-PC.ps1` é legado e não deve ser importado pela interface.
 
-## How to contribute
+## Verificar uma mudança
 
-1. Fork the repository.
-2. Create a feature branch: `git checkout -b feature/my-feature`.
-3. Make your changes.
-4. Run the tests: `Invoke-Pester -Path ./Tests`.
-5. Run the linter: `Invoke-ScriptAnalyzer -Path . -Recurse`.
-6. Commit with a clear message.
-7. Open a Pull Request.
+```powershell
+./Tests/Validate-Syntax.ps1
+./Tests/Optimizer.Tests.ps1
+./Tests/Core.Smoke.ps1
+powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI
+```
 
-## Code style
+A última etapa requer Windows, testa o fluxo assíncrono com um perfil temporário isolado e não abre uma sessão interativa. Confira também o roteiro de bancada em `docs/VALIDACAO.md`.
 
-- Follow the `.editorconfig` settings.
-- Use 4-space indentation.
-- Use `[CmdletBinding()]` on functions.
-- Add comment-based help to new functions.
-- Keep functions small and focused.
+## Regras do núcleo de limpeza
 
-## Safety rules
+- Toda nova categoria precisa de raiz explícita e teste de segurança com dados descartáveis.
+- A análise não modifica arquivos; a limpeza exige uma análise recente e confirmação na interface.
+- Revalide caminhos, links, marcadores de proteção, tamanho e data antes de excluir.
+- Não use exclusão recursiva, eliminação de logs, limpadores de Registro ou desativação indiscriminada de serviços.
+- Preserve extensões pessoais/código, pastas de projetos e jogos. Não inclua outras contas nem Downloads.
+- Registre remoções confirmadas e motivos de itens ignorados. Nunca apresente simulação como espaço liberado.
+- Mantenha `SupportsShouldProcess`/`-WhatIf`, cancelamento cooperativo e testes que não limpam o perfil real.
+- Um ponto de restauração não é backup de arquivos: não o apresente como possibilidade de desfazer uma limpeza.
+- Não envie dados do cliente para GitHub ou outro serviço. Evite caminhos pessoais em relatórios exportados.
 
-- Never remove Epic Games / Fortnite files.
-- Never remove source code files.
-- Always support `DryRun`.
-- Always create a restore point before destructive changes.
-- Log all actions.
+Scripts com texto em português devem usar UTF-8 com BOM, para compatibilidade com Windows PowerShell 5.1.
 
-## Reporting issues
+## Relatar problemas
 
-Open an issue with:
-- Windows version
-- PowerShell version (`$PSVersionTable`)
-- Steps to reproduce
-- Expected vs actual behavior
-- Log file content (`%TEMP%\OtimizadorPC_log.txt`)
+Informe versão do Windows, `$PSVersionTable.PSVersion`, etapas de reprodução e a mensagem exibida na interface. Remova nomes, caminhos e dados de clientes de capturas/relatórios antes de compartilhar.

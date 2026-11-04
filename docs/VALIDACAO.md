@@ -4,7 +4,7 @@
 
 - Sintaxe de todos os PS1/PSM1, ausência de funções duplicadas e XML da interface.
 - Testes com arquivos temporários isolados: retenção, projetos, extensões pessoais, cancelamento, prévia, seleção, arquivo alterado, expiração, links, proteção adicionada após análise, bytes removidos e escape de HTML.
-- CI: Windows/Linux, Windows PowerShell 5.1 e carregamento real de XAML/eventos WPF.
+- CI: Windows/Linux, Windows PowerShell 5.1 e carregamento real de XAML/eventos WPF e ciclo de análise/limpeza em segundo plano com perfil descartável.
 
 ## Manual necessária antes de distribuir amplamente
 
@@ -17,4 +17,4 @@
 - Exportar HTML com acentos e símbolos; conferir no navegador e na impressão PDF.
 - Conferir restauração, otimização de disco e demais atalhos em Windows Home/Pro; a ação final é feita no aplicativo nativo.
 
-O ambiente de desenvolvimento Linux não renderiza WPF. Carregamento em CI Windows não substitui inspeção visual e testes em máquinas reais. A limpeza não é uma fronteira de segurança contra outro processo malicioso que altere caminhos simultaneamente; execute apenas em ambiente confiável e com backup adequado.
+A prévia `preview.png` foi renderizada pelo WPF no CI Windows. Os testes automatizados não substituem inspeção visual e testes em máquinas reais. A limpeza não é uma fronteira de segurança contra outro processo malicioso que altere caminhos simultaneamente; execute apenas em ambiente confiável e com backup adequado.
