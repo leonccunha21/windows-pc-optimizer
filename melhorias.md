@@ -5,6 +5,18 @@
 
 ---
 
+## Integração da bancada na interface unificada — 04/11/2026
+
+**Frente responsável: integração WPF de módulos já publicados.** Foi confirmado que o outro agente concluiu a área Saúde/Drivers/UI e que `main` já tem bateria, SSD, drivers, aplicativos e botão Fechar. A versão WPF atual ainda não apresenta inventários técnicos (processos, inicialização, softwares, rede, atualizações, armazenamento), histórico de falhas, diagnóstico de rede e reparos em sua janela — embora os módulos autônomos estejam publicados.
+
+**Escopo desta rodada:** integrar em `Manutenção → Bancada` os módulos existentes `Optimizer.Technician.psm1`, `Optimizer.NetworkDiagnostics.psm1`, `Optimizer.Events.psm1` e `Repair.Tools.ps1`; manter todas as abas Saúde e Manutenção existentes, sem copiar ou reescrever seus núcleos. Restaurar exportação CSV detalhada da limpeza, que estava ausente da GUI publicada. Validar navegação, execução assíncrona e acesso a controles pelo teste WPF.
+
+**Arquivos alterados nesta frente:** `Otimizador-GUI.ps1`, `UI/MainWindow.xaml`, `melhorias.md` e documentação pontual. **Não alterar** `Modules/Optimizer.Core.psm1`, `Tests/Core.Smoke.ps1` ou outros módulos do agente. Novos botões de verificação e reparo usam confirmação + UAC; diagnósticos locais não modificam o Windows, consultas externas somente após confirmação.
+
+**Status:** em implementação. Se outro agente atualizar a interface simultaneamente, revisar o diff e conciliar, nunca substituir trabalhos publicados. Coordenação também na issue #5.
+
+---
+
 ## Coordenação: análise de falhas do Windows / Event Viewer — 04/11/2026
 
 **Responsável: frente isolada de histórico de falhas.** Escopo reservado para não competir com Saúde/Drivers, otimizações e interface WPF do outro agente.
