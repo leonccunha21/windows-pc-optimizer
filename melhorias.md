@@ -15,6 +15,8 @@
 
 **Status:** em implementação. Consulte a issue #5 para a coordenação.
 
+**Correção de execução (04/11/2026, branch `feature/v4-5-local-preferences`):** `Save-OptimizerPreferences` usava `[IO.File]::Replace($temporary, $fullPath, $null)`; no .NET Framework do Windows PowerShell 5.1 o backup nulo é inválido e a sobrescrita de preferências existentes falhava. Corrigido com backup em arquivo temporário (`.preferences-backup-*.tmp`). `Tests/Preferences.Smoke.ps1` agora passa em PS 5.1 (persistência, privacidade, valores inválidos e fallback).
+
 ---
 
 ## Experiência de uso e navegação — rodada 4.4 (04/11/2026)

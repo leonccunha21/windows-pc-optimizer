@@ -101,15 +101,19 @@ function Save-OptimizerPreferences {
     }
     $json = ConvertTo-Json -InputObject $clean -Depth 2
     $temporary = Join-Path $directory ('.preferences-' + [guid]::NewGuid().ToString('N') + '.tmp')
+    $backup = ''
     try {
         [IO.File]::WriteAllText($temporary, $json, (New-Object Text.UTF8Encoding($false)))
         if ([IO.File]::Exists($fullPath)) {
-            [IO.File]::Replace($temporary, $fullPath, $null)
+            $backup = Join-Path $directory ('.preferences-backup-' + [guid]::NewGuid().ToString('N') + '.tmp')
+            [IO.File]::Replace($temporary, $fullPath, $backup)
+            if ([IO.File]::Exists($backup)) { [IO.File]::Delete($backup) }
         } else {
             [IO.File]::Move($temporary, $fullPath)
         }
     } finally {
         if ([IO.File]::Exists($temporary)) { [IO.File]::Delete($temporary) }
+        if ($backup -and [IO.File]::Exists($backup)) { [IO.File]::Delete($backup) }
     }
     return [pscustomobject]$clean
 }
