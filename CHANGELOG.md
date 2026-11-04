@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.4] - 2026-11-04
 
 ### Added
+- Preferências locais de leitura, com modo de alto contraste e escala de texto 100/115/125%, aplicadas sem reiniciar.
+- Recursos visuais WPF dinâmicos para cores/fontes e respeito ao Alto Contraste do Windows.
+- Tela Preferências, atalho Ctrl+7 e smoke tests de JSON/persistência/privacidade em PS5.1/PS7.
 - Barra lateral funcional com indicação de seção ativa, comandos de teclado Ctrl+1–Ctrl+6 e Ctrl+B.
 - Bancada reorganizada em guias de Inventário, Rede, Histórico e Reparos para reduzir rolagem vertical.
 - Nomes de automação em botões, indicação de foco via teclado, melhoria do contraste de texto e smoke tests portáteis da estrutura/contraste.

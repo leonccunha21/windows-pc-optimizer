@@ -13,7 +13,7 @@ Interface desktop em português para o dia a dia de manutenção de computadores
 
 Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil analisado. Em computadores gerenciados, respeite a política de execução da organização. Não execute o BAT dentro do ZIP. Windows 10/11 com interface desktop; a compatibilidade do aplicativo não altera o ciclo de suporte do Windows.
 
-## O que a edição 4.4 oferece
+## O que a edição 4.5 oferece
 
 | Área | Recursos |
 |---|---|
@@ -33,9 +33,17 @@ Análise e limpeza rodam em um runspace separado. A janela permanece disponível
 
 A partir da edição 4.4, a barra lateral é **navegável por clique** e indica a área ativa, em vez de apenas descrever um roteiro. Em **Manutenção → Bancada**, as ferramentas foram separadas em quatro guias: **Inventário**, **Rede**, **Histórico** e **Reparos**. A reorganização não altera as regras de segurança dos módulos.
 
-Atalhos para navegar: **Ctrl+1** Visão geral, **Ctrl+2** Diagnóstico, **Ctrl+3** Saúde, **Ctrl+4** Limpeza, **Ctrl+5** Manutenção, **Ctrl+6** Relatório e **Ctrl+B** Bancada. Permanecem **F5** para análise de limpeza, **Esc** para solicitar interrupção e **Ctrl+E** para relatório.
+Atalhos para navegar: **Ctrl+1** Visão geral, **Ctrl+2** Diagnóstico, **Ctrl+3** Saúde, **Ctrl+4** Limpeza, **Ctrl+5** Manutenção, **Ctrl+6** Relatório, **Ctrl+7** Preferências e **Ctrl+B** Bancada. Permanecem **F5** para análise de limpeza, **Esc** para solicitar interrupção e **Ctrl+E** para relatório.
 
 Todos os botões visíveis receberam rótulos de automação, e a navegação lateral possui destaque para foco de teclado. As principais combinações de texto/fundo foram ajustadas para contraste mínimo de 4,5:1; uma validação estática é executada no CI. Isso **não equivale a certificação completa de acessibilidade**: leitor de tela, temas de alto contraste e resoluções com DPI acima de 100% ainda exigem testes manuais no Windows.
+
+## Preferências de leitura (4.5)
+
+Abra **Preferências** na barra lateral (ou **Ctrl+7**). Ative o modo de alto contraste e escolha texto em 100%, 115% ou 125%. **Aplicar e salvar** mantém a escolha nas próximas aberturas; **Restaurar padrão** retorna ao tema convencional e à escala de 100%. O Alto Contraste do Windows tem prioridade quando ativo.
+
+Somente as chaves `SchemaVersion`, `HighContrast` e `TextScale` são gravadas em `%LOCALAPPDATA%\PCOptimizer\preferences.json`. Nenhum dado de cliente, ordem de serviço, IP, inventário, caminho analisado ou resultado de limpeza é armazenado. Arquivos JSON inválidos, ausentes ou grandes demais retornam ao padrão. Não há telemetria nem sincronização externa.
+
+A paleta WPF usa recursos dinâmicos para botões, cartões, tabelas e textos, e o dimensionamento amplia também as linhas da grade. Testes automáticos cobrem a persistência, privacidade e aplicação visual. **Narrador/NVDA, combinações de tema do Windows e vários níveis de DPI ainda precisam validação manual.**
 
 ## Saúde e manutenção
 
