@@ -15,11 +15,13 @@ foreach ($node in $layout.SelectNodes('//*[@x:Name]', $namespaces)) {
 $script:scan = $null; $script:cleanup = $null; $script:diagnostics = @(); $script:worker = $null
 $script:state = [hashtable]::Synchronized(@{Cancel=$false; Message=''; Result=$null; Error=$null; Total=0; Processed=0})
 $script:modulePath = Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1'
+$script:technicianPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Technician.psm1'
 
 function Set-Busy([bool]$Busy) {
-    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton')) { $ui[$name].IsEnabled = -not $Busy }
+    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','ProcessButton','StartupButton','SoftwareButton','NetworkButton','UpdatesButton','DrivesButton')) { $ui[$name].IsEnabled = -not $Busy }
     $ui.CleanButton.IsEnabled = -not $Busy -and $null -ne $script:scan -and -not $script:scan.Cancelled -and @($script:scan.Files).Count -gt 0
     $ui.DetailsButton.IsEnabled = -not $Busy -and ($null -ne $script:scan -or $null -ne $script:cleanup)
+    $ui.ExportResultsButton.IsEnabled = -not $Busy -and $null -ne $script:cleanup
     $ui.Categories.IsEnabled = -not $Busy
     $ui.CancelButton.IsEnabled = $Busy -and $script:operation -ne 'Diagnose'
     $ui.Progress.IsIndeterminate = $Busy -and $script:operation -ne 'Clean'
@@ -31,16 +33,18 @@ function Start-Work([string]$Operation, $Payload) {
     $script:state.Cancel = $false; $script:state.Error = $null; $script:state.Result = $null; $script:state.Message = 'Preparando...'; $script:state.Processed = 0; $script:state.Total = 0
     $script:worker = [PowerShell]::Create()
     [void]$script:worker.AddScript({
-        param($ModulePath, $Operation, $Payload, $State)
+        param($ModulePath, $TechnicianPath, $Operation, $Payload, $State)
         try {
             Import-Module $ModulePath -Force -ErrorAction Stop
+            Import-Module $TechnicianPath -Force -ErrorAction Stop
             switch ($Operation) {
                 'Scan' { $State.Result = Get-OptimizerScan -State $State }
                 'Clean' { $State.Result = Invoke-OptimizerCleanup -Scan $Payload.Scan -CategoryIds $Payload.Ids -State $State -Confirm:$false }
                 'Diagnose' { $State.Message = 'Consultando hardware e Windows...'; $State.Result = @(Get-OptimizerDiagnostics) }
+                'Inspect' { $State.Result = @(Get-OptimizerTechnicalInventory -Area $Payload.Area -State $State) }
             }
         } catch { $State.Error = $_.Exception.Message }
-    }).AddArgument($script:modulePath).AddArgument($Operation).AddArgument($Payload).AddArgument($script:state)
+    }).AddArgument($script:modulePath).AddArgument($script:technicianPath).AddArgument($Operation).AddArgument($Payload).AddArgument($script:state)
     $script:handle = $script:worker.BeginInvoke()
     Set-Busy $true
     $timer.Start()
@@ -73,6 +77,7 @@ $timer.Add_Tick({
                 $ui.Categories.ItemsSource = @()
             }
             'Diagnose' { $script:diagnostics = @($script:state.Result); $ui.DiagnosticsGrid.ItemsSource = $script:diagnostics; $ui.Status.Text = 'Diagnóstico concluído. Confira itens indisponíveis e observações.' }
+            'Inspect' { $ui.WorkbenchGrid.ItemsSource = @($script:state.Result); $ui.WorkbenchCount.Text = ('{0} registros' -f @($script:state.Result).Count); $ui.Status.Text = 'Consulta técnica concluída. Nenhuma alteração realizada.' }
         }
     } catch {
         $ui.Status.Text = 'Falha: ' + $_.Exception.Message
@@ -82,6 +87,7 @@ $timer.Add_Tick({
 })
 $ui.ScanButton.Add_Click({ Start-Work 'Scan' $null })
 $ui.GoClean.Add_Click({ $ui.Pages.SelectedIndex = 1; Start-Work 'Scan' $null })
+$ui.GoWorkbench.Add_Click({ $ui.Pages.SelectedIndex = 3 })
 $ui.DiagnoseHome.Add_Click({ $ui.Pages.SelectedIndex = 2; Start-Work 'Diagnose' $null })
 $ui.DiagnoseButton.Add_Click({ Start-Work 'Diagnose' $null })
 $ui.CancelButton.Add_Click({ $script:state.Cancel = $true; $ui.CancelButton.IsEnabled = $false; $ui.Status.Text = 'Interrompendo após o arquivo atual...' })
@@ -147,7 +153,7 @@ $window.Add_PreviewKeyDown({
         $ui.Status.Text = 'Interrompendo após o arquivo atual...'
     } elseif ($keyArgs.Key -eq [Windows.Input.Key]::E -and [Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control -and $ui.ExportButton.IsEnabled) {
         $keyArgs.Handled = $true
-        $ui.Pages.SelectedIndex = 4
+        $ui.Pages.SelectedIndex = 5
         $ui.ExportButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
     }
 })
@@ -195,7 +201,7 @@ if ($ValidateUI) {
             $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
             Start-Sleep -Milliseconds 20
         }
-        if ($null -ne $script:worker -or $null -eq $script:scan -or @($script:scan.Files).Count -ne 1 -or -not $ui.CleanButton.IsEnabled) { throw 'UI scan/runspace integration failed.' }
+        if ($null -ne $script:worker -or $null -eq $script:scan -or @($script:scan.Files).Count -ne 1 -or -not $ui.CleanButton.IsEnabled -or $null -eq $ui.WorkbenchGrid -or $null -eq $ui.NavWorkbench) { throw 'UI scan/runspace integration failed.' }
         Start-Work 'Clean' @{Scan=$script:scan; Ids=@('temp')}
         $deadline = [DateTime]::UtcNow.AddSeconds(20)
         while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
