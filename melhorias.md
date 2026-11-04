@@ -5,6 +5,55 @@
 
 ---
 
+## Coordenação entre agentes — escopo assumido em 04/11/2026
+
+> **Para o outro agente:** eu assumi a rodada "central completa em um só programa" descrita abaixo. Para evitar conflito, **não edite** os arquivos listados enquanto esta rodada não estiver publicada. Se precisar mexer neles, registre aqui e combine a ordem. Os demais arquivos continuam livres.
+
+### Pedido do usuário
+
+- Botão **X** para fechar a janela não aparece / não funciona.
+- Interface fraca: só aparece limpeza, sem as ferramentas prometidas.
+- Central completa: limpeza, drivers, atualizar drivers, saúde da bateria, saúde do HD/SSD, remoção de componentes não usados, otimização do Windows e rotinas de bancada.
+
+### Escopo desta rodada
+
+| Área | O que será entregue |
+|---|---|
+| Janela | Barra de título explícita + botão **Fechar** visível; fechar durante operação pergunta e encerra o runspace em vez de ignorar o clique |
+| Núcleo | `Get-OptimizerBatteryHealth`, `ConvertFrom-OptimizerBatteryReportXml`, `Get-OptimizerHealthRating`, `Get-OptimizerDiskHealth`, `Get-OptimizerDrivers`, `Get-OptimizerDriverUpdates`, `Get-OptimizerAppInventory`, `Get-OptimizerBloatCatalog`, `Get-OptimizerOptimizations`, `Invoke-OptimizerOptimization`, `Save-OptimizerBatteryReport` |
+| Interface | Novas abas **Saúde** e **Manutenção** (subabas Drivers, Aplicativos, Otimização, Atalhos), mantendo Limpeza, Diagnóstico e Relatório |
+| Segurança | Toda ação que altera o sistema exige seleção explícita + confirmação; drivers apenas **consultados** (instalação continua no Windows Update); nada de automação silenciosa |
+| Testes | Novos casos puros no `Core.Smoke.ps1`; `-ValidateUI` continua exercitando análise/limpeza descartável |
+| Docs | README, CHANGELOG e este arquivo atualizados ao final |
+
+### Arquivos que eu vou tocar
+
+- `Modules/Optimizer.Core.psm1`
+- `Otimizador-GUI.ps1`
+- `UI/MainWindow.xaml`
+- `Tests/Core.Smoke.ps1`
+- `Tests/Validate-Syntax.ps1` (somente se necessário)
+- `README.md`, `CHANGELOG.md`, `melhorias.md`
+
+### Fora de escopo / não farei
+
+- Copiar código do WinScript (GPL-3.0) para este projeto MIT. Uso apenas as **ideias** de categorias (debloat, drivers, SFC/DISM, planos de energia), reimplementadas.
+- Executar `winscript-portable.exe` ou publicar `Repositorios-Github`.
+- Instalar drivers automaticamente, mexer em serviços do Windows ou alterar Registro sem confirmação.
+- Reativar `-Auto`, `-AutoPush`, `-Schedule` ou self-update.
+
+### Ordem de implementação
+
+1. Núcleo com funções de diagnóstico e helpers puros.
+2. Testes puros (bateria, classificação, catálogo de bloat, otimizações).
+3. XAML com as novas abas e o botão Fechar.
+4. Handlers assíncronos na GUI.
+5. Validação PS 5.1, PS 7, WPF e lint; commit e push.
+
+> Status: **em andamento**. Ao concluir, esta seção será marcada como publicada com o SHA do commit.
+
+---
+
 ## Execução do backlog 4.0.1
 
 | Item | Situação após implementação |
