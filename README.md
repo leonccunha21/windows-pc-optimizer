@@ -18,7 +18,7 @@ Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil 
 | Área | Recursos |
 |---|---|
 | Visão geral | Fluxo de atendimento, espaço analisado e resultado real da última limpeza |
-| Limpeza | Prévia por categoria e arquivo; temporários do usuário e caches Chrome, Edge e Brave; retenção mínima de 7 dias |
+| Limpeza | Prévia por categoria e arquivo, seleção/desmarcação em massa, resultado detalhado e progresso por arquivo; caches Chrome, Edge e Brave; retenção mínima de 7 dias |
 | Diagnóstico | Sistema, fabricante/modelo, CPU, RAM, discos, espaço livre, bateria e estado do Defender quando disponível |
 | Ferramentas | Atalhos para inicialização, aplicativos, armazenamento, segurança, otimização de unidades, restauração, eventos e tarefas |
 | Relatório | Cliente/OS, observações, diagnóstico e resultado; HTML imprimível em PDF ou JSON sem caminhos de arquivos excluídos |
@@ -56,6 +56,8 @@ Não há limpeza de Registro, alteração automática de serviços, pagefile, re
 ./Tests/Core.Smoke.ps1
 powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI
 ```
+
+Atalhos: **F5** analisa, **Esc** solicita interrupção e **Ctrl+E** abre a exportação do relatório. O progresso da limpeza reflete a contagem de arquivos processados; na análise a barra permanece indeterminada.
 
 Os testes de segurança usam uma pasta temporária própria; nunca executam a limpeza real do computador. CI valida o núcleo no Linux/Windows, Windows PowerShell 5.1 e o fluxo real de análise/limpeza pela interface WPF com arquivos de teste. A validação visual em bancada (DPI, leitores de tela e diferentes versões do Windows) segue o [roteiro de testes](docs/VALIDACAO.md).
 

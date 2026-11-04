@@ -114,7 +114,10 @@ function Invoke-OptimizerCleanup {
     if (([DateTime]::UtcNow - [DateTime]$Scan.CreatedUtc).TotalMinutes -gt 30) { throw 'A análise expirou após 30 minutos. Analise novamente.' }
     $results = New-Object 'System.Collections.Generic.List[object]'
     $allowed = @{}; foreach ($target in $Targets) { $allowed[$target.Id] = $target }
-    foreach ($file in @($Scan.Files | Where-Object { $_.Category -in $CategoryIds })) {
+    $selectedFiles = @($Scan.Files | Where-Object { $_.Category -in $CategoryIds })
+    $State.Total = $selectedFiles.Count
+    $State.Processed = 0
+    foreach ($file in $selectedFiles) {
         if ($State.Cancel) { break }
         $State.Message = "Limpando $($file.CategoryName)..."
         $status = 'Ignorado'; $detail = ''; [long]$removed = 0
@@ -132,6 +135,7 @@ function Invoke-OptimizerCleanup {
             } else { $status = 'Simulado' }
         } catch { $detail = $_.Exception.Message }
         $results.Add([pscustomobject]@{ Category=$file.CategoryName; Path=$file.Path; Status=$status; Bytes=$removed; Detail=$detail })
+        $State.Processed++
     }
     [pscustomobject]@{ Date=(Get-Date).ToString('o'); Cancelled=[bool]$State.Cancel; RemovedBytes=(Get-OptimizerByteSum $results); RemovedCount=@($results | Where-Object Status -eq 'Removido').Count; SkippedCount=@($results | Where-Object Status -eq 'Ignorado').Count; Results=$results.ToArray() }
 }
