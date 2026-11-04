@@ -1,11 +1,36 @@
 # Melhorias recomendadas — PC Optimizer
 
-> Atualizado em 04/11/2026 após o pull da **v4.0** (commit `a8158cf`).
+> Diagnóstico original: 04/11/2026, versão 4.0. Status revisado na implementação 4.0.1 em 04/11/2026.
 > Base: `Otimizar-PC.ps1` (legado, 1.536 linhas), `Modules/Optimizer.Core.psm1` e `Otimizador-GUI.ps1`.
 
 ---
 
-## Status: o que a v4.0 já resolveu
+## Execução do backlog 4.0.1
+
+| Item | Situação após implementação |
+|---|---|
+| P0 1–5 | **Concluído**: menu, CHANGELOG, atualização/Git automáticos desativados, HTML escapado, administrador exigido somente no console legado |
+| P1 6 | **Advisory**: PSScriptAnalyzer no CI, ainda não bloqueante |
+| P1 7 | **Parcial**: cobertura adicional de bytes, exportação, nulos e acentos; cenários WMI e perfis adicionais seguem pendentes |
+| P1 8 | **Parcial**: funções principais com `[CmdletBinding()]`; help por função pendente |
+| P1 9–10 | **Pendente**: configuração externa e logs legados estruturados |
+| P1 11 | **Concluído**: relatório HTML válido e JSON opcional sem caminhos de arquivos excluídos |
+| P1 12 | **Pendente**: `Write-Progress` no console antigo; a UI usa progresso por arquivos |
+| P2 13 | **Pendente**: assinatura Authenticode e gestão de certificados |
+| P2 14 | **Preparado**: workflow de tag gera ZIP e SHA-256; execução de Release real ainda não validada |
+| P2 15–16 | **Concluído**: `-Auto` legado bloqueado; política `SECURITY.md` incluída |
+| P3 17 | **Parcial**: nomes de automação em controles principais e atalhos F5/Esc/Ctrl+E; faltam tabulação e alto contraste |
+| P3 18 | **Parcial**: selecionar tudo/nenhum; persistência de preferências pendente |
+| P3 19 | **Parcial**: removidos e ignorados visíveis na UI; exportação CSV de resultados pendente |
+| P3 20 | **Concluído**: progresso de arquivos processados na limpeza; análise permanece indeterminada |
+| P4 21–22 | **Concluído**: documentação de arquitetura, templates de issue e PR |
+| P4 23–24 | **Pendente**: GIF de demonstração e tradução, caso necessário |
+
+**Próxima prioridade:** configuração externa segura, acessibilidade de alto contraste, resultados CSV e testes de diagnósticos. Não habilitar operações destrutivas legadas para atingir paridade artificial com CCleaner.
+
+---
+
+## Diagnóstico histórico da v4.0 (preservado para auditoria)
 
 | Item anterior | Situação |
 |---|---|
@@ -17,7 +42,7 @@
 | Exigir admin para abrir a interface | **Resolvido** — BAT abre a UI sem elevação; console legado exige `-Legacy` |
 | Docs desalinhadas | **Resolvido** — README, LEIA-ME e CONTRIBUTING reescritos para a 4.0 |
 
-O projeto mudou de "script gigante" para uma arquitetura com núcleo separado e interface WPF. O backlog abaixo é o que **ainda** vale implementar.
+O projeto passou de um script monolítico para núcleo e interface WPF. As observações seguintes descrevem o diagnóstico da v4.0 e podem estar superadas; **a tabela de execução acima é a referência atual**.
 
 ---
 
@@ -239,18 +264,18 @@ O restante é de outro domínio (agentes, social, web) ou já está marcado como
 
 ## Critérios de aceite
 
-- [ ] `Tests/Validate-Syntax.ps1` continua detectando zero duplicatas.
-- [ ] `Tests/Core.Smoke.ps1` verde em Windows PowerShell 5.1 e PowerShell 7.
+- [x] `Tests/Validate-Syntax.ps1` continua detectando zero duplicatas.
+- [x] `Tests/Core.Smoke.ps1` verde em Windows PowerShell 5.1 e PowerShell 7.
 - [ ] PSScriptAnalyzer sem Warning/Error com as settings do repo.
-- [ ] Menu legado sem opções repetidas.
-- [ ] CHANGELOG com a 4.0 no formato Keep a Changelog.
-- [ ] Relatório do legado escapa o log (ou o gerador legado é removido).
-- [ ] Self-update não sobrescreve sem validar versão/checksum.
-- [ ] Release publica ZIP + SHA-256.
+- [x] Menu legado sem opções repetidas.
+- [x] CHANGELOG com a 4.0 no formato Keep a Changelog.
+- [x] Relatório do legado escapa o log (ou o gerador legado é removido).
+- [x] Self-update não sobrescreve nenhum código; foi desativado no legado.
+- [ ] Publicação de Release real com ZIP + SHA-256 validada (workflow preparado).
 
 ---
 
-## Anexo — evidências da v4.0
+## Anexo — evidências históricas da v4.0 (não representam o código atual)
 
 | Evidência | Valor |
 |---|---|
