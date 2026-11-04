@@ -9,7 +9,7 @@
     NEVER removes project files, source code, or Epic Games / Fortnite files.
 
 .PARAMETER Auto
-    Run all recommended optimizations without prompts.
+    Deprecated: automatic legacy maintenance is disabled for safety.
 
 .PARAMETER Mode
     Safe (default) or Aggressive.
@@ -27,7 +27,7 @@
     No console output (logs only).
 
 .PARAMETER SelfUpdate
-    Check GitHub for a newer version.
+    Show the release page; never download or overwrite code automatically.
 
 .PARAMETER Schedule
     Create a scheduled task to run weekly.
@@ -36,7 +36,7 @@
     Generate an HTML report at the end.
 
 .PARAMETER AutoPush
-    Commit and push changes to GitHub after completion.
+    Disabled: Git changes require deliberate review outside the optimizer.
 
 .PARAMETER TechMode
     Technical mode: more details, fewer prompts.
@@ -46,7 +46,7 @@
     Interactive menu.
 
 .EXAMPLE
-    .\Otimizar-PC.ps1 -Auto -Mode Aggressive -Report -AutoPush
+    .\Otimizar-PC.ps1 -Legacy -DryRun
 #>
 param(
     [switch]$Auto,
@@ -65,20 +65,11 @@ param(
     [switch]$Legacy
 )
 
-if (-not $LoadOnly) {
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal -ArgumentList $identity
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        throw "Execute como administrador (ou use -LoadOnly para carregar as funcoes)."
-    }
-}
-
 $ErrorActionPreference = "Continue"
 $LogFile = "$env:TEMP\OtimizadorPC_log.txt"
 $ReportFile = "$env:TEMP\OtimizadorPC_report.html"
 $Protected = @("Epic Games","Fortnite","EpicGames","FortniteGame",".git")
 $Version = "3.3.0"
-$GitHubRaw = "https://raw.githubusercontent.com/leonccunha21/windows-pc-optimizer/main/Otimizar-PC.ps1"
 
 function Write-Log($msg, $level = "INFO") {
     $line = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [$level] $msg"
@@ -799,16 +790,7 @@ function Analyze-DiskSpace {
 }
 
 function Schedule-Task {
-    Write-Log "=== Agendar limpeza semanal ==="
-    if ($DryRun) { Write-Log "  [DRY-RUN] Tarefa seria criada"; return }
-    $taskName = "OtimizadorPC_Weekly"
-    $scriptPath = $PSCommandPath
-    $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`" -Auto -SkipLong -Silent"
-    $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At 3am
-    $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force -EA 0 | Out-Null
-    Write-Log "  Tarefa agendada: $taskName (domingos 3h)"
+    Write-Log "Agendamento automático desativado por segurança. Use a interface 4.0 e revise tarefas antigas manualmente." "WARN"
 }
 
 function Generate-Report {
@@ -820,11 +802,11 @@ function Generate-Report {
     $hw = Get-CimInstance Win32_Processor | Select-Object -First 1
     $os = Get-CimInstance Win32_OperatingSystem
     $encode = { param($value) [System.Net.WebUtility]::HtmlEncode([string]$value) }
-    $cpuName = & $encode $hw.Name
-    $osCaption = & $encode $os.Caption
-    $osVersion = & $encode $os.Version
-    $modeText = & $encode $Mode
-    $logText = & $encode (Get-Content $LogFile -Raw -ErrorAction SilentlyContinue)
+    $safeLog = if (Test-Path -LiteralPath $LogFile) { & $encode (Get-Content -LiteralPath $LogFile -Raw) } else { '' }
+    $safeCpu = & $encode $hw.Name
+    $safeOs = & $encode $os.Caption
+    $safeVersion = & $encode $os.Version
+    $safeMode = & $encode $Mode
     $html = @"
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>OtimizadorPC Report</title>
@@ -836,15 +818,15 @@ th{background:#3498db;color:#fff}</style></head><body>
 <h1>OtimizadorPC - Relatorio</h1>
 <div class="card"><h2>Sistema</h2>
 <table><tr><th>Item</th><th>Valor</th></tr>
-<tr><td>CPU</td><td>$cpuName</td></tr>
+<tr><td>CPU</td><td>$safeCpu</td></tr>
 <tr><td>RAM</td><td>$([math]::Round($os.TotalVisibleMemorySize/1MB,2)) GB</td></tr>
-<tr><td>SO</td><td>$osCaption $osVersion</td></tr>
-<tr><td>Modo</td><td>$modeText</td></tr>
+<tr><td>SO</td><td>$safeOs $safeVersion</td></tr>
+<tr><td>Modo</td><td>$safeMode</td></tr>
 <tr><td>DryRun</td><td>$DryRun</td></tr>
 <tr><td>Data</td><td>$(Get-Date)</td></tr></table></div>
 <div class="card"><h2>Disco C:</h2>
 <p>Total: $totalGB GB | Usado: $usedGB GB | Livre: <span class="ok">$freeGB GB</span></p></div>
-<div class="card"><h2>Log</h2><pre>$logText</pre></div>
+<div class="card"><h2>Log</h2><pre>$safeLog</pre></div>
 </body></html>
 "@
     $html | Out-File $ReportFile -Encoding UTF8
@@ -852,62 +834,13 @@ th{background:#3498db;color:#fff}</style></head><body>
     if (-not $Silent) { Start-Process $ReportFile }
 }
 
+# Legacy maintenance must never replace its own source or publish a worktree.
+# Updates and Git publishing remain manual and require an independent review.
 function Invoke-SelfUpdate {
-    [CmdletBinding(SupportsShouldProcess)]
-    param()
-    Write-Log "=== Self-update ==="
-    if (-not $PSCommandPath) { Write-Log "  Caminho do script indisponivel; atualizacao ignorada." "WARN"; return }
-    try {
-        $latest = Invoke-WebRequest -Uri $GitHubRaw -UseBasicParsing -TimeoutSec 15
-        $remoteVersion = $null
-        if ($latest.Content -match '(?m)^\s*\$Version\s*=\s*"([^"]+)"') { $remoteVersion = $matches[1] }
-        if (-not $remoteVersion) { Write-Log "  Nao foi possivel identificar a versao remota." "WARN"; return }
-        if ([version]$remoteVersion -le [version]$Version) {
-            Write-Log "  Ja esta na versao mais recente ($Version)."
-            return
-        }
-        Write-Log "  Nova versao disponivel: $remoteVersion (local: $Version)."
-        if ($Auto -or $Silent) {
-            Write-Log "  Atualizacao automatica desativada em -Auto/-Silent. Baixe manualmente." "WARN"
-            return
-        }
-        $answer = Read-Host "Baixar e substituir o script pela versao $remoteVersion? [S/N]"
-        if ($answer -notmatch '^[sS]') { Write-Log "  Atualizacao cancelada."; return }
-        if (-not $PSCmdlet.ShouldProcess($PSCommandPath, "Substituir script pela versao $remoteVersion")) { return }
-        $temp = "$PSCommandPath.new"
-        [IO.File]::WriteAllText($temp, $latest.Content, (New-Object Text.UTF8Encoding $true))
-        $hash = (Get-FileHash $temp -Algorithm SHA256).Hash
-        Copy-Item $PSCommandPath "$PSCommandPath.bak" -Force
-        Move-Item $temp $PSCommandPath -Force
-        Write-Log "  Script atualizado para $remoteVersion (SHA256 $hash). Backup: $PSCommandPath.bak"
-    } catch { Write-Log "  Nao foi possivel verificar atualizacoes: $($_.Exception.Message)" "WARN" }
+    Write-Log "Atualização automática desativada por segurança. Consulte: https://github.com/leonccunha21/windows-pc-optimizer/releases" "WARN"
 }
-
 function Push-ToGitHub {
-    [CmdletBinding(SupportsShouldProcess)]
-    param()
-    Write-Log "=== Auto-push para GitHub ==="
-    $git = (Get-Command git -ErrorAction SilentlyContinue).Source
-    if (-not $git -and (Test-Path "C:\Program Files\Git\bin\git.exe")) { $git = "C:\Program Files\Git\bin\git.exe" }
-    if (-not $git) { Write-Log "  Git nao encontrado, pulando push" "WARN"; return }
-    $repoDir = Split-Path -Parent $PSCommandPath
-    if (-not (Test-Path (Join-Path $repoDir ".git"))) { Write-Log "  Nao e um repositorio git, pulando push" "WARN"; return }
-    try {
-        $status = @(& $git -C $repoDir status --porcelain 2>&1)
-        if ($status.Count -eq 0) { Write-Log "  Nenhuma mudanca para commitar"; return }
-        $untracked = @($status | Where-Object { $_ -match '^\?\?' })
-        if ($untracked.Count -gt 0) {
-            Write-Log "  Arquivos nao rastreados NAO serao enviados: $($untracked -join ', ')" "WARN"
-        }
-        if (-not (Confirm-Action "Commitar alteracoes rastreadas e enviar para origin/main?")) { return }
-        if (-not $PSCmdlet.ShouldProcess($repoDir, "Commitar e enviar alteracoes")) { return }
-        & $git -C $repoDir add -u 2>&1 | Out-Null
-        $staged = @(& $git -C $repoDir diff --cached --name-only 2>&1)
-        if ($staged.Count -eq 0) { Write-Log "  Nenhuma alteracao rastreada para commitar"; return }
-        & $git -C $repoDir commit -m "Auto-update: $(Get-Date -Format 'yyyy-MM-dd HH:mm')" 2>&1 | Out-Null
-        & $git -C $repoDir push origin main 2>&1 | Out-Null
-        Write-Log "  Push para GitHub concluido"
-    } catch { Write-Log "  Erro no push: $($_.Exception.Message)" "WARN" }
+    Write-Log "Auto-push desativado por segurança. Revise e publique alterações manualmente usando o Git." "WARN"
 }
 
 function Show-ExternalTools {
@@ -1368,8 +1301,8 @@ function Show-Menu {
     Write-Host "23. Ferramentas externas recomendadas (links)"
     Write-Host "24. Analise de espaco em disco (top pastas)"
     Write-Host "25. Executar TUDO (recomendado)"
-    Write-Host "26. Self-update (verificar nova versao no GitHub)"
-    Write-Host "27. Auto-push para GitHub"
+    Write-Host "26. Verificar atualizacoes (sem instalacao automatica)"
+    Write-Host "27. Git: publicacao automatica desativada"
     Write-Host "28. Verificar temperaturas (CPU/GPU)"
     Write-Host "29. Limpar cache do Explorer"
     Write-Host "30. Verificar integridade do disco (chkdsk)"
@@ -1403,6 +1336,15 @@ if ($LoadOnly) { return }
 if (-not $Legacy) {
     throw 'Este console contém rotinas antigas de alto impacto. Use Executar-Otimizador.bat para a interface 4.0. Somente para compatibilidade técnica, acrescente -Legacy após revisar as operações.'
 }
+if ($env:OS -ne 'Windows_NT') { throw 'Console legado é exclusivo de Windows.' }
+$adminIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$adminPrincipal = New-Object Security.Principal.WindowsPrincipal($adminIdentity)
+if (-not $adminPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    throw 'O console legado exige PowerShell aberto como administrador. A interface 4.0 não exige elevação.'
+}
+if ($Auto) { throw 'O modo -Auto do console legado está desativado por segurança. Use a interface 4.0 com análise e confirmação.' }
+if ($AutoPush) { throw 'A opção -AutoPush está desativada. Revise e publique alterações Git manualmente.' }
+if ($Schedule) { throw 'O agendamento automático do console legado está desativado. Execute a interface 4.0 manualmente e revise os agendamentos antigos.' }
 Write-Warning 'Modo legado: pode alterar serviços, memória virtual, rede e apagar logs. Não é a limpeza recomendada da interface 4.0.'
 "=== Inicio $(Get-Date) - v$Version - Modo $Mode ===" | Out-File $LogFile -Encoding UTF8
 

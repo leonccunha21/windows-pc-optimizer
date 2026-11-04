@@ -1,7 +1,7 @@
 # Melhorias recomendadas — PC Optimizer
 
-> Atualizado em 04/11/2026 após a rodada de correções da **v4.0** (commit `232b4ba` + alterações locais).
-> Base: `Otimizar-PC.ps1` (legado, 1.585 linhas), `Modules/Optimizer.Core.psm1` e `Otimizador-GUI.ps1`.
+> Atualizado em 04/11/2026 após integrar a branch `feature/harden-maintenance-backlog` (v4.0.1).
+> Base: `Otimizar-PC.ps1` (legado, 1.535 linhas), `Modules/Optimizer.Core.psm1` e `Otimizador-GUI.ps1`.
 
 ---
 
@@ -12,28 +12,29 @@
 | ~255 definições duplicadas | **Resolvido** — 72 funções, 72 nomes únicos, zero duplicatas |
 | GUI síncrona / congelando | **Resolvido** — runspace separado + `DispatcherTimer` + cancelamento cooperativo |
 | Relatório HTML sem escape | **Resolvido** — `WebUtility::HtmlEncode` no núcleo e no relatório legado |
-| Testes só verificavam existência | **Melhorado** — 30 verificações de segurança com arquivos descartáveis, links, retenção, expiração e cancelamento |
+| Testes só verificavam existência | **Melhorado** — 34 verificações de segurança com arquivos descartáveis, links, retenção, expiração, cancelamento e exportação HTML/JSON |
 | CI sem matriz | **Resolvido** — Ubuntu/Windows, Windows PowerShell 5.1, WPF real e PSScriptAnalyzer bloqueante |
 | Exigir admin para abrir a interface | **Resolvido** — BAT abre a UI sem elevação; console legado exige `-Legacy` |
-| Docs desalinhadas | **Resolvido** — README, LEIA-ME e CONTRIBUTING reescritos para a 4.0 |
+| Docs desalinhadas | **Resolvido** — README, LEIA-ME, CONTRIBUTING, SECURITY e ARQUITETURA alinhados à 4.x |
 
 O projeto mudou de "script gigante" para uma arquitetura com núcleo separado e interface WPF. O backlog abaixo é o que **ainda** vale implementar.
 
 ### Correções aplicadas nesta rodada
 
 - Menu legado sem a opção "23" duplicada.
-- `CHANGELOG.md` migrado para Keep a Changelog, com a 4.0 sob `## [4.0.0]`.
-- `Invoke-SelfUpdate` compara versões, baixa para arquivo temporário, exige confirmação e não substitui o script em `-Auto`/`-Silent`.
-- `Push-ToGitHub` usa `git add -u`, lista arquivos não rastreados, respeita a identidade configurada e pede confirmação.
+- `CHANGELOG.md` migrado para Keep a Changelog, com a 4.0.1 documentada.
+- Atualização automática de código e publicação Git automática **desativadas** no console legado; `-Auto` e `-AutoPush` bloqueados.
 - `Generate-Report` escapa CPU, SO, modo e log com `WebUtility::HtmlEncode`.
-- Checagem de administrador movida para depois do `param` e ignorada em `-LoadOnly`; `#Requires -RunAsAdministrator` removido.
+- Checagem de administrador mantida apenas no ponto de entrada do legado, após validar `-Legacy`; `-LoadOnly` não exige elevação.
 - `Set-Pagefile` migrado de `Get-WmiObject` para CIM, mantendo fallback via `reg add`.
 - `Remove-Safe` usa `try/catch`, não reporta remoção falsa e suporta `-WhatIf`.
-- `New-RestorePoint`, `Set-Pagefile`, `Invoke-SelfUpdate` e `Push-ToGitHub` receberam `[CmdletBinding(SupportsShouldProcess)]`.
+- `Remove-Safe`, `New-RestorePoint` e `Set-Pagefile` receberam `[CmdletBinding(SupportsShouldProcess)]`.
 - 13 blocos `catch {}` vazios passaram a registrar `Write-Log`/`Write-Verbose`.
 - `$profile` renomeado para `$profileDir` no núcleo; parâmetros `$sender`/`$eventArgs` renomeados na GUI.
 - Criado `PSScriptAnalyzerSettings.psd1`; job `lint` bloqueante adicionado ao CI.
-- Suíte do núcleo ampliada para 30 verificações (formatação, soma de bytes, alvos padrão e relatório sem limpeza).
+- Suíte do núcleo ampliada para 34 verificações (formatação, soma de bytes, alvos padrão, HTML/JSON e relatório sem limpeza).
+- Relatório JSON local, seleção em massa, resultado detalhado, progresso por arquivo e atalhos F5/Esc/Ctrl+E na interface.
+- Criados `SECURITY.md`, `docs/ARQUITETURA.md` e templates de issue/PR.
 
 
 ---
@@ -46,13 +47,13 @@ A opção "23. Ferramentas externas recomendadas" aparecia duas vezes. A duplica
 
 ### 2. ~~Reestruturar o `CHANGELOG.md`~~ — **Resolvido**
 
-O arquivo agora segue Keep a Changelog: título `# Changelog`, entrada `## [4.0.0] - 2026-11-04` e seções `### Added`/`### Changed`.
+O arquivo agora segue Keep a Changelog: título `# Changelog`, entradas `## [4.0.1] - 2026-11-04` e `## [4.0.0] - 2026-11-04` com seções `### Added`/`### Changed`/`### Fixed`.
 
 ### 3. ~~Endurecer `Invoke-SelfUpdate` e `Push-ToGitHub`~~ — **Resolvido**
 
-- `Invoke-SelfUpdate` compara `$Version` local com a remota, baixa para `.new`, grava backup `.bak`, exige confirmação e não substitui o script em `-Auto`/`-Silent`.
-- `Push-ToGitHub` usa `git add -u`, avisa sobre arquivos não rastreados, não fixa identidade e exige confirmação antes de commit/push.
-- As rotinas continuam no legado por compatibilidade; a UI 4.0 não as usa.
+- `Invoke-SelfUpdate` e `Push-ToGitHub` foram **desativados** no legado: apenas registram um aviso e apontam para revisão manual.
+- `-Auto` e `-AutoPush` agora lançam erro explícito, impedindo manutenção/publicação sem revisão.
+- A UI 4.0 não chama nenhuma dessas rotinas; atualização e publicação continuam manuais via Git.
 
 ### 4. ~~Escapar o log no `Generate-Report` legado~~ — **Resolvido**
 
@@ -75,21 +76,21 @@ Regras desativadas com justificativa: verbos/substantivos de domínio, `Write-Ho
 
 ### 7. Ampliar a cobertura do núcleo — **Parcialmente resolvido**
 
-Já cobertos (30 verificações no total):
+Já cobertos (34 verificações no total):
 
-- `Format-OptimizerSize` (zero, MB, GB).
-- `Get-OptimizerByteSum` (lista vazia e soma).
+- `Format-OptimizerSize` (B, KB, MB, GB e zero).
+- `Get-OptimizerByteSum` (lista vazia, soma e propriedade ausente).
 - `Get-OptimizerTargets` (inclui a pasta Temp do usuário).
-- `Export-OptimizerReport` sem limpeza (`Cleanup = $null`).
+- `Export-OptimizerReport` sem limpeza, com `<head>`/`<body>`, acentos escapados e exportação JSON sem caminhos privados.
 
 Ainda faltam casos para `Get-OptimizerDiagnostics` (WMI indisponível, bateria ausente, Defender desligado) e para perfis `Default`/`Profile N` com navegador ausente.
 
 
-### 8. Padronizar `[CmdletBinding()]` e help no núcleo
+### 8. Padronizar `[CmdletBinding()]` e help no núcleo — **Parcialmente resolvido**
 
-`Optimizer.Core.psm1` tem apenas **1** `[CmdletBinding()]` (em `Invoke-OptimizerCleanup`). As demais funções não têm `-Verbose`, `-Debug` nem help. No legado, 5 funções destrutivas já receberam `[CmdletBinding(SupportsShouldProcess)]`.
+Sete das oito funções do núcleo já têm `[CmdletBinding()]`; falta apenas o helper interno `Get-OptimizerByteSum`. No legado, 3 funções destrutivas usam `[CmdletBinding(SupportsShouldProcess)]`.
 
-**Ação:** adicionar `[CmdletBinding()]` e comment-based help em `Get-OptimizerScan`, `Get-OptimizerTargets`, `Test-OptimizerPath`, `Export-OptimizerReport` e `Get-OptimizerDiagnostics`.
+**Ação restante:** adicionar comment-based help em `Get-OptimizerScan`, `Get-OptimizerTargets`, `Test-OptimizerPath`, `Export-OptimizerReport` e `Get-OptimizerDiagnostics`.
 
 ### 9. Externalizar configuração
 
@@ -109,20 +110,15 @@ O núcleo não grava log persistente (bom para privacidade). O legado ainda usa 
 
 **Ação (se o legado continuar):** JSON Lines com `timestamp`, `level`, `function`, `target`, `result`; rotação por tamanho; nunca logar caminhos pessoais.
 
-### 11. Relatório: `<head>` e exportação JSON
+### 11. ~~Relatório: `<head>` e exportação JSON~~ — **Resolvido**
 
-`Export-OptimizerReport` já tem `lang="pt-BR"` e escape, mas o `<meta charset>` está solto sob `<html>`, sem `<head>`.
-
-**Ação:**
-- Envolver em `<head>`/`<body>` válidos.
-- Adicionar CSS de impressão e botão "Imprimir".
-- Exportar JSON ao lado do HTML para automação/arquivo.
+O HTML agora tem `<head>`/`<body>` válidos, CSS de impressão e escape de acentos. A interface exporta também JSON, sem serializar caminhos pessoais. Falta apenas um botão explícito "Imprimir" no HTML.
 
 ### 12. `Write-Progress` no legado
 
-Há **0** ocorrências de `Write-Progress` em todo o projeto. SFC/DISM/Defender no console ficam sem feedback por muito tempo.
+A UI já tem progresso real na limpeza. O legado continua com **0** ocorrências de `Write-Progress`; SFC/DISM/Defender no console ficam sem feedback por muito tempo.
 
-**Ação:** adicionar `Write-Progress` nas rotinas longas do legado (a UI já tem barra indeterminada).
+**Ação (somente se o legado continuar):** adicionar `Write-Progress` nas rotinas longas do console.
 
 ---
 
@@ -132,7 +128,7 @@ Há **0** ocorrências de `Write-Progress` em todo o projeto. SFC/DISM/Defender 
 
 - Assinar `.ps1`/`.psm1`/`.bat` com Authenticode (reduz falso positivo de antivírus).
 - Publicar `.zip` com SHA-256 no GitHub Release.
-- Se o self-update sobreviver, validar esse hash.
+- O self-update foi desativado; a validação de hash deixa de ser necessária no produto.
 
 ### 14. Workflow de release
 
@@ -142,53 +138,54 @@ Hoje o CI só valida. Falta um workflow de tag que:
 3. calcule SHA-256;
 4. publique o GitHub Release com notas do CHANGELOG.
 
-### 15. Revisar o legado `-Auto`
+### 15. ~~Revisar o legado `-Auto`~~ — **Resolvido**
 
-O README já avisa que `-Auto` não é para manutenção rotineira. Ainda assim, ele executa mudanças de serviços, pagefile e limpeza de logs.
+`-Auto`, `-AutoPush` e `-Schedule` agora lançam erro explícito, e a função de agendamento apenas registra um aviso. O README e o CHANGELOG orientam a usar a interface 4.0 com análise e confirmação.
 
-**Ação:** exigir confirmação adicional, limitar a um conjunto seguro ou marcar como deprecated com data de remoção.
+### 16. ~~`SECURITY.md`~~ — **Resolvido**
 
-### 16. `SECURITY.md`
-
-Adicionar política de relato de vulnerabilidades e escopo (ex.: limpeza não é fronteira de segurança contra processo malicioso — já está em `docs/VALIDACAO.md`).
+Criado com política de relato privado, escopo, limites de segurança e orientação sobre relatórios com dados de clientes.
 
 ---
 
 ## P3 — Interface (WPF)
 
-### 17. Acessibilidade
+### 17. Acessibilidade — **Parcialmente resolvido**
 
-`docs/VALIDACAO.md` já prevê teste manual com leitores de tela. Faltam no XAML:
-- `AutomationProperties.Name` nos botões e grids;
+Já implementado:
+- atalhos F5 (analisar), Esc (interromper) e Ctrl+E (exportar);
+- `AutomationProperties.Name` nos botões principais, de limpeza, cancelamento e seleção em massa.
+
+Ainda faltam:
+- `AutomationProperties.Name` nos grids e campos restantes;
 - ordem de tabulação explícita;
-- tema de alto contraste;
-- atalhos de teclado (F5 analisar, Esc cancelar, Ctrl+E exportar).
+- tema de alto contraste validado em bancada.
 
-### 18. Seleção em massa e memória de preferências
+### 18. Seleção em massa e memória de preferências — **Parcialmente resolvido**
 
-- Botões "Selecionar tudo/nenhum" para categorias.
-- Lembrar última seleção e última pasta de relatório.
-- Mostrar contagem/bytes por categoria antes de limpar.
+- Botões "Selecionar tudo/desmarcar tudo" implementados.
+- Categorias já mostram contagem e bytes antes de limpar.
+- Ainda falta lembrar a última seleção e a última pasta de relatório.
 
-### 19. Resultado detalhado na UI
+### 19. Resultado detalhado na UI — **Parcialmente resolvido**
 
-Hoje a UI mostra apenas os itens ignorados (até 30). Exibir também removidos, com filtro e exportação CSV.
+A janela "Prévia / resultado" agora exibe removidos e ignorados com categoria, status, bytes e detalhe. Ainda faltam filtro e exportação CSV.
 
-### 20. Progresso real
+### 20. ~~Progresso real~~ — **Resolvido**
 
-A barra é indeterminada. Com a lista de arquivos já conhecida, é possível reportar `arquivos processados / total` e bytes liberados em tempo real.
+A limpeza reporta `arquivos processados / total` em tempo real. A análise continua com barra indeterminada, o que é adequado porque o total só é conhecido ao final.
 
 ---
 
 ## P4 — Documentação e comunidade
 
-### 21. `docs/ARQUITETURA.md`
+### 21. ~~`docs/ARQUITETURA.md`~~ — **Resolvido**
 
-Explicar a separação núcleo × UI × legado, o fluxo análise → confirmação → limpeza e o modelo de ameaças.
+Documento criado com componentes, fluxo principal e modelo de ameaças.
 
-### 22. Templates de issue/PR
+### 22. ~~Templates de issue/PR~~ — **Resolvido**
 
-Adicionar `.github/ISSUE_TEMPLATE/bug.yml`, `feature.yml` e `PULL_REQUEST_TEMPLATE.md` com o checklist de segurança do `CONTRIBUTING.md`.
+Criados `.github/ISSUE_TEMPLATE/bug.yml`, `feature.yml` e `PULL_REQUEST_TEMPLATE.md` com o checklist de segurança.
 
 ### 23. Capturas e GIF
 
@@ -225,19 +222,19 @@ O restante é de outro domínio (agentes, social, web) ou já está marcado como
 | Etapa | Escopo | Entrega | Status |
 |---|---|---|---|
 | 1 | P0 (itens 1–5) | Menu sem duplicata, CHANGELOG padronizado, legado sem self-update inseguro, relatório legado escapado | **Concluído** |
-| 2 | P1 (itens 6–12) | PSScriptAnalyzer no CI, cobertura extra, config externa, relatório com `<head>`/JSON | Itens 6–7 feitos; 8–12 pendentes |
-| 3 | P2 (itens 13–16) | Release assinado, workflow de tag, `-Auto` revisado, `SECURITY.md` | Pendente |
-| 4 | P3/P4 (itens 17–24) | Acessibilidade, seleção em massa, progresso real, docs de arquitetura e templates | Pendente |
+| 2 | P1 (itens 6–12) | PSScriptAnalyzer no CI, cobertura extra, config externa, relatório com `<head>`/JSON | 6, 7 e 11 concluídos; 8 parcial; 9, 10 e 12 pendentes |
+| 3 | P2 (itens 13–16) | Release assinado, workflow de tag, `-Auto` revisado, `SECURITY.md` | 15 e 16 concluídos; 13 e 14 pendentes |
+| 4 | P3/P4 (itens 17–24) | Acessibilidade, seleção em massa, progresso real, docs de arquitetura e templates | 20, 21 e 22 concluídos; 17–19 parciais; 23 e 24 pendentes |
 
 ---
 
 ## Critérios de aceite
 
 - [x] `Tests/Validate-Syntax.ps1` continua detectando zero duplicatas.
-- [x] `Tests/Core.Smoke.ps1` verde em Windows PowerShell 5.1 e PowerShell 7 (30 verificações).
+- [x] `Tests/Core.Smoke.ps1` verde em Windows PowerShell 5.1 e PowerShell 7 (34 verificações).
 - [x] PSScriptAnalyzer sem Warning/Error com as settings do repo.
 - [x] Menu legado sem opções repetidas.
-- [x] CHANGELOG com a 4.0 no formato Keep a Changelog.
+- [x] CHANGELOG com a 4.0.1 no formato Keep a Changelog.
 - [x] Relatório do legado escapa o log (ou o gerador legado é removido).
 - [x] Self-update não sobrescreve sem validar versão/checksum.
 - [ ] Release publica ZIP + SHA-256.
@@ -248,16 +245,16 @@ O restante é de outro domínio (agentes, social, web) ou já está marcado como
 
 | Evidência | Valor |
 |---|---|
-| Linhas de `Otimizar-PC.ps1` | 1.585 |
+| Linhas de `Otimizar-PC.ps1` | 1.535 |
 | Definições `function` no legado | 72 |
 | Nomes únicos | 72 |
 | Duplicatas | 0 |
-| Linhas de `Optimizer.Core.psm1` | 179 |
-| `[CmdletBinding()]` no núcleo | 1 (`Invoke-OptimizerCleanup`) |
-| `[CmdletBinding()]` no legado | 5 (rotinas destrutivas) |
-| `Write-Progress` no projeto | 0 |
+| Linhas de `Optimizer.Core.psm1` | 215 |
+| `[CmdletBinding()]` no núcleo | 7 de 8 funções |
+| `[CmdletBinding()]` no legado | 3 (rotinas destrutivas) |
+| `Write-Progress` no legado | 0 |
 | Opções do menu legado | 48 (sem duplicatas) |
-| Verificações em `Core.Smoke.ps1` | 30 |
+| Verificações em `Core.Smoke.ps1` | 34 |
 | Abas da UI 4.0 | 5 (Visão geral, Limpeza, Diagnóstico, Ferramentas, Relatório) |
 | PSScriptAnalyzer no CI | job `lint` bloqueante |
 | Matriz do CI | Ubuntu + Windows; PS 5.1; validação WPF |

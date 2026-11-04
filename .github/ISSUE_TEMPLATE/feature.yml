@@ -1,0 +1,24 @@
+name: Solicitar melhoria
+description: Ideia para o fluxo de manutenção
+title: "[Melhoria] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Problema que a funcionalidade resolve
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta e fluxo de uso
+    validations:
+      required: true
+  - type: checkboxes
+    id: safeguards
+    attributes:
+      label: Princípios do projeto
+      options:
+        - label: "Sem telemetria, dados remotos ou execução destrutiva sem confirmação."
+          required: true

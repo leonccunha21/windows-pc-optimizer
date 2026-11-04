@@ -5,26 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [4.0.1] - 2026-11-04
 
 ### Added
+- Relatório JSON local, sem caminhos de arquivos excluídos, ao lado da exportação HTML.
+- Ações em massa na limpeza, resultado detalhado, progresso por arquivo e atalhos F5/Esc/Ctrl+E.
 - `PSScriptAnalyzerSettings.psd1` e job `lint` bloqueante no CI, executado antes do job `safety`.
-- Cobertura do núcleo ampliada para 30 verificações: formatação de tamanho, soma de bytes, alvos padrão e relatório sem limpeza.
-- `[CmdletBinding(SupportsShouldProcess)]` em `Remove-Safe`, `New-RestorePoint`, `Set-Pagefile`, `Invoke-SelfUpdate` e `Push-ToGitHub`.
+- Cobertura do núcleo ampliada com formatação de tamanho, soma de bytes, alvos padrão, HTML/JSON e relatório sem limpeza.
+- `[CmdletBinding(SupportsShouldProcess)]` em `Remove-Safe`, `New-RestorePoint` e `Set-Pagefile`.
+- `SECURITY.md`, `docs/ARQUITETURA.md` e templates de issue/PR.
+
+### Security
+- Atualização automática de código e publicação Git automática desativadas no console legado.
+- `-Auto` e `-AutoPush` legados bloqueados por executarem alterações de alto impacto sem revisão.
+- Agendamento automático do console legado desativado; tarefas antigas devem ser revisadas manualmente.
+- Elevação exigida somente ao executar o console legado; `-LoadOnly` permanece disponível sem administrador.
+- Relatório legado passa a escapar log, CPU, SO, modo e demais identificações do sistema.
 
 ### Changed
-- `Invoke-SelfUpdate` agora compara versões, baixa para arquivo temporário, cria backup `.bak`, exige confirmação e não substitui o script em `-Auto`/`-Silent`.
-- `Push-ToGitHub` usa `git add -u`, avisa sobre arquivos não rastreados, respeita a identidade configurada e pede confirmação.
 - `Set-Pagefile` migrado de `Get-WmiObject` para CIM, mantendo fallback via `reg add`.
-- Checagem de administrador movida para depois do `param` e ignorada em `-LoadOnly`; `#Requires -RunAsAdministrator` removido.
+- `#Requires -RunAsAdministrator` removido; checagem movida para o ponto de entrada após validar `-Legacy` e `-LoadOnly`.
 - `$profile` renomeado para `$profileDir` no núcleo e parâmetros `$sender`/`$eventArgs` renomeados na GUI.
+- Menu legado com opções 26/27 renomeadas para refletir a desativação das rotinas automáticas.
 
 ### Fixed
 - Removida a opção "23" duplicada do menu legado.
 - `Remove-Safe` não reporta mais sucesso falso quando a exclusão falha.
-- `Generate-Report` escapa CPU, SO, modo e log com `WebUtility::HtmlEncode`.
 - Contador de logs limpos em `Clear-EventLogs` agora reflete as exclusões reais.
 - Treze blocos `catch {}` vazios passaram a registrar `Write-Log`/`Write-Verbose`.
+- Núcleo passou a aceitar diagnósticos ausentes e propriedades ausentes na soma de bytes.
 - `CHANGELOG.md` reorganizado no formato Keep a Changelog.
 
 ## [4.0.0] - 2026-11-04

@@ -13,21 +13,22 @@ foreach ($node in $layout.SelectNodes('//*[@x:Name]', $namespaces)) {
     $ui[$node.GetAttribute('Name','http://schemas.microsoft.com/winfx/2006/xaml')] = $window.FindName($node.GetAttribute('Name','http://schemas.microsoft.com/winfx/2006/xaml'))
 }
 $script:scan = $null; $script:cleanup = $null; $script:diagnostics = @(); $script:worker = $null
-$script:state = [hashtable]::Synchronized(@{Cancel=$false; Message=''; Result=$null; Error=$null})
+$script:state = [hashtable]::Synchronized(@{Cancel=$false; Message=''; Result=$null; Error=$null; Total=0; Processed=0})
 $script:modulePath = Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1'
 
 function Set-Busy([bool]$Busy) {
-    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton')) { $ui[$name].IsEnabled = -not $Busy }
+    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton')) { $ui[$name].IsEnabled = -not $Busy }
     $ui.CleanButton.IsEnabled = -not $Busy -and $null -ne $script:scan -and -not $script:scan.Cancelled -and @($script:scan.Files).Count -gt 0
-    $ui.DetailsButton.IsEnabled = -not $Busy -and $null -ne $script:scan
+    $ui.DetailsButton.IsEnabled = -not $Busy -and ($null -ne $script:scan -or $null -ne $script:cleanup)
     $ui.Categories.IsEnabled = -not $Busy
     $ui.CancelButton.IsEnabled = $Busy -and $script:operation -ne 'Diagnose'
-    $ui.Progress.IsIndeterminate = $Busy
+    $ui.Progress.IsIndeterminate = $Busy -and $script:operation -ne 'Clean'
+    if (-not $Busy) { $ui.Progress.Value = 0 }
 }
 function Start-Work([string]$Operation, $Payload) {
     if ($null -ne $script:worker) { return }
     $script:operation = $Operation
-    $script:state.Cancel = $false; $script:state.Error = $null; $script:state.Result = $null; $script:state.Message = 'Préparando...'
+    $script:state.Cancel = $false; $script:state.Error = $null; $script:state.Result = $null; $script:state.Message = 'Preparando...'; $script:state.Processed = 0; $script:state.Total = 0
     $script:worker = [PowerShell]::Create()
     [void]$script:worker.AddScript({
         param($ModulePath, $Operation, $Payload, $State)
@@ -48,6 +49,7 @@ $timer = New-Object Windows.Threading.DispatcherTimer
 $timer.Interval = [TimeSpan]::FromMilliseconds(200)
 $timer.Add_Tick({
     $ui.Status.Text = $script:state.Message
+    if ($script:operation -eq 'Clean' -and $script:state.Total -gt 0) { $ui.Progress.Value = [math]::Min(100, [math]::Round(100 * $script:state.Processed / $script:state.Total)) }
     if (-not $script:handle.IsCompleted) { return }
     $timer.Stop()
     try {
@@ -92,24 +94,61 @@ $ui.CleanButton.Add_Click({
     $answer = [Windows.MessageBox]::Show($window, "Excluir permanentemente os arquivos analisados das $($selected.Count) categorias selecionadas ($size)?`n`nA exclusão não passa pela Lixeira. Arquivos em uso ou alterados serão ignorados.", 'Confirmar limpeza', 'YesNo', 'Warning', 'No')
     if ($answer -eq 'Yes') { Start-Work 'Clean' @{Scan=$script:scan; Ids=@($selected | ForEach-Object Id)} }
 })
+$ui.SelectAllButton.Add_Click({
+    if ($null -eq $script:scan) { return }
+    foreach ($category in $script:scan.Categories) { $category.Selected = $true }
+    $ui.Categories.Items.Refresh()
+})
+$ui.SelectNoneButton.Add_Click({
+    if ($null -eq $script:scan) { return }
+    foreach ($category in $script:scan.Categories) { $category.Selected = $false }
+    $ui.Categories.Items.Refresh()
+})
 $ui.DetailsButton.Add_Click({
     $detail = New-Object Windows.Window
-    $detail.Title = 'Arquivos candidatos — prévia sem exclusão'; $detail.Width = 960; $detail.Height = 560; $detail.Owner = $window; $detail.WindowStartupLocation = 'CenterOwner'
+    $detail.Title = if ($null -ne $script:scan) { 'Arquivos candidatos - prévia sem exclusão' } else { 'Resultado detalhado da limpeza' }
+    $detail.Width = 1000; $detail.Height = 560; $detail.Owner = $window; $detail.WindowStartupLocation = 'CenterOwner'
     $grid = New-Object Windows.Controls.DataGrid
     $grid.IsReadOnly = $true; $grid.AutoGenerateColumns = $false; $grid.CanUserAddRows = $false
-    foreach ($column in @(@('Categoria','CategoryName',220), @('Caminho','Path',550), @('Bytes','Bytes',100))) {
-        $c = New-Object Windows.Controls.DataGridTextColumn; $c.Header = $column[0]; $c.Binding = New-Object Windows.Data.Binding $column[1]; $c.Width = $column[2]; [void]$grid.Columns.Add($c)
+    $rows = if ($null -ne $script:scan) { @($script:scan.Files) } else { @($script:cleanup.Results) }
+    $cols = if ($null -ne $script:scan) {
+        @(@('Categoria','CategoryName',210), @('Caminho','Path',620), @('Bytes','Bytes',100))
+    } else {
+        @(@('Categoria','Category',180), @('Caminho','Path',460), @('Status','Status',100), @('Bytes','Bytes',90), @('Detalhe','Detail',180))
     }
-    $grid.ItemsSource = @($script:scan.Files); $detail.Content = $grid; [void]$detail.ShowDialog()
+    foreach ($column in $cols) {
+        $c = New-Object Windows.Controls.DataGridTextColumn
+        $c.Header = $column[0]; $c.Binding = New-Object Windows.Data.Binding $column[1]
+        $c.Width = $column[2]; [void]$grid.Columns.Add($c)
+    }
+    $grid.ItemsSource = $rows
+    $detail.Content = $grid
+    [void]$detail.ShowDialog()
 })
 $ui.ExportButton.Add_Click({
     $dialog = New-Object Microsoft.Win32.SaveFileDialog
-    $dialog.Filter = 'Relatório HTML (*.html)|*.html'; $dialog.FileName = 'Manutencao-' + (Get-Date -Format 'yyyyMMdd-HHmm') + '.html'
+    $dialog.Filter = 'Relatório HTML (*.html)|*.html|Dados JSON (*.json)|*.json'; $dialog.FileName = 'Manutencao-' + (Get-Date -Format 'yyyyMMdd-HHmm') + '.html'
     if ($dialog.ShowDialog($window)) {
         try {
-            Export-OptimizerReport -Path $dialog.FileName -Customer $ui.Customer.Text -Notes $ui.Notes.Text -Diagnostics $script:diagnostics -Cleanup $script:cleanup
-            $ui.Status.Text = 'Relatório salvo: ' + $dialog.FileName
+            $format = if ($dialog.FilterIndex -eq 2) { 'JSON' } else { 'HTML' }
+            $extension = if ($format -eq 'JSON') { '.json' } else { '.html' }
+            $outputPath = [IO.Path]::ChangeExtension($dialog.FileName, $extension)
+            Export-OptimizerReport -Path $outputPath -Customer $ui.Customer.Text -Notes $ui.Notes.Text -Diagnostics $script:diagnostics -Cleanup $script:cleanup -Format $format
+            $ui.Status.Text = 'Relatório salvo: ' + $outputPath
         } catch { [void][Windows.MessageBox]::Show($window, $_.Exception.Message, 'Não foi possível salvar', 'OK', 'Error') }
+    }
+})
+$window.Add_PreviewKeyDown({
+    param($keySender, $keyArgs)
+    if ($keyArgs.Key -eq [Windows.Input.Key]::F5 -and $ui.ScanButton.IsEnabled) {
+        $keyArgs.Handled = $true; Start-Work 'Scan' $null
+    } elseif ($keyArgs.Key -eq [Windows.Input.Key]::Escape -and $ui.CancelButton.IsEnabled) {
+        $keyArgs.Handled = $true; $script:state.Cancel = $true; $ui.CancelButton.IsEnabled = $false
+        $ui.Status.Text = 'Interrompendo após o arquivo atual...'
+    } elseif ($keyArgs.Key -eq [Windows.Input.Key]::E -and [Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control -and $ui.ExportButton.IsEnabled) {
+        $keyArgs.Handled = $true
+        $ui.Pages.SelectedIndex = 4
+        $ui.ExportButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
     }
 })
 $toolActions = @{

@@ -80,11 +80,24 @@ try {
     Assert-True ($html -notmatch '<script>' -and $html -match '&lt;script&gt;') 'Customer input is HTML-escaped'
     Assert-True ($html -notmatch '<img onerror' -and $html -notmatch '<b>data') 'Notes and diagnostics are HTML-escaped'
     Assert-True ($html -notmatch [regex]::Escape($old)) 'Report omits personal file paths'
+
+    $plainReport=Join-Path $testRoot 'sem-limpeza.html'
+    Export-OptimizerReport -Path $plainReport -Customer 'João & Cia' -Notes 'Teste <ok>' -Cleanup $null
+    $markup=Get-Content -LiteralPath $plainReport -Raw
+    Assert-True ($markup -match '<head>' -and $markup -match '<body>' -and $markup -match '</body>') 'HTML report has head and body'
+    Assert-True ($markup -match '&amp; Cia' -and $markup -match '&lt;ok&gt;' -and [System.Net.WebUtility]::HtmlDecode($markup) -match 'João & Cia') 'HTML report escapes personal text with accents'
+    $jsonPath=Join-Path $testRoot 'relatorio.json'
+    Export-OptimizerReport -Path $jsonPath -Customer 'João' -Notes 'Registro' -Diagnostics @([pscustomobject]@{Area='Disco';Item='Teste';Value='OK'}) -Cleanup $result -Format JSON
+    $json=Get-Content -LiteralPath $jsonPath -Raw | ConvertFrom-Json
+    Assert-True ($json.Customer -eq 'João' -and $json.Diagnostics[0].Area -eq 'Disco') 'JSON exports unicode and diagnostic details'
+    Assert-True (-not ((Get-Content -LiteralPath $jsonPath -Raw).Contains($old))) 'JSON excludes private cleanup paths'
+    Export-OptimizerReport -Path (Join-Path $testRoot 'empty.json') -Cleanup $null -Format JSON
+    Assert-True ((Format-OptimizerSize 0) -like '*B' -and (Format-OptimizerSize 1MB) -like '*MB' -and (Format-OptimizerSize 1GB) -like '*GB') 'Formatter handles B, MB and GB'
+    $sum = & (Get-Module Optimizer.Core) { Get-OptimizerByteSum @([pscustomobject]@{Bytes=10}, [pscustomobject]@{Other=2}, $null) }
+    Assert-True ($sum -eq 10) 'Byte summation tolerates missing properties'
     $empty=Join-Path $testRoot 'empty';[void](New-Item -ItemType Directory $empty)
     $emptyScan=Get-OptimizerScan -Targets @([pscustomobject]@{Id='empty';Name='Empty';Path=$empty;Process=''})
     Assert-True ($emptyScan.Bytes -eq 0 -and @($emptyScan.Files).Count -eq 0) 'Empty analysis returns zero without failing'
-    Assert-True ((Format-OptimizerSize 0) -like '*MB*') 'Zero bytes formats without failing'
-    Assert-True ((Format-OptimizerSize 1GB) -like '*GB*') 'Gigabyte formatting uses GB'
     Assert-True ((& $core { Get-OptimizerByteSum @() }) -eq 0) 'Empty byte sum is zero'
     Assert-True ((& $core { Get-OptimizerByteSum @([pscustomobject]@{Bytes=2},[pscustomobject]@{Bytes=3}) }) -eq 5) 'Byte sum adds values'
     $defaultTargets = @(Get-OptimizerTargets)
