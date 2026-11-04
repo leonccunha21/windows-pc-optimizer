@@ -119,14 +119,14 @@ $toolActions = @{
 foreach ($name in $toolActions.Keys) {
     $ui[$name].Tag = $toolActions[$name]
     $ui[$name].Add_Click({
-        param($sender, $eventArgs)
-        try { Start-Process -FilePath $sender.Tag -ErrorAction Stop }
+        param($clickSender)
+        try { Start-Process -FilePath $clickSender.Tag -ErrorAction Stop }
         catch { [void][Windows.MessageBox]::Show($window, $_.Exception.Message, 'Ferramenta indisponível', 'OK', 'Warning') }
     })
 }
 $window.Add_Closing({
-    param($sender, $eventArgs)
-    if ($null -ne $script:worker) { $eventArgs.Cancel = $true; $script:state.Cancel = $true; $ui.Status.Text = 'Aguarde a operação terminar antes de fechar. A interrupção foi solicitada.' }
+    param($closeSender, $closeArgs)
+    if ($null -ne $closeSender -and $null -ne $script:worker) { $closeArgs.Cancel = $true; $script:state.Cancel = $true; $ui.Status.Text = 'Aguarde a operação terminar antes de fechar. A interrupção foi solicitada.' }
 })
 if ($ValidateUI) {
     if ($PreviewPath) {

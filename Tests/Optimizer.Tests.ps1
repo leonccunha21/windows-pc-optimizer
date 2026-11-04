@@ -9,6 +9,7 @@ foreach ($node in $ast.EndBlock.Statements) {
     }
 }
 $Protected = @('Epic Games','Fortnite','EpicGames','FortniteGame','.git')
+if (@($Protected).Count -eq 0) { throw 'Protected path list must not be empty' }
 foreach ($name in @('Clean-Temp','Clean-BrowserCaches','Clean-PackageCaches','Optimize-Startup','System-Tweaks','Optimize-Disk','Clear-EventLogs','Disable-BackgroundApps','Flush-DNS','Enable-StorageSense','Run-CleanMgr','Show-DiskSpace','Is-Protected','Get-FolderSize')) {
     if (-not (Get-Command $name -ErrorAction SilentlyContinue)) { throw "Missing legacy function: $name" }
 }

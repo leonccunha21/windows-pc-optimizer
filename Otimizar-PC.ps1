@@ -48,8 +48,6 @@
 .EXAMPLE
     .\Otimizar-PC.ps1 -Auto -Mode Aggressive -Report -AutoPush
 #>
-#Requires -RunAsAdministrator
-
 param(
     [switch]$Auto,
     [ValidateSet("Safe","Aggressive")]
@@ -66,6 +64,14 @@ param(
     [switch]$LoadOnly,
     [switch]$Legacy
 )
+
+if (-not $LoadOnly) {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal -ArgumentList $identity
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw "Execute como administrador (ou use -LoadOnly para carregar as funcoes)."
+    }
+}
 
 $ErrorActionPreference = "Continue"
 $LogFile = "$env:TEMP\OtimizadorPC_log.txt"
@@ -99,18 +105,29 @@ function Get-FolderSize($path) {
     return $s
 }
 
-function Remove-Safe($path, $label) {
+function Remove-Safe {
+    [CmdletBinding(SupportsShouldProcess)]
+    param($path, $label)
     if (Is-Protected $path) { Write-Log "  [PROTEGIDO] Pulando: $path" "WARN"; return 0 }
     if (-not (Test-Path $path)) { return 0 }
     $sz = Get-FolderSize $path
     if ($DryRun) { Write-Log "  [DRY-RUN] Removeria: $path ($([math]::Round($sz/1MB,1)) MB)"; return $sz }
-    Remove-Item $path -Recurse -Force -EA 0
-    Write-Log "  Removido: $path ($([math]::Round($sz/1MB,1)) MB)"
-    return $sz
+    if (-not $PSCmdlet.ShouldProcess($path, "Remover $label")) { return 0 }
+    try {
+        Remove-Item $path -Recurse -Force -ErrorAction Stop
+        Write-Log "  Removido: $path ($([math]::Round($sz/1MB,1)) MB)"
+        return $sz
+    } catch {
+        Write-Log "  Falha ao remover: $path - $($_.Exception.Message)" "WARN"
+        return 0
+    }
 }
 
 function New-RestorePoint {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
     if ($DryRun) { Write-Log "  [DRY-RUN] Ponto de restauracao seria criado"; return }
+    if (-not $PSCmdlet.ShouldProcess("Sistema", "Criar ponto de restauracao")) { return }
     try {
         Checkpoint-Computer -Description "OtimizadorPC v$Version" -RestorePointType "MODIFY_SETTINGS" -ErrorAction Stop
         Write-Log "  Ponto de restauracao criado"
@@ -124,7 +141,7 @@ function Get-DriveType($letter) {
             $disk = Get-PhysicalDisk | Where-Object { $_.DeviceId -eq $partitions[0].DiskNumber }
             if ($disk) { return $disk.MediaType }
         }
-    } catch {}
+    } catch { Write-Verbose "Falha ao obter tipo do disco: $($_.Exception.Message)" }
     return "Unknown"
 }
 
@@ -172,12 +189,12 @@ function Backup-Registry {
 function System-Tweaks {
     Write-Log "=== Ajustes de sistema ==="
     if ($DryRun) { Write-Log "  [DRY-RUN] Ajustes seriam aplicados"; return }
-    try { powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2>&1 | Out-Null; Write-Log "  Energia: Alto Desempenho" } catch {}
-    try { Stop-Service DiagTrack -Force -EA 0; Set-Service DiagTrack -StartupType Disabled -EA 0; Write-Log "  DiagTrack desativado" } catch {}
-    try { Stop-Service SysMain -Force -EA 0; Set-Service SysMain -StartupType Disabled -EA 0; Write-Log "  SysMain desativado (SSD)" } catch {}
-    try { Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\DoSvc" -Name Start -Value 4 -EA 0; Write-Log "  DoSvc desativado" } catch {}
-    try { Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" -Name VisualFXSetting -Value 2 -EA 0; Write-Log "  Efeitos visuais: melhor desempenho" } catch {}
-    try { Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name EnableTransparency -Value 0 -EA 0; Write-Log "  Transparencia desativada" } catch {}
+    try { powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2>&1 | Out-Null; Write-Log "  Energia: Alto Desempenho" } catch { Write-Log "  Aviso (energia): $($_.Exception.Message)" "WARN" }
+    try { Stop-Service DiagTrack -Force -EA 0; Set-Service DiagTrack -StartupType Disabled -EA 0; Write-Log "  DiagTrack desativado" } catch { Write-Log "  Aviso (DiagTrack): $($_.Exception.Message)" "WARN" }
+    try { Stop-Service SysMain -Force -EA 0; Set-Service SysMain -StartupType Disabled -EA 0; Write-Log "  SysMain desativado (SSD)" } catch { Write-Log "  Aviso (SysMain): $($_.Exception.Message)" "WARN" }
+    try { Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\DoSvc" -Name Start -Value 4 -EA 0; Write-Log "  DoSvc desativado" } catch { Write-Log "  Aviso (DoSvc): $($_.Exception.Message)" "WARN" }
+    try { Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" -Name VisualFXSetting -Value 2 -EA 0; Write-Log "  Efeitos visuais: melhor desempenho" } catch { Write-Log "  Aviso (efeitos visuais): $($_.Exception.Message)" "WARN" }
+    try { Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name EnableTransparency -Value 0 -EA 0; Write-Log "  Transparencia desativada" } catch { Write-Log "  Aviso (transparencia): $($_.Exception.Message)" "WARN" }
     $cdm = "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
     if (Test-Path $cdm) {
         Set-ItemProperty -Path $cdm -Name "SubscribedContent-338389Enabled" -Value 0 -EA 0
@@ -204,24 +221,27 @@ function System-Tweaks {
     Set-ItemProperty -Path $notif -Name "ToastEnabled" -Value 0 -EA 0
     Write-Log "  Notificacoes toast desativadas"
     if ($Mode -eq "Aggressive") {
-        try { netsh int tcp set global autotuninglevel=normal 2>&1 | Out-Null; Write-Log "  TCP autotuning: normal" } catch {}
+        try { netsh int tcp set global autotuninglevel=normal 2>&1 | Out-Null; Write-Log "  TCP autotuning: normal" } catch { Write-Log "  Aviso (TCP): $($_.Exception.Message)" "WARN" }
     }
 }
 
 function Set-Pagefile {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
     if ($DryRun) { Write-Log "  [DRY-RUN] Pagefile seria fixado em 8GB"; return }
     if (-not (Confirm-Action "Fixar pagefile em 8GB? (requer reinicio)")) { return }
+    if (-not $PSCmdlet.ShouldProcess("Pagefile", "Fixar em 8GB")) { return }
     try {
-        $cs = Get-WmiObject Win32_ComputerSystem
-        $cs.AutomaticManagedPagefile = $false
-        $cs.Put() | Out-Null
-        $existing = Get-WmiObject Win32_PageFileSetting
-        foreach ($p in $existing) { $p.Delete() | Out-Null }
-        $np = ([WmiClass]"Win32_PageFileSetting").CreateInstance()
-        $np.Name = "C:\pagefile.sys"
-        $np.InitialSize = 8192
-        $np.MaximumSize = 8192
-        $np.Put() | Out-Null
+        $cs = Get-CimInstance -ClassName Win32_ComputerSystem
+        if ($cs.AutomaticManagedPagefile) {
+            Set-CimInstance -InputObject $cs -Property @{ AutomaticManagedPagefile = $false }
+        }
+        Get-CimInstance -ClassName Win32_PageFileSetting -ErrorAction SilentlyContinue | Remove-CimInstance
+        $null = New-CimInstance -ClassName Win32_PageFileSetting -Property @{
+            Name = "C:\pagefile.sys"
+            InitialSize = 8192
+            MaximumSize = 8192
+        }
         Write-Log "  Pagefile fixado em 8GB (requer reinicio)"
     } catch {
         reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v PagingFiles /t REG_MULTI_SZ /d "C:\pagefile.sys 8192 8192" /f 2>&1 | Out-Null
@@ -288,7 +308,8 @@ function Clear-EventLogs {
     if ($DryRun) { Write-Log "  [DRY-RUN] Logs seriam limpos"; return }
     $cleared = 0
     wevtutil el 2>&1 | ForEach-Object {
-        try { wevtutil cl "$_" 2>&1 | Out-Null; $script:cleared++ } catch {}
+        $logName = $_
+        try { wevtutil cl "$logName" 2>&1 | Out-Null; $cleared++ } catch { Write-Verbose "Falha ao limpar log ${logName}: $($_.Exception.Message)" }
     }
     Write-Log "  Logs limpos: $cleared"
 }
@@ -798,6 +819,12 @@ function Generate-Report {
     $usedGB = [math]::Round(($disk.Size-$disk.FreeSpace)/1GB,2)
     $hw = Get-CimInstance Win32_Processor | Select-Object -First 1
     $os = Get-CimInstance Win32_OperatingSystem
+    $encode = { param($value) [System.Net.WebUtility]::HtmlEncode([string]$value) }
+    $cpuName = & $encode $hw.Name
+    $osCaption = & $encode $os.Caption
+    $osVersion = & $encode $os.Version
+    $modeText = & $encode $Mode
+    $logText = & $encode (Get-Content $LogFile -Raw -ErrorAction SilentlyContinue)
     $html = @"
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>OtimizadorPC Report</title>
@@ -809,15 +836,15 @@ th{background:#3498db;color:#fff}</style></head><body>
 <h1>OtimizadorPC - Relatorio</h1>
 <div class="card"><h2>Sistema</h2>
 <table><tr><th>Item</th><th>Valor</th></tr>
-<tr><td>CPU</td><td>$($hw.Name)</td></tr>
+<tr><td>CPU</td><td>$cpuName</td></tr>
 <tr><td>RAM</td><td>$([math]::Round($os.TotalVisibleMemorySize/1MB,2)) GB</td></tr>
-<tr><td>SO</td><td>$($os.Caption) $($os.Version)</td></tr>
-<tr><td>Modo</td><td>$Mode</td></tr>
+<tr><td>SO</td><td>$osCaption $osVersion</td></tr>
+<tr><td>Modo</td><td>$modeText</td></tr>
 <tr><td>DryRun</td><td>$DryRun</td></tr>
 <tr><td>Data</td><td>$(Get-Date)</td></tr></table></div>
 <div class="card"><h2>Disco C:</h2>
 <p>Total: $totalGB GB | Usado: $usedGB GB | Livre: <span class="ok">$freeGB GB</span></p></div>
-<div class="card"><h2>Log</h2><pre>$(Get-Content $LogFile -Raw)</pre></div>
+<div class="card"><h2>Log</h2><pre>$logText</pre></div>
 </body></html>
 "@
     $html | Out-File $ReportFile -Encoding UTF8
@@ -826,38 +853,61 @@ th{background:#3498db;color:#fff}</style></head><body>
 }
 
 function Invoke-SelfUpdate {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
     Write-Log "=== Self-update ==="
+    if (-not $PSCommandPath) { Write-Log "  Caminho do script indisponivel; atualizacao ignorada." "WARN"; return }
     try {
         $latest = Invoke-WebRequest -Uri $GitHubRaw -UseBasicParsing -TimeoutSec 15
-        $localHash = (Get-FileHash $PSCommandPath -Algorithm SHA256).Hash
-        $remoteHash = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($latest.Content))) -replace "-"
-        if ($localHash -ne $remoteHash) {
-            Write-Log "  Nova versao disponivel. Atualizando..."
-            $latest.Content | Out-File $PSCommandPath -Encoding UTF8 -Force
-            Write-Log "  Script atualizado. Reinicie para usar a nova versao."
-        } else {
-            Write-Log "  Ja esta na versao mais recente."
+        $remoteVersion = $null
+        if ($latest.Content -match '(?m)^\s*\$Version\s*=\s*"([^"]+)"') { $remoteVersion = $matches[1] }
+        if (-not $remoteVersion) { Write-Log "  Nao foi possivel identificar a versao remota." "WARN"; return }
+        if ([version]$remoteVersion -le [version]$Version) {
+            Write-Log "  Ja esta na versao mais recente ($Version)."
+            return
         }
-    } catch { Write-Log "  Nao foi possivel verificar atualizacoes: $_" "WARN" }
+        Write-Log "  Nova versao disponivel: $remoteVersion (local: $Version)."
+        if ($Auto -or $Silent) {
+            Write-Log "  Atualizacao automatica desativada em -Auto/-Silent. Baixe manualmente." "WARN"
+            return
+        }
+        $answer = Read-Host "Baixar e substituir o script pela versao $remoteVersion? [S/N]"
+        if ($answer -notmatch '^[sS]') { Write-Log "  Atualizacao cancelada."; return }
+        if (-not $PSCmdlet.ShouldProcess($PSCommandPath, "Substituir script pela versao $remoteVersion")) { return }
+        $temp = "$PSCommandPath.new"
+        [IO.File]::WriteAllText($temp, $latest.Content, (New-Object Text.UTF8Encoding $true))
+        $hash = (Get-FileHash $temp -Algorithm SHA256).Hash
+        Copy-Item $PSCommandPath "$PSCommandPath.bak" -Force
+        Move-Item $temp $PSCommandPath -Force
+        Write-Log "  Script atualizado para $remoteVersion (SHA256 $hash). Backup: $PSCommandPath.bak"
+    } catch { Write-Log "  Nao foi possivel verificar atualizacoes: $($_.Exception.Message)" "WARN" }
 }
 
 function Push-ToGitHub {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
     Write-Log "=== Auto-push para GitHub ==="
-    $git = "C:\Program Files\Git\bin\git.exe"
-    if (-not (Test-Path $git)) { Write-Log "  Git nao encontrado, pulando push" "WARN"; return }
+    $git = (Get-Command git -ErrorAction SilentlyContinue).Source
+    if (-not $git -and (Test-Path "C:\Program Files\Git\bin\git.exe")) { $git = "C:\Program Files\Git\bin\git.exe" }
+    if (-not $git) { Write-Log "  Git nao encontrado, pulando push" "WARN"; return }
     $repoDir = Split-Path -Parent $PSCommandPath
     if (-not (Test-Path (Join-Path $repoDir ".git"))) { Write-Log "  Nao e um repositorio git, pulando push" "WARN"; return }
     try {
-        & $git -C $repoDir add -A 2>&1 | Out-Null
-        $status = & $git -C $repoDir status --porcelain 2>&1
-        if ($status) {
-            & $git -C $repoDir -c user.email="leo@example.com" -c user.name="Leo" commit -m "Auto-update: $(Get-Date -Format 'yyyy-MM-dd HH:mm')" 2>&1 | Out-Null
-            & $git -C $repoDir push origin main 2>&1 | Out-Null
-            Write-Log "  Push para GitHub concluido"
-        } else {
-            Write-Log "  Nenhuma mudanca para commitar"
+        $status = @(& $git -C $repoDir status --porcelain 2>&1)
+        if ($status.Count -eq 0) { Write-Log "  Nenhuma mudanca para commitar"; return }
+        $untracked = @($status | Where-Object { $_ -match '^\?\?' })
+        if ($untracked.Count -gt 0) {
+            Write-Log "  Arquivos nao rastreados NAO serao enviados: $($untracked -join ', ')" "WARN"
         }
-    } catch { Write-Log "  Erro no push: $_" "WARN" }
+        if (-not (Confirm-Action "Commitar alteracoes rastreadas e enviar para origin/main?")) { return }
+        if (-not $PSCmdlet.ShouldProcess($repoDir, "Commitar e enviar alteracoes")) { return }
+        & $git -C $repoDir add -u 2>&1 | Out-Null
+        $staged = @(& $git -C $repoDir diff --cached --name-only 2>&1)
+        if ($staged.Count -eq 0) { Write-Log "  Nenhuma alteracao rastreada para commitar"; return }
+        & $git -C $repoDir commit -m "Auto-update: $(Get-Date -Format 'yyyy-MM-dd HH:mm')" 2>&1 | Out-Null
+        & $git -C $repoDir push origin main 2>&1 | Out-Null
+        Write-Log "  Push para GitHub concluido"
+    } catch { Write-Log "  Erro no push: $($_.Exception.Message)" "WARN" }
 }
 
 function Show-ExternalTools {
@@ -959,7 +1009,7 @@ function Show-ToastNotification {
             $notify.ShowBalloonTip(5000)
             Start-Sleep -Seconds 1
             $notify.Dispose()
-        } catch {}
+        } catch { Write-Verbose "Toast indisponivel: $($_.Exception.Message)" }
     }
 }
 
@@ -1182,7 +1232,7 @@ function Block-Telemetry {
     foreach ($s in $telServices) {
         $svc = Get-Service $s -EA 0
         if ($svc) {
-            try { Stop-Service $s -Force -EA 0; Set-Service $s -StartupType Disabled -EA 0 } catch {}
+            try { Stop-Service $s -Force -EA 0; Set-Service $s -StartupType Disabled -EA 0 } catch { Write-Log "  Aviso (${s}): $($_.Exception.Message)" "WARN" }
         }
     }
     Write-Log "  Servicos de telemetria desativados"
@@ -1272,14 +1322,14 @@ function Optimize-Services {
     foreach ($s in $safeDisable) {
         $svc = Get-Service $s -EA 0
         if ($svc -and $svc.StartType -ne "Disabled") {
-            try { Stop-Service $s -Force -EA 0; Set-Service $s -StartupType Disabled -EA 0; Write-Log "  $s desativado" } catch {}
+            try { Stop-Service $s -Force -EA 0; Set-Service $s -StartupType Disabled -EA 0; Write-Log "  $s desativado" } catch { Write-Log "  Aviso (${s}): $($_.Exception.Message)" "WARN" }
         }
     }
     $safeManual = @("MapsBroker","lfsvc","DoSvc")
     foreach ($s in $safeManual) {
         $svc = Get-Service $s -EA 0
         if ($svc -and $svc.StartType -eq "Automatic") {
-            try { Set-Service $s -StartupType Manual -EA 0; Write-Log "  $s -> Manual" } catch {}
+            try { Set-Service $s -StartupType Manual -EA 0; Write-Log "  $s -> Manual" } catch { Write-Log "  Aviso (${s}): $($_.Exception.Message)" "WARN" }
         }
     }
     Write-Log "  Servicos otimizados"
@@ -1341,7 +1391,6 @@ function Show-Menu {
     Write-Host "46. Backup de favoritos do navegador"
     Write-Host "47. Otimizar servicos (Safe)"
     Write-Host "48. Executar TUDO + extras (completo)"
-    Write-Host "23. Ferramentas externas recomendadas (links)"
     Write-Host " 0. Sair"
     Write-Host ""
     Write-Host "  NOTA: Nao remove arquivos de projetos/codigo-fonte. Projetos preservados." -ForegroundColor Yellow

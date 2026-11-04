@@ -6,7 +6,24 @@ on:
 permissions:
   contents: read
 jobs:
+  lint:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1
+          if ($results) {
+            $results | Format-Table -AutoSize
+            throw "PSScriptAnalyzer found issues."
+          }
+
   safety:
+    needs: lint
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]

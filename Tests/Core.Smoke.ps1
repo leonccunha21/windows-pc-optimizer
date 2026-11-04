@@ -1,6 +1,7 @@
 ﻿# Dependency-free safety regression suite. Uses only its own temporary directory.
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot '../Modules/Optimizer.Core.psm1') -Force
+$core = Get-Module Optimizer.Core
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) ('optimizer-test-' + [guid]::NewGuid().ToString('N'))
 [void](New-Item -ItemType Directory -Path $testRoot)
 $script:passed = 0
@@ -82,6 +83,15 @@ try {
     $empty=Join-Path $testRoot 'empty';[void](New-Item -ItemType Directory $empty)
     $emptyScan=Get-OptimizerScan -Targets @([pscustomobject]@{Id='empty';Name='Empty';Path=$empty;Process=''})
     Assert-True ($emptyScan.Bytes -eq 0 -and @($emptyScan.Files).Count -eq 0) 'Empty analysis returns zero without failing'
+    Assert-True ((Format-OptimizerSize 0) -like '*MB*') 'Zero bytes formats without failing'
+    Assert-True ((Format-OptimizerSize 1GB) -like '*GB*') 'Gigabyte formatting uses GB'
+    Assert-True ((& $core { Get-OptimizerByteSum @() }) -eq 0) 'Empty byte sum is zero'
+    Assert-True ((& $core { Get-OptimizerByteSum @([pscustomobject]@{Bytes=2},[pscustomobject]@{Bytes=3}) }) -eq 5) 'Byte sum adds values'
+    $defaultTargets = @(Get-OptimizerTargets)
+    Assert-True ($defaultTargets.Count -ge 1 -and $defaultTargets[0].Id -eq 'temp') 'Default targets include the user temp folder'
+    $noCleanupReport = Join-Path $testRoot 'report-no-cleanup.html'
+    Export-OptimizerReport -Path $noCleanupReport -Customer 'Teste' -Notes '' -Diagnostics @() -Cleanup $null
+    Assert-True ((Get-Content $noCleanupReport -Raw) -match 'Nenhuma limpeza') 'Report without cleanup is explicit'
     Write-Output "All $script:passed safety checks passed."
 } finally {
     if(Test-Path (Join-Path $testRoot 'cache/linked')) { [IO.Directory]::Delete((Join-Path $testRoot 'cache/linked')) }

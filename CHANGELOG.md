@@ -1,19 +1,44 @@
-# 4.0.0 — Central de manutenção (2026-11-04)
-
-- Nova interface WPF com painel, prévia de limpeza, diagnóstico, ferramentas e relatório de atendimento.
-- Núcleo independente com raízes permitidas, retenção, proteção de projetos, rejeição de links e revalidação antes da exclusão.
-- Trabalho em segundo plano, interrupção cooperativa e resultado baseado em exclusões confirmadas.
-- Relatório HTML local com escape de dados e sem caminhos pessoais.
-- BAT abre a interface sem exigir administrador; console antigo exige `-Legacy` explícito.
-- Removidas 255 definições duplicadas do legado, sem trocar as implementações efetivas.
-- Testes de segurança isolados e validação Windows PowerShell 5.1/WPF no CI.
-
 # Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- `PSScriptAnalyzerSettings.psd1` e job `lint` bloqueante no CI, executado antes do job `safety`.
+- Cobertura do núcleo ampliada para 30 verificações: formatação de tamanho, soma de bytes, alvos padrão e relatório sem limpeza.
+- `[CmdletBinding(SupportsShouldProcess)]` em `Remove-Safe`, `New-RestorePoint`, `Set-Pagefile`, `Invoke-SelfUpdate` e `Push-ToGitHub`.
+
+### Changed
+- `Invoke-SelfUpdate` agora compara versões, baixa para arquivo temporário, cria backup `.bak`, exige confirmação e não substitui o script em `-Auto`/`-Silent`.
+- `Push-ToGitHub` usa `git add -u`, avisa sobre arquivos não rastreados, respeita a identidade configurada e pede confirmação.
+- `Set-Pagefile` migrado de `Get-WmiObject` para CIM, mantendo fallback via `reg add`.
+- Checagem de administrador movida para depois do `param` e ignorada em `-LoadOnly`; `#Requires -RunAsAdministrator` removido.
+- `$profile` renomeado para `$profileDir` no núcleo e parâmetros `$sender`/`$eventArgs` renomeados na GUI.
+
+### Fixed
+- Removida a opção "23" duplicada do menu legado.
+- `Remove-Safe` não reporta mais sucesso falso quando a exclusão falha.
+- `Generate-Report` escapa CPU, SO, modo e log com `WebUtility::HtmlEncode`.
+- Contador de logs limpos em `Clear-EventLogs` agora reflete as exclusões reais.
+- Treze blocos `catch {}` vazios passaram a registrar `Write-Log`/`Write-Verbose`.
+- `CHANGELOG.md` reorganizado no formato Keep a Changelog.
+
+## [4.0.0] - 2026-11-04
+
+### Added
+- Nova interface WPF com painel, prévia de limpeza, diagnóstico, ferramentas e relatório de atendimento.
+- Núcleo independente com raízes permitidas, retenção, proteção de projetos, rejeição de links e revalidação antes da exclusão.
+- Trabalho em segundo plano, interrupção cooperativa e resultado baseado em exclusões confirmadas.
+- Relatório HTML local com escape de dados e sem caminhos pessoais.
+- Testes de segurança isolados e validação Windows PowerShell 5.1/WPF no CI.
+
+### Changed
+- BAT abre a interface sem exigir administrador; console antigo exige `-Legacy` explícito.
+- Removidas 255 definições duplicadas do legado, sem trocar as implementações efetivas.
 
 ## [3.3.0] - 2026-11-04
 

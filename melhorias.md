@@ -1,7 +1,7 @@
 # Melhorias recomendadas — PC Optimizer
 
-> Atualizado em 04/11/2026 após o pull da **v4.0** (commit `a8158cf`).
-> Base: `Otimizar-PC.ps1` (legado, 1.536 linhas), `Modules/Optimizer.Core.psm1` e `Otimizador-GUI.ps1`.
+> Atualizado em 04/11/2026 após a rodada de correções da **v4.0** (commit `232b4ba` + alterações locais).
+> Base: `Otimizar-PC.ps1` (legado, 1.585 linhas), `Modules/Optimizer.Core.psm1` e `Otimizador-GUI.ps1`.
 
 ---
 
@@ -11,89 +11,83 @@
 |---|---|
 | ~255 definições duplicadas | **Resolvido** — 72 funções, 72 nomes únicos, zero duplicatas |
 | GUI síncrona / congelando | **Resolvido** — runspace separado + `DispatcherTimer` + cancelamento cooperativo |
-| Relatório HTML sem escape | **Resolvido no núcleo** — `WebUtility::HtmlEncode` em cliente, observações e diagnóstico |
-| Testes só verificavam existência | **Melhorado** — suíte de segurança com arquivos descartáveis, links, retenção, expiração e cancelamento |
-| CI sem matriz | **Resolvido** — Ubuntu/Windows, Windows PowerShell 5.1 e validação WPF real |
+| Relatório HTML sem escape | **Resolvido** — `WebUtility::HtmlEncode` no núcleo e no relatório legado |
+| Testes só verificavam existência | **Melhorado** — 30 verificações de segurança com arquivos descartáveis, links, retenção, expiração e cancelamento |
+| CI sem matriz | **Resolvido** — Ubuntu/Windows, Windows PowerShell 5.1, WPF real e PSScriptAnalyzer bloqueante |
 | Exigir admin para abrir a interface | **Resolvido** — BAT abre a UI sem elevação; console legado exige `-Legacy` |
 | Docs desalinhadas | **Resolvido** — README, LEIA-ME e CONTRIBUTING reescritos para a 4.0 |
 
 O projeto mudou de "script gigante" para uma arquitetura com núcleo separado e interface WPF. O backlog abaixo é o que **ainda** vale implementar.
 
+### Correções aplicadas nesta rodada
+
+- Menu legado sem a opção "23" duplicada.
+- `CHANGELOG.md` migrado para Keep a Changelog, com a 4.0 sob `## [4.0.0]`.
+- `Invoke-SelfUpdate` compara versões, baixa para arquivo temporário, exige confirmação e não substitui o script em `-Auto`/`-Silent`.
+- `Push-ToGitHub` usa `git add -u`, lista arquivos não rastreados, respeita a identidade configurada e pede confirmação.
+- `Generate-Report` escapa CPU, SO, modo e log com `WebUtility::HtmlEncode`.
+- Checagem de administrador movida para depois do `param` e ignorada em `-LoadOnly`; `#Requires -RunAsAdministrator` removido.
+- `Set-Pagefile` migrado de `Get-WmiObject` para CIM, mantendo fallback via `reg add`.
+- `Remove-Safe` usa `try/catch`, não reporta remoção falsa e suporta `-WhatIf`.
+- `New-RestorePoint`, `Set-Pagefile`, `Invoke-SelfUpdate` e `Push-ToGitHub` receberam `[CmdletBinding(SupportsShouldProcess)]`.
+- 13 blocos `catch {}` vazios passaram a registrar `Write-Log`/`Write-Verbose`.
+- `$profile` renomeado para `$profileDir` no núcleo; parâmetros `$sender`/`$eventArgs` renomeados na GUI.
+- Criado `PSScriptAnalyzerSettings.psd1`; job `lint` bloqueante adicionado ao CI.
+- Suíte do núcleo ampliada para 30 verificações (formatação, soma de bytes, alvos padrão e relatório sem limpeza).
+
+
 ---
 
-## P0 — Correções rápidas
+## P0 — Correções rápidas (concluído)
 
-### 1. Remover a linha duplicada "23" do menu legado
+### 1. ~~Remover a linha duplicada "23" do menu legado~~ — **Resolvido**
 
-`Otimizar-PC.ps1` linha **1344** repete "23. Ferramentas externas recomendadas" (já aparece na linha 1318).
+A opção "23. Ferramentas externas recomendadas" aparecia duas vezes. A duplicata foi removida; o menu tem 48 opções únicas.
 
-**Ação:** apagar a linha duplicada. Opcional: gerar o menu a partir de um array para impedir novas divergências.
+### 2. ~~Reestruturar o `CHANGELOG.md`~~ — **Resolvido**
 
-### 2. Reestruturar o `CHANGELOG.md`
+O arquivo agora segue Keep a Changelog: título `# Changelog`, entrada `## [4.0.0] - 2026-11-04` e seções `### Added`/`### Changed`.
 
-A entrada `# 4.0.0` está **antes** do título `# Changelog` e usa heading diferente do padrão Keep a Changelog.
+### 3. ~~Endurecer `Invoke-SelfUpdate` e `Push-ToGitHub`~~ — **Resolvido**
 
-**Ação:** mover a 4.0 para baixo do cabeçalho e padronizar:
+- `Invoke-SelfUpdate` compara `$Version` local com a remota, baixa para `.new`, grava backup `.bak`, exige confirmação e não substitui o script em `-Auto`/`-Silent`.
+- `Push-ToGitHub` usa `git add -u`, avisa sobre arquivos não rastreados, não fixa identidade e exige confirmação antes de commit/push.
+- As rotinas continuam no legado por compatibilidade; a UI 4.0 não as usa.
 
-```markdown
-## [4.0.0] - 2026-11-04
+### 4. ~~Escapar o log no `Generate-Report` legado~~ — **Resolvido**
 
-### Added
-- ...
-```
+CPU, SO, modo e log agora passam por `[System.Net.WebUtility]::HtmlEncode` antes de entrar no HTML.
 
-### 3. Endurecer `Invoke-SelfUpdate` e `Push-ToGitHub` (legado)
+### 5. ~~Decidir o destino do `#Requires -RunAsAdministrator`~~ — **Resolvido**
 
-Ainda presentes em `Otimizar-PC.ps1` (linhas 828 e 844) com os mesmos riscos:
+O `#Requires` foi removido. A checagem de administrador ocorre após o `param` e é ignorada com `-LoadOnly`, permitindo dot-sourcing para testes e ferramentas.
 
-- `Invoke-SelfUpdate` baixa o raw do GitHub e **sobrescreve o próprio script** sem validar versão, assinatura ou checksum. Como compara hash do arquivo local com o conteúdo remoto, qualquer diferença de CRLF/LF força atualização.
-- `Push-ToGitHub` faz `git add -A` e commit com identidade fixa `leo@example.com`, podendo publicar arquivos não intencionais.
-
-**Ações:**
-- Self-update: comparar `$Version` com a versão remota; baixar para temporário; validar SHA-256 publicado no release; só substituir após confirmação.
-- Auto-push: remover `-A`, listar arquivos explicitamente, respeitar `user.name`/`user.email` do repositório e exigir confirmação.
-- Ideal: remover as duas rotinas do legado e manter atualização/publicação fora do produto.
-
-### 4. Escapar o log no `Generate-Report` legado
-
-O relatório do **núcleo** já escapa tudo, mas o `Generate-Report` do legado (linha 820) ainda injeta `Get-Content $LogFile -Raw` dentro de `<pre>`, sem `HtmlEncode`.
-
-**Ação:** aplicar `[System.Net.WebUtility]::HtmlEncode(...)` ou remover o gerador legado, já que a UI 4.0 tem relatório próprio.
-
-### 5. Decidir o destino do `#Requires -RunAsAdministrator`
-
-`Otimizar-PC.ps1` linha 51 ainda exige admin **antes** do `param`, então `-LoadOnly` também exige. Os testes atuais contornam isso via AST (não executam o script), mas qualquer ferramenta que tente dot-sourcing falha sem elevação.
-
-**Ação:** mover a checagem para o ponto de entrada, ignorando `-LoadOnly`; ou documentar explicitamente que o legado só carrega como admin.
 
 ---
 
 ## P1 — Núcleo, testes e qualidade
 
-### 6. Reintroduzir o PSScriptAnalyzer no CI
+### 6. ~~Reintroduzir o PSScriptAnalyzer no CI~~ — **Resolvido**
 
-A v4.0 removeu o PSScriptAnalyzer do workflow (0 referências). Hoje o CI valida sintaxe, duplicatas e XAML, mas não estilo/regras.
+`PSScriptAnalyzerSettings.psd1` foi criado e o job `lint` (bloqueante) roda no CI antes do job `safety`. Resultado local: **0 findings**.
 
-**Ação:**
-- Criar `PSScriptAnalyzerSettings.psd1`.
-- Rodar `Invoke-ScriptAnalyzer -Settings ... -Severity Warning,Error` no job `safety`.
-- Começar como advisory (não bloquear) e depois tornar bloqueante.
+Regras desativadas com justificativa: verbos/substantivos de domínio, `Write-Host` no console interativo, `Write-Log` do projeto, `ShouldProcess` em helpers e parâmetros globais do legado.
 
-### 7. Ampliar a cobertura do núcleo
+### 7. Ampliar a cobertura do núcleo — **Parcialmente resolvido**
 
-A suíte atual cobre muito bem limpeza e relatório. Faltam casos para:
+Já cobertos (30 verificações no total):
 
-- `Format-OptimizerSize` (bytes, MB, GB, zero).
-- `Get-OptimizerByteSum` (lista vazia, propriedade ausente).
-- `Get-OptimizerTargets` (perfis `Default`/`Profile N`, navegador ausente).
-- `Get-OptimizerDiagnostics` (WMI indisponível, bateria ausente, Defender desligado).
-- `Export-OptimizerReport` sem limpeza (`Cleanup = $null`) e com acentos.
+- `Format-OptimizerSize` (zero, MB, GB).
+- `Get-OptimizerByteSum` (lista vazia e soma).
+- `Get-OptimizerTargets` (inclui a pasta Temp do usuário).
+- `Export-OptimizerReport` sem limpeza (`Cleanup = $null`).
 
-Manter o estilo dependency-free atual ou migrar para Pester 5 — o importante é cobrir esses caminhos.
+Ainda faltam casos para `Get-OptimizerDiagnostics` (WMI indisponível, bateria ausente, Defender desligado) e para perfis `Default`/`Profile N` com navegador ausente.
+
 
 ### 8. Padronizar `[CmdletBinding()]` e help no núcleo
 
-`Optimizer.Core.psm1` tem apenas **1** `[CmdletBinding()]` (em `Invoke-OptimizerCleanup`). As demais funções não têm `-Verbose`, `-Debug` nem help.
+`Optimizer.Core.psm1` tem apenas **1** `[CmdletBinding()]` (em `Invoke-OptimizerCleanup`). As demais funções não têm `-Verbose`, `-Debug` nem help. No legado, 5 funções destrutivas já receberam `[CmdletBinding(SupportsShouldProcess)]`.
 
 **Ação:** adicionar `[CmdletBinding()]` e comment-based help em `Get-OptimizerScan`, `Get-OptimizerTargets`, `Test-OptimizerPath`, `Export-OptimizerReport` e `Get-OptimizerDiagnostics`.
 
@@ -228,41 +222,42 @@ O restante é de outro domínio (agentes, social, web) ou já está marcado como
 
 ## Roadmap sugerido
 
-| Etapa | Escopo | Entrega |
-|---|---|---|
-| 1 | P0 (itens 1–5) | Menu sem duplicata, CHANGELOG padronizado, legado sem self-update inseguro, relatório legado escapado |
-| 2 | P1 (itens 6–12) | PSScriptAnalyzer no CI, cobertura extra, config externa, relatório com `<head>`/JSON |
-| 3 | P2 (itens 13–16) | Release assinado, workflow de tag, `-Auto` revisado, `SECURITY.md` |
-| 4 | P3/P4 (itens 17–24) | Acessibilidade, seleção em massa, progresso real, docs de arquitetura e templates |
+| Etapa | Escopo | Entrega | Status |
+|---|---|---|---|
+| 1 | P0 (itens 1–5) | Menu sem duplicata, CHANGELOG padronizado, legado sem self-update inseguro, relatório legado escapado | **Concluído** |
+| 2 | P1 (itens 6–12) | PSScriptAnalyzer no CI, cobertura extra, config externa, relatório com `<head>`/JSON | Itens 6–7 feitos; 8–12 pendentes |
+| 3 | P2 (itens 13–16) | Release assinado, workflow de tag, `-Auto` revisado, `SECURITY.md` | Pendente |
+| 4 | P3/P4 (itens 17–24) | Acessibilidade, seleção em massa, progresso real, docs de arquitetura e templates | Pendente |
 
 ---
 
 ## Critérios de aceite
 
-- [ ] `Tests/Validate-Syntax.ps1` continua detectando zero duplicatas.
-- [ ] `Tests/Core.Smoke.ps1` verde em Windows PowerShell 5.1 e PowerShell 7.
-- [ ] PSScriptAnalyzer sem Warning/Error com as settings do repo.
-- [ ] Menu legado sem opções repetidas.
-- [ ] CHANGELOG com a 4.0 no formato Keep a Changelog.
-- [ ] Relatório do legado escapa o log (ou o gerador legado é removido).
-- [ ] Self-update não sobrescreve sem validar versão/checksum.
+- [x] `Tests/Validate-Syntax.ps1` continua detectando zero duplicatas.
+- [x] `Tests/Core.Smoke.ps1` verde em Windows PowerShell 5.1 e PowerShell 7 (30 verificações).
+- [x] PSScriptAnalyzer sem Warning/Error com as settings do repo.
+- [x] Menu legado sem opções repetidas.
+- [x] CHANGELOG com a 4.0 no formato Keep a Changelog.
+- [x] Relatório do legado escapa o log (ou o gerador legado é removido).
+- [x] Self-update não sobrescreve sem validar versão/checksum.
 - [ ] Release publica ZIP + SHA-256.
 
 ---
 
-## Anexo — evidências da v4.0
+## Anexo — evidências (atualizado)
 
 | Evidência | Valor |
 |---|---|
-| Linhas de `Otimizar-PC.ps1` | 1.536 |
+| Linhas de `Otimizar-PC.ps1` | 1.585 |
 | Definições `function` no legado | 72 |
 | Nomes únicos | 72 |
 | Duplicatas | 0 |
-| Linhas de `Optimizer.Core.psm1` | ~180 |
+| Linhas de `Optimizer.Core.psm1` | 179 |
 | `[CmdletBinding()]` no núcleo | 1 (`Invoke-OptimizerCleanup`) |
-| `[CmdletBinding()]` no legado | 0 |
+| `[CmdletBinding()]` no legado | 5 (rotinas destrutivas) |
 | `Write-Progress` no projeto | 0 |
-| Opções do menu legado | 48 (com "23" duplicada na linha 1344) |
+| Opções do menu legado | 48 (sem duplicatas) |
+| Verificações em `Core.Smoke.ps1` | 30 |
 | Abas da UI 4.0 | 5 (Visão geral, Limpeza, Diagnóstico, Ferramentas, Relatório) |
-| PSScriptAnalyzer no CI | 0 referências |
+| PSScriptAnalyzer no CI | job `lint` bloqueante |
 | Matriz do CI | Ubuntu + Windows; PS 5.1; validação WPF |

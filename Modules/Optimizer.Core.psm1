@@ -24,9 +24,9 @@ function Get-OptimizerTargets {
     )) {
         $base = Join-Path $env:LOCALAPPDATA $browser.Folder
         if (-not (Test-Path -LiteralPath $base)) { continue }
-        foreach ($profile in @(Get-ChildItem -LiteralPath $base -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'Default' -or $_.Name -match '^Profile \d+$' })) {
+        foreach ($profileDir in @(Get-ChildItem -LiteralPath $base -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'Default' -or $_.Name -match '^Profile \d+$' })) {
             foreach ($cache in @('Cache\Cache_Data', 'Code Cache', 'GPUCache')) {
-                $targets += [pscustomobject]@{ Id="$($browser.Id)-$($profile.Name)-$cache"; Name="$($browser.Name) / $($profile.Name) / $cache"; Path=(Join-Path $profile.FullName $cache); Process=$browser.Process }
+                $targets += [pscustomobject]@{ Id="$($browser.Id)-$($profileDir.Name)-$cache"; Name="$($browser.Name) / $($profileDir.Name) / $cache"; Path=(Join-Path $profileDir.FullName $cache); Process=$browser.Process }
             }
         }
     }
