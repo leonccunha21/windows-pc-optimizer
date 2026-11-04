@@ -258,6 +258,98 @@ $ui.HealthAnalyzeButton.Add_Click({ Start-Work 'Health' $null })
 $ui.HealthHome.Add_Click({ $ui.Pages.SelectedIndex = 3; Start-Work 'Health' $null })
 $ui.HealthShortcut.Add_Click({ $ui.Pages.SelectedIndex = 3 })
 $ui.MaintenanceShortcut.Add_Click({ $ui.Pages.SelectedIndex = 4 })
+$ui.WorkbenchShortcut.Add_Click({ $ui.Pages.SelectedIndex = 4; $ui.MaintenanceTabs.SelectedIndex = 4 })
+
+# Independent technician modules: only explicit commands are run; all inventory stays read-only.
+foreach ($entry in @(
+    @('InvProcessesButton','Processes'),@('InvStartupButton','Startup'),@('InvSoftwareButton','Software'),
+    @('InvNetworkButton','Network'),@('InvUpdatesButton','Updates'),@('InvStorageButton','Storage')
+)) {
+    $ui[$entry[0]].Tag = [string]$entry[1]
+    $ui[$entry[0]].Add_Click({
+        param($inspectionSender)
+        if ($null -eq $script:worker) { Start-Work 'Inspect' @{Area=[string]$inspectionSender.Tag} }
+    })
+}
+$ui.NetworkSnapshotButton.Add_Click({
+    if ($null -eq $script:worker) { Start-Work 'NetworkSnapshot' @{Reveal=$false} }
+})
+$ui.NetworkRevealButton.Add_Click({
+    if ($null -ne $script:worker) { return }
+    $warning = 'Mostrar IPs, gateway, DNS e nomes de perfis locais? Evite incluir esses valores em relatórios de clientes.'
+    $response = [Windows.MessageBox]::Show($window,$warning,'Privacidade da rede','YesNo','Question','No')
+    if ($response -eq 'Yes') { Start-Work 'NetworkSnapshot' @{Reveal=$true} }
+})
+$ui.NetworkProbeButton.Add_Click({
+    if ($null -ne $script:worker) { return }
+    $destination = $ui.NetworkTarget.Text.Trim()
+    $port = 0
+    if (-not [int]::TryParse($ui.NetworkPort.Text,[ref]$port) -or $port -lt 1 -or $port -gt 65535 -or -not $destination) {
+        $ui.NetworkSummary.Text = 'Informe um nome de host/IP e uma porta entre 1 e 65535.'
+        return
+    }
+    try {
+        Import-Module $script:networkPath -Force -ErrorAction Stop
+        if (-not (Test-OptimizerEndpointInput -HostName $destination -Port $port)) { throw 'Host/IP inválido: não informe URL ou caracteres especiais.' }
+    } catch {
+        $ui.NetworkSummary.Text = $_.Exception.Message
+        return
+    }
+    $targetName = $destination + ':' + $port
+    $message = 'Autoriza resolver DNS e testar TCP em ' + $targetName + '?' + [Environment]::NewLine + [Environment]::NewLine +
+        'Isso envia tráfego externo ao destino solicitado, que poderá registrá-lo.'
+    $answer = [Windows.MessageBox]::Show($window,$message,'Autorização de rede','YesNo','Question','No')
+    if ($answer -eq 'Yes') { Start-Work 'NetworkProbe' @{Host=$destination;Port=$port} }
+})
+$ui.EventsAnalyzeButton.Add_Click({
+    if ($null -eq $script:worker) { Start-Work 'Events' $null }
+})
+$repairModes = @{
+    SfcVerifyButton='SFC-Verify'
+    DismScanButton='DISM-Scan'
+    ChkdskScanButton='CHKDSK-Scan'
+    SfcRepairButton='SFC-Repair'
+    DismRepairButton='DISM-Repair'
+}
+foreach ($buttonName in $repairModes.Keys) {
+    $ui[$buttonName].Tag = [string]$repairModes[$buttonName]
+    $ui[$buttonName].Add_Click({
+        param($repairSender)
+        if ($null -ne $script:worker) { return }
+        $mode = [string]$repairSender.Tag
+        $action = if ($mode.EndsWith('Repair')) { 'REPARAR arquivos do sistema' } else { 'VERIFICAR integridade do Windows' }
+        $message = 'Executar ' + $mode + ' para ' + $action + '?' + [Environment]::NewLine +
+            'Confira backup, autorização do proprietário e energia estável. O Windows solicitará UAC.'
+        $answer = [Windows.MessageBox]::Show($window,$message,'Confirmar operação técnica','YesNo','Warning','No')
+        if ($answer -ne 'Yes') { return }
+        try {
+            $executable = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+            $repairScript = Join-Path $PSScriptRoot 'Modules\Repair.Tools.ps1'
+            $args = '-NoProfile -NoExit -File "{0}" -Mode {1}' -f $repairScript.Replace('"',''),$mode
+            Start-Process -FilePath $executable -ArgumentList $args -Verb RunAs -ErrorAction Stop | Out-Null
+            $ui.Status.Text = 'Console técnico aberto: ' + $mode
+        } catch {
+            [void][Windows.MessageBox]::Show($window,$_.Exception.Message,'Falha ao iniciar console','OK','Warning')
+        }
+    })
+}
+$ui.ExportResultsButton.Add_Click({
+    if ($null -eq $script:cleanup) { return }
+    $dialog = New-Object Microsoft.Win32.SaveFileDialog
+    $dialog.Filter = 'Resultado CSV (*.csv)|*.csv'
+    $dialog.FileName = 'Resultado-Limpeza-' + (Get-Date -Format 'yyyyMMdd-HHmm') + '.csv'
+    if (-not $dialog.ShowDialog($window)) { return }
+    $warning = 'Este CSV detalhado contém caminhos de arquivos do computador. Salve somente em local autorizado.'
+    $answer = [Windows.MessageBox]::Show($window,$warning,'Privacidade dos dados','YesNo','Warning','No')
+    if ($answer -ne 'Yes') { return }
+    try {
+        @($script:cleanup.Results | Select-Object Category,Status,Bytes,Detail,Path) |
+            Export-Csv -LiteralPath $dialog.FileName -NoTypeInformation -Encoding UTF8
+        $ui.Status.Text = 'CSV salvo no local escolhido.'
+    } catch {
+        [void][Windows.MessageBox]::Show($window,$_.Exception.Message,'Erro ao exportar CSV','OK','Error')
+    }
+})
 $ui.BatteryReportButton.Add_Click({
     $dialog = New-Object Microsoft.Win32.SaveFileDialog
     $dialog.Filter = 'Relatório de bateria (*.html)|*.html'
