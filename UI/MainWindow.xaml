@@ -103,6 +103,11 @@
    <Setter Property="Foreground" Value="{DynamicResource UiColor192C42}"/>
    <Setter Property="Margin" Value="0,4,0,12"/>
   </Style>
+  <Style TargetType="ComboBoxItem">
+   <Setter Property="Background" Value="{DynamicResource UiCardBrush}"/>
+   <Setter Property="Foreground" Value="{DynamicResource UiColor192C42}"/>
+   <Setter Property="Padding" Value="9,6"/>
+  </Style>
   <Style TargetType="TextBox">
    <Setter Property="Background" Value="{DynamicResource UiCardBrush}"/>
    <Setter Property="Foreground" Value="{DynamicResource UiColor192C42}"/>
