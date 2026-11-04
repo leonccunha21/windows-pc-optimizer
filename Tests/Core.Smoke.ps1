@@ -100,8 +100,16 @@ try {
     Assert-True ($emptyScan.Bytes -eq 0 -and @($emptyScan.Files).Count -eq 0) 'Empty analysis returns zero without failing'
     Assert-True ((& $core { Get-OptimizerByteSum @() }) -eq 0) 'Empty byte sum is zero'
     Assert-True ((& $core { Get-OptimizerByteSum @([pscustomobject]@{Bytes=2},[pscustomobject]@{Bytes=3}) }) -eq 5) 'Byte sum adds values'
-    $defaultTargets = @(Get-OptimizerTargets)
-    Assert-True ($defaultTargets.Count -ge 1 -and $defaultTargets[0].Id -eq 'temp') 'Default targets include the user temp folder'
+    # Linux CI does not define LOCALAPPDATA; use a disposable profile for this Windows-only path calculation.
+    $originalLocalAppData = $env:LOCALAPPDATA
+    if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+        $env:LOCALAPPDATA = Join-Path $testRoot 'local-app-data'
+        [void](New-Item -ItemType Directory -Path $env:LOCALAPPDATA -Force)
+    }
+    try {
+        $defaultTargets = @(Get-OptimizerTargets)
+        Assert-True ($defaultTargets.Count -ge 1 -and $defaultTargets[0].Id -eq 'temp') 'Default targets include the user temp folder'
+    } finally { $env:LOCALAPPDATA = $originalLocalAppData }
     $noCleanupReport = Join-Path $testRoot 'report-no-cleanup.html'
     Export-OptimizerReport -Path $noCleanupReport -Customer 'Teste' -Notes '' -Diagnostics @() -Cleanup $null
     Assert-True ((Get-Content $noCleanupReport -Raw) -match 'Nenhuma limpeza') 'Report without cleanup is explicit'

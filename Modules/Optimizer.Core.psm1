@@ -25,6 +25,7 @@ function Format-OptimizerSize {
 function Get-OptimizerTargets {
     [CmdletBinding()]
     param()
+    if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) { return @() }
     # Explicit allowlist: no Documents, Downloads, registry, credentials or event logs.
     $targets = @([pscustomobject]@{ Id='temp'; Name='Temporários do usuário'; Path=(Join-Path $env:LOCALAPPDATA 'Temp'); Process='' })
     foreach ($browser in @(
