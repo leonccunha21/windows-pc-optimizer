@@ -16,6 +16,7 @@ $script:scan = $null; $script:cleanup = $null; $script:diagnostics = @(); $scrip
 $script:battery = $null; $script:disks = $null; $script:appx = @(); $script:optimizations = @(); $script:driverUpdates = $null
 $script:state = [hashtable]::Synchronized(@{Cancel=$false; Message=''; Result=$null; Error=$null; Total=0; Processed=0})
 $script:modulePath = Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1'
+$script:networkModulePath = Join-Path $PSScriptRoot 'Modules\Optimizer.NetworkDiagnostics.psm1'
 $script:isAdmin = $false
 try {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -24,7 +25,7 @@ try {
 } catch { Write-Verbose 'Não foi possível verificar elevação.' }
 
 function Set-Busy([bool]$Busy) {
-    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','OptimizationRunButton','HealthShortcut','MaintenanceShortcut')) { $ui[$name].IsEnabled = -not $Busy }
+    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','OptimizationRunButton','HealthShortcut','MaintenanceShortcut','NetworkAnalyzeButton','NetworkCheckButton')) { $ui[$name].IsEnabled = -not $Busy }
     $ui.CleanButton.IsEnabled = -not $Busy -and $null -ne $script:scan -and -not $script:scan.Cancelled -and @($script:scan.Files).Count -gt 0
     $ui.DetailsButton.IsEnabled = -not $Busy -and ($null -ne $script:scan -or $null -ne $script:cleanup)
     $ui.Categories.IsEnabled = -not $Busy
@@ -96,9 +97,10 @@ function Start-Work([string]$Operation, $Payload) {
     $script:state.Cancel = $false; $script:state.Error = $null; $script:state.Result = $null; $script:state.Message = 'Preparando...'; $script:state.Processed = 0; $script:state.Total = 0
     $script:worker = [PowerShell]::Create()
     [void]$script:worker.AddScript({
-        param($ModulePath, $Operation, $Payload, $State)
+        param($ModulePath, $NetworkModulePath, $Operation, $Payload, $State)
         try {
             Import-Module $ModulePath -Force -ErrorAction Stop
+            Import-Module $NetworkModulePath -Force -ErrorAction Stop
             switch ($Operation) {
                 'Scan' { $State.Result = Get-OptimizerScan -State $State }
                 'Clean' { $State.Result = Invoke-OptimizerCleanup -Scan $Payload.Scan -CategoryIds $Payload.Ids -State $State -Confirm:$false }
@@ -113,9 +115,11 @@ function Start-Work([string]$Operation, $Payload) {
                 'Appx' { $State.Message = 'Listando aplicativos instalados...'; $State.Result = @(Get-OptimizerAppInventory) }
                 'RemoveAppx' { $State.Message = 'Removendo aplicativos selecionados...'; $State.Result = @(Invoke-OptimizerAppRemoval -PackageFullNames $Payload.Names -Confirm:$false) }
                 'Optimize' { $State.Message = 'Aplicando otimizações selecionadas...'; $State.Result = @(Invoke-OptimizerOptimization -Ids $Payload.Ids -Confirm:$false) }
+                'Network' { $State.Message = 'Consultando rede local...'; $State.Result = @(Get-OptimizerNetworkSnapshot -State $State) }
+                'Connectivity' { $State.Message = 'Executando teste solicitado...'; $State.Result = @(Invoke-OptimizerConnectivityCheck -DnsName $Payload.DnsName -Target $Payload.Target -Port ([int]$Payload.Port) -State $State) }
             }
         } catch { $State.Error = $_.Exception.Message }
-    }).AddArgument($script:modulePath).AddArgument($Operation).AddArgument($Payload).AddArgument($script:state)
+    }).AddArgument($script:modulePath).AddArgument($script:networkModulePath).AddArgument($Operation).AddArgument($Payload).AddArgument($script:state)
     $script:handle = $script:worker.BeginInvoke()
     Set-Busy $true
     $timer.Start()
@@ -205,6 +209,20 @@ $timer.Add_Tick({
                 if ($failed.Count -gt 0) { $ui.OptimizationNote.Text = (@($failed | ForEach-Object { "$($_.Name): $($_.Detail)" }) -join ' | ') }
                 $ui.Status.Text = 'Otimizações concluídas. Revise o resultado antes de repetir.'
             }
+            'Network' {
+                $networkRows = @($script:state.Result)
+                $ui.NetworkGrid.ItemsSource = $networkRows
+                $attention = @($networkRows | Where-Object { @('Warning', 'Error') -contains [string]$_.Level })
+                $ui.NetworkSummary.Text = if ($attention.Count -gt 0) { "$($attention.Count) ponto(s) de atenção na consulta local." } else { 'Rede local consultada sem apontamentos.' }
+                $ui.Status.Text = 'Inventário de rede concluído. Nada foi alterado.'
+            }
+            'Connectivity' {
+                $checks = @($script:state.Result)
+                $failed = @($checks | Where-Object { [string]$_.Level -eq 'Warning' })
+                $ui.NetworkGrid.ItemsSource = $checks
+                $ui.NetworkSummary.Text = if ($failed.Count -gt 0) { "$($failed.Count) teste(s) com resultado não confirmado. Revise o destino informado." } else { 'Testes solicitados concluídos sem avisos.' }
+                $ui.Status.Text = 'Testes de rede concluídos. Nada além do destino informado foi verificado.'
+            }
         }
     } catch {
         $ui.Status.Text = 'Falha: ' + $_.Exception.Message
@@ -216,6 +234,12 @@ $ui.ScanButton.Add_Click({ Start-Work 'Scan' $null })
 $ui.GoClean.Add_Click({ $ui.Pages.SelectedIndex = 1; Start-Work 'Scan' $null })
 $ui.DiagnoseHome.Add_Click({ $ui.Pages.SelectedIndex = 2; Start-Work 'Diagnose' $null })
 $ui.DiagnoseButton.Add_Click({ Start-Work 'Diagnose' $null })
+$ui.NetworkAnalyzeButton.Add_Click({ Start-Work 'Network' $null })
+$ui.NetworkCheckButton.Add_Click({
+    $target = [string]$ui.NetworkTarget.Text
+    if ([string]::IsNullOrWhiteSpace($target)) { $ui.Status.Text = 'Informe o destino do teste (DNS ou host/IP).'; return }
+    Start-Work 'Connectivity' @{ DnsName = $target; Target = $target; Port = 443 }
+})
 $ui.CancelButton.Add_Click({ $script:state.Cancel = $true; $ui.CancelButton.IsEnabled = $false; $ui.Status.Text = 'Interrompendo após o arquivo atual...' })
 $ui.CloseButton.Add_Click({ $window.Close() })
 $ui.HealthAnalyzeButton.Add_Click({ Start-Work 'Health' $null })
@@ -388,6 +412,13 @@ if ($ValidateUI) {
             Start-Sleep -Milliseconds 20
         }
         if ($null -ne $script:worker -or (Test-Path $sample) -or $script:cleanup.RemovedCount -ne 1 -or $ui.CleanButton.IsEnabled) { throw 'UI cleanup/result integration failed.' }
+        Start-Work 'Network' $null
+        $deadline = [DateTime]::UtcNow.AddSeconds(25)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or $null -eq $script:state.Result -or @($script:state.Result).Count -eq 0) { throw 'UI network/runspace integration failed.' }
     } finally {
         $env:LOCALAPPDATA = $previousLocalAppData
         $timer.Stop()
@@ -395,11 +426,11 @@ if ($ValidateUI) {
         $window.Close()
         if (Test-Path $fixture) { Remove-Item -LiteralPath $fixture -Recurse -Force }
     }
-    foreach ($required in @('CloseButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','HealthAnalyzeButton','BatteryReportButton')) {
+    foreach ($required in @('CloseButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','HealthAnalyzeButton','BatteryReportButton','NetworkGrid','NetworkAnalyzeButton','NetworkCheckButton','NetworkSummary','NetworkTarget')) {
         if ($null -eq $ui[$required]) { throw "Controle ausente na interface: $required" }
     }
     if (@($ui.OptimizationGrid.Items).Count -lt 5) { throw 'Catálogo de otimizações não foi carregado.' }
-    Write-Output 'WPF layout, bindings, asynchronous scan and cleanup passed.'
+    Write-Output 'WPF layout, bindings, asynchronous scan, cleanup and network passed.'
     return
 }
 try { [void]$window.ShowDialog() } finally { $timer.Stop(); if ($null -ne $script:worker) { $script:worker.Dispose() } }

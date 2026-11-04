@@ -23,7 +23,7 @@
 
 **Entregas adicionais:** iniciador de duplo clique `Tools/Executar-Diagnostico-Rede.bat`, ocultação de nomes de perfis de rede por padrão e inclusão da pasta `Tools` no workflow de release. Funções reais documentadas em `docs/DIAGNOSTICO-REDE.md`.
 
-**Integração gráfica ainda pendente (responsável: agente de Saúde/Drivers/UI):** adicionar botão/área "Rede" e handlers para `Get-OptimizerNetworkSnapshot` e `Invoke-OptimizerConnectivityCheck`; não exibir como disponível na interface antes dessa implementação e teste. Não duplicar comandos no núcleo e não executar conexões externas sem consentimento. Se houver alterações simultâneas em `melhorias.md`, conciliar o conteúdo, nunca substituir o plano da outra frente.
+**Integração gráfica concluída (responsável: agente de Saúde/Drivers/UI):** aba **Rede** implementada na interface com botões **Analisar rede local** e **Testar conectividade**, handlers no runspace dedicado para `Get-OptimizerNetworkSnapshot` e `Invoke-OptimizerConnectivityCheck` e teste incluído no modo `-ValidateUI`. A aba não executa conexões externas sem destino explícito informado. Commit de integração sobre a `main`: `0c18c46`.
 
 ---
 

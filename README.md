@@ -20,6 +20,7 @@ Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil 
 | Visão geral | Fluxo de atendimento, espaço analisado e resultado real da última limpeza |
 | Limpeza | Prévia por categoria e arquivo, seleção/desmarcação em massa, resultado detalhado e progresso por arquivo; caches Chrome, Edge e Brave; retenção mínima de 7 dias |
 | Diagnóstico | Sistema, fabricante/modelo, CPU, RAM, discos, espaço livre, bateria e estado do Defender quando disponível |
+| Rede | Diagnóstico local de adaptadores, IPv4, gateway, DNS e perfis; testes DNS/TCP com destino explícito |
 | Saúde | Bateria com relatório oficial do Windows (powercfg), capacidade de projeto e ciclos; discos físicos com contadores SMART, temperatura, desgaste e volumes |
 | Manutenção | Drivers instalados com status (assinatura/idosidade), atualizações de driver via Windows Update; aplicativos instalados com sugestões de remoção e exclusão confirmada; otimizações seguras (plano de energia, Sensor de Armazenamento, cache de entrega, Lixeira) |
 | Atalhos do Windows | Inicialização, aplicativos, armazenamento, segurança, otimização de unidades, restauração, eventos, tarefas, recursos opcionais, dispositivos, energia, Windows Update, informações de sistema |
@@ -43,6 +44,10 @@ A janela WPF define o estilo de borda (`SingleBorderWindow`) com `ResizeMode` aj
 ## Bancada técnica
 
 As consultas da bancada são executadas em segundo plano; informações de inicialização são somente para leitura. Reparos e verificações abrem um novo console Windows, após confirmação e solicitação UAC. O relatório HTML/JSON não inclui caminhos de arquivos removidos; o CSV detalhado **inclui**, sendo exportado apenas após aviso de privacidade.
+
+## Rede e conectividade
+
+A aba **Rede** consolida o diagnóstico local. A consulta usa apenas o ambiente local do Windows (adaptadores, IPv4, gateway, DNS e perfis) e não envia dados. O teste de DNS/TCP só roda com o destino explícito informado pelo usuário; nada é testado sem essa autorização.
 
 ## Critérios de limpeza
 
@@ -74,6 +79,7 @@ Não há limpeza de Registro, alteração automática de serviços, pagefile, re
 ./Tests/Optimizer.Tests.ps1
 ./Tests/Core.Smoke.ps1
 ./Tests/Technician.Smoke.ps1
+./Tests/Network.Smoke.ps1
 powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI
 ```
 
