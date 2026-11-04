@@ -78,7 +78,6 @@ $LogFile = "$env:TEMP\OtimizadorPC_log.txt"
 $ReportFile = "$env:TEMP\OtimizadorPC_report.html"
 $Protected = @("Epic Games","Fortnite","EpicGames","FortniteGame",".git")
 $Version = "3.3.0"
-$GitHubRaw = "https://raw.githubusercontent.com/leonccunha21/windows-pc-optimizer/main/Otimizar-PC.ps1"
 
 function Write-Log($msg, $level = "INFO") {
     $line = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [$level] $msg"

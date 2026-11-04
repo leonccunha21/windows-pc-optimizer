@@ -1,0 +1,36 @@
+name: Relatar defeito
+description: Problema reproduzível com o otimizador, sem dados pessoais
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Não inclua logs com dados pessoais, credenciais, tokens, caminhos de clientes ou dados de exploração sensível."
+  - type: input
+    id: version
+    attributes:
+      label: Versão / commit
+      placeholder: "4.0.x / SHA"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Windows e versão do PowerShell
+      placeholder: "Windows 11 / Windows PowerShell 5.1"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reprodução com dados descartáveis
+      description: "Etapas, comportamento observado e resultado esperado."
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Segurança
+      options:
+        - label: "Reproduzi sem arquivos pessoais e confirmei o backup."
+          required: true
