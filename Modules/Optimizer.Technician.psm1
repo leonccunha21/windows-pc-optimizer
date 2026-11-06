@@ -124,4 +124,71 @@ function Get-OptimizerTechnicalInventory {
     return $rows.ToArray()
 }
 
-Export-ModuleMember -Function Get-OptimizerTechnicalInventory
+
+function Set-OptimizerStartupItemState {
+    <#
+    .SYNOPSIS
+    Desativa ou reativa um item de inicialização do Windows de forma segura.
+    .DESCRIPTION
+    Move a entrada de inicialização entre as chaves Run e RunDisabled do registro,
+    garantindo que o item possa ser restaurado a qualquer momento.
+    .PARAMETER Name
+    Nome do item de inicialização.
+    .PARAMETER Action
+    Disable para desativar, Enable para reativar.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name,
+        [Parameter(Mandatory)]
+        [ValidateSet('Disable', 'Enable')]
+        [string]$Action
+    )
+    $paths = @(
+        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run',
+        'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run'
+    )
+    $disabledPaths = @(
+        'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunDisabled',
+        'HKLM:\Software\Microsoft\Windows\CurrentVersion\RunDisabled'
+    )
+    if ($Action -eq 'Disable') {
+        if ($PSCmdlet.ShouldProcess($Name, "Desativar da inicialização")) {
+            for ($i = 0; $i -lt $paths.Count; $i++) {
+                $p = $paths[$i]
+                $dp = $disabledPaths[$i]
+                if (Test-Path -LiteralPath $p) {
+                    $val = Get-ItemPropertyValue -LiteralPath $p -Name $Name -ErrorAction SilentlyContinue
+                    if ($null -ne $val) {
+                        if (-not (Test-Path -LiteralPath $dp)) { New-Item -Path $dp -Force -ErrorAction SilentlyContinue | Out-Null }
+                        Set-ItemProperty -LiteralPath $dp -Name $Name -Value $val -Force -ErrorAction SilentlyContinue | Out-Null
+                        Remove-ItemProperty -LiteralPath $p -Name $Name -Force -ErrorAction SilentlyContinue | Out-Null
+                        return [pscustomobject]@{ Success = $true; Message = "Item '$Name' desativado da inicialização." }
+                    }
+                }
+            }
+            return [pscustomobject]@{ Success = $false; Message = "Item '$Name' não encontrado nas chaves de inicialização ativas." }
+        }
+    } else {
+        if ($PSCmdlet.ShouldProcess($Name, "Reativar na inicialização")) {
+            for ($i = 0; $i -lt $disabledPaths.Count; $i++) {
+                $dp = $disabledPaths[$i]
+                $p = $paths[$i]
+                if (Test-Path -LiteralPath $dp) {
+                    $val = Get-ItemPropertyValue -LiteralPath $dp -Name $Name -ErrorAction SilentlyContinue
+                    if ($null -ne $val) {
+                        if (-not (Test-Path -LiteralPath $p)) { New-Item -Path $p -Force -ErrorAction SilentlyContinue | Out-Null }
+                        Set-ItemProperty -LiteralPath $p -Name $Name -Value $val -Force -ErrorAction SilentlyContinue | Out-Null
+                        Remove-ItemProperty -LiteralPath $dp -Name $Name -Force -ErrorAction SilentlyContinue | Out-Null
+                        return [pscustomobject]@{ Success = $true; Message = "Item '$Name' reativado na inicialização." }
+                    }
+                }
+            }
+            return [pscustomobject]@{ Success = $false; Message = "Item '$Name' não encontrado nas chaves de inicialização desativadas." }
+        }
+    }
+    return [pscustomobject]@{ Success = $true; Message = 'Simulado com sucesso (-WhatIf)' }
+}
+
+Export-ModuleMember -Function Get-OptimizerTechnicalInventory, Set-OptimizerStartupItemState

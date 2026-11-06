@@ -208,6 +208,8 @@ try {
     if ($env:OS -eq 'Windows_NT') {
         $simulated = Invoke-OptimizerOptimization -Ids 'power-balanced' -Catalog $optimizations -WhatIf
         Assert-True ($simulated[0].Status -eq 'Simulado') 'WhatIf simulates optimization without changing the system'
+        $simRestore = New-OptimizerRestorePoint -Description 'Teste Smoke' -WhatIf
+        Assert-True ($simRestore.Success) 'WhatIf simulates restore point creation'
     }
     Write-Output "All $script:passed safety checks passed."
 } finally {

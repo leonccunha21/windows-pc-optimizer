@@ -1,10 +1,19 @@
-# Smoke test para Optimizer.Privacy.psm1
+﻿# Smoke test para Optimizer.Privacy.psm1
 $ErrorActionPreference = 'Stop'
 $modulePath = Join-Path $PSScriptRoot '../Modules/Optimizer.Privacy.psm1'
 Import-Module $modulePath -Force
 
 # Verifica funções exportadas
-foreach ($cmd in @('Get-OptimizerPrivacyCatalog', 'Get-OptimizerPrivacyPreset', 'Invoke-OptimizerPrivacyAction')) {
+foreach ($cmd in @(
+    'Get-OptimizerPrivacyCatalog',
+    'Get-OptimizerPrivacyPreset',
+    'Invoke-OptimizerPrivacyAction',
+    'Test-OptimizerPrivacyAction',
+    'Get-OptimizerPrivacyStatus',
+    'Undo-OptimizerPrivacyAction',
+    'Export-OptimizerPrivacyProfile',
+    'Import-OptimizerPrivacyProfile'
+)) {
     if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) {
         throw "Comando esperado '$cmd' não está exportado."
     }
@@ -32,11 +41,35 @@ foreach ($presetName in @('Basic', 'Strict', 'Extreme')) {
     }
 }
 
+# Valida detecção de status
+$status = Get-OptimizerPrivacyStatus
+if ($status.Keys.Count -ne $catalog.Count) {
+    throw "Get-OptimizerPrivacyStatus não retornou status para todos os itens do catálogo."
+}
+
 # Valida execução em modo -WhatIf (nenhuma alteração real deve ser feita)
 $simulated = Invoke-OptimizerPrivacyAction -Action 'DisableWindowsTelemetry' -WhatIf
 if (-not $simulated.Success) {
     throw "Simulação -WhatIf falhou para DisableWindowsTelemetry."
 }
 
-Write-Output "Módulo Optimizer.Privacy validado com sucesso ($($catalog.Count) ações catalogadas)."
+# Valida reversão em modo -WhatIf
+$undoSim = Undo-OptimizerPrivacyAction -Action 'DisableWindowsTelemetry' -WhatIf
+if (-not $undoSim.Success) {
+    throw "Simulação -WhatIf falhou para Undo-OptimizerPrivacyAction."
+}
 
+# Valida exportação e importação de perfil
+$tmpProfile = Join-Path ([IO.Path]::GetTempPath()) ("privacy-profile-test-" + [guid]::NewGuid().ToString() + ".json")
+try {
+    $sampleActions = @('RemoveCopilot', 'DisableWindowsTelemetry')
+    Export-OptimizerPrivacyProfile -Path $tmpProfile -ActionIds $sampleActions
+    $imported = @(Import-OptimizerPrivacyProfile -Path $tmpProfile)
+    if ($imported.Count -ne 2 -or $imported[0] -ne 'RemoveCopilot') {
+        throw "Import-OptimizerPrivacyProfile não restaurou o perfil esperado."
+    }
+} finally {
+    if (Test-Path -LiteralPath $tmpProfile) { Remove-Item -LiteralPath $tmpProfile -Force }
+}
+
+Write-Output "Módulo Optimizer.Privacy validado com sucesso ($($catalog.Count) ações catalogadas, detecção, reversão e perfis)."

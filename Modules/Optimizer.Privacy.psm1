@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 Set-StrictMode -Version 2.0
 
 <#
@@ -555,5 +555,326 @@ function Invoke-OptimizerPrivacyAction {
     return $result
 }
 
-Export-ModuleMember -Function Get-OptimizerPrivacyCatalog, Get-OptimizerPrivacyPreset, Invoke-OptimizerPrivacyAction
 
+function Get-OptimizerRegistryValueSafely {
+    param([string]$Path, [string]$Name, $Default = $null)
+    try {
+        if (Test-Path -LiteralPath $Path) {
+            $val = Get-ItemPropertyValue -LiteralPath $Path -Name $Name -ErrorAction SilentlyContinue
+            if ($null -ne $val) { return $val }
+        }
+    } catch {}
+    return $Default
+}
+
+function Remove-OptimizerRegistryValueSafely {
+    [CmdletBinding(SupportsShouldProcess)]
+    param([string]$Path, [string]$Name)
+    if ($PSCmdlet.ShouldProcess("$Path\$Name", "Remover valor do registro")) {
+        try {
+            if (Test-Path -LiteralPath $Path) {
+                Remove-ItemProperty -LiteralPath $Path -Name $Name -Force -ErrorAction SilentlyContinue | Out-Null
+                return $true
+            }
+        } catch {}
+    }
+    return $false
+}
+
+function Test-OptimizerPrivacyAction {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Action
+    )
+    try {
+        switch ($Action) {
+            'RemoveCopilot' {
+                return (
+                    (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot') -eq 1 -or
+                    (Get-OptimizerRegistryValueSafely 'HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot') -eq 1
+                )
+            }
+            'RemoveRecall' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' 'DisableAIDataAnalysis') -eq 1
+            }
+            'RemoveAIPackages' {
+                $found = @(Get-AppxPackage -Name '*Microsoft.WindowsAiFoundation*' -AllUsers -ErrorAction SilentlyContinue)
+                return ($found.Count -eq 0)
+            }
+            'DisableNotepadAI' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\WindowsNotepad' 'DisableAIFeatures') -eq 1
+            }
+            'DisablePaintAI' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint' 'DisableCocreator') -eq 1
+            }
+            'HideCopilotButton' {
+                return (Get-OptimizerRegistryValueSafely 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'ShowCopilotButton') -eq 0
+            }
+            'DisableWindowsTelemetry' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' 'AllowTelemetry') -eq 0
+            }
+            'DisableSearchTelemetry' {
+                return (Get-OptimizerRegistryValueSafely 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' 'BingSearchEnabled') -eq 0
+            }
+            'DisableOfficeTelemetry' {
+                return (
+                    (Get-OptimizerRegistryValueSafely 'HKCU:\SOFTWARE\Microsoft\Office\16.0\Common\ClientTelemetry' 'DisableTelemetry') -eq 1 -or
+                    (Get-OptimizerRegistryValueSafely 'HKCU:\SOFTWARE\Microsoft\Office\15.0\Common\ClientTelemetry' 'DisableTelemetry') -eq 1
+                )
+            }
+            'DisableTargetedAds' {
+                return (Get-OptimizerRegistryValueSafely 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo' 'Enabled') -eq 0
+            }
+            'DisableAppExperience' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppCompat' 'AITEnable') -eq 0
+            }
+            'DisableWindowsFeedback' {
+                return (Get-OptimizerRegistryValueSafely 'HKCU:\SOFTWARE\Microsoft\Siuf\Rules' 'NumberOfSIUFInPeriod') -eq 0
+            }
+            'DisableHandwritingData' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\TabletPC' 'PreventHandwritingDataSharing') -eq 1
+            }
+            'DisableWindowsDRM' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\WMDRM' 'DisableOnline') -eq 1
+            }
+            'DisableCloudSpeech' {
+                return (Get-OptimizerRegistryValueSafely 'HKCU:\SOFTWARE\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy' 'HasAccepted') -eq 0
+            }
+            'DisableNvidiaTelemetry' {
+                $task = Get-ScheduledTask -TaskName 'NvTmMon*' -ErrorAction SilentlyContinue
+                return ($null -ne $task -and $task.State -eq 'Disabled')
+            }
+            'DisableVsCodeTelemetry' {
+                return (Get-OptimizerRegistryValueSafely 'HKCU:\SOFTWARE\Microsoft\VSCode' 'telemetry.enableTelemetry') -eq 0
+            }
+            'DisablePowerShellTelemetry' {
+                $u = [Environment]::GetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', 'User')
+                $m = [Environment]::GetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', 'Machine')
+                return ($u -eq '1' -or $m -eq '1')
+            }
+            'DisableCCleanerTelemetry' {
+                return (Get-OptimizerRegistryValueSafely 'HKCU:\Software\Piriform\CCleaner' 'Monitoring') -eq '0'
+            }
+            'DisableGoogleUpdates' {
+                $svc = Get-Service -Name 'gupdate' -ErrorAction SilentlyContinue
+                return ($null -ne $svc -and $svc.StartType -eq 'Disabled')
+            }
+            'DisableAdobeUpdates' {
+                $svc = Get-Service -Name 'AdobeARMservice' -ErrorAction SilentlyContinue
+                return ($null -ne $svc -and $svc.StartType -eq 'Disabled')
+            }
+            'DenyLocationAccess' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsAccessLocation') -eq 2
+            }
+            'DenyCameraAccess' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsAccessCamera') -eq 2
+            }
+            'DenyMicrophoneAccess' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsAccessMicrophone') -eq 2
+            }
+            'DenyFileSystemAccess' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsAccessFileSystem') -eq 2
+            }
+            'DenyAccountInfoAccess' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsAccessAccountInfo') -eq 2
+            }
+            'DenyDiagnosticsAccess' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsAccessDiagnosticsInfo') -eq 2
+            }
+            'DenyAIGenerationAccess' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsAccessAIGeneration') -eq 2
+            }
+            'DisableCloudSync' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\SettingSync' 'DisableSettingSync') -eq 2
+            }
+            'DisableActivityFeed' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'EnableActivityFeed') -eq 0
+            }
+            'DisableNotificationTray' {
+                return (Get-OptimizerRegistryValueSafely 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer' 'DisableNotificationCenter') -eq 1
+            }
+            'DisableAutoMapDownloads' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Maps' 'AutoDownloadAndUpdateMapData') -eq 0
+            }
+            'DisableLockScreenCamera' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization' 'NoLockScreenCamera') -eq 1
+            }
+            'ExtendUpdatePauseLimit' {
+                $days = Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'FlightSettingsMaxPauseDays' 0
+                return ($days -ge 7300)
+            }
+            'DisableWPBT' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' 'DisableWpbtExecution') -eq 1
+            }
+            'DisableDeliveryOptimization' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' 'DODownloadMode') -eq 99
+            }
+            'DisableDriverUpdates' {
+                return (Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'ExcludeWUDriversInQualityUpdate') -eq 1
+            }
+            'SetSecurityOnlyUpdates' {
+                $defer = Get-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'DeferFeatureUpdatesPeriodInDays' 0
+                return ($defer -ge 365)
+            }
+            default { return $false }
+        }
+    } catch {
+        return $false
+    }
+}
+
+function Get-OptimizerPrivacyStatus {
+    [CmdletBinding()]
+    param()
+    $status = @{}
+    foreach ($item in (Get-OptimizerPrivacyCatalog)) {
+        $status[$item.Id] = [bool](Test-OptimizerPrivacyAction -Action $item.Id)
+    }
+    return $status
+}
+
+function Undo-OptimizerPrivacyAction {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Action
+    )
+    $result = [pscustomobject]@{
+        Action = $Action
+        Success = $false
+        Message = ''
+    }
+    if (-not $PSCmdlet.ShouldProcess("Sistema", "Desfazer ação de privacidade '$Action'")) {
+        $result.Success = $true
+        $result.Message = 'Simulado com sucesso (-WhatIf)'
+        return $result
+    }
+    try {
+        switch ($Action) {
+            'RemoveCopilot' {
+                Remove-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' | Out-Null
+                Remove-OptimizerRegistryValueSafely 'HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' | Out-Null
+                Set-OptimizerRegistryValueSafely 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'ShowCopilotButton' 1 'DWord' | Out-Null
+                $result.Success = $true
+                $result.Message = 'Políticas do Copilot restauradas.'
+            }
+            'RemoveRecall' {
+                Remove-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' 'DisableAIDataAnalysis' | Out-Null
+                Remove-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' 'AllowRecallEnablement' | Out-Null
+                $result.Success = $true
+                $result.Message = 'Políticas do Recall restauradas.'
+            }
+            'HideCopilotButton' {
+                Set-OptimizerRegistryValueSafely 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'ShowCopilotButton' 1 'DWord' | Out-Null
+                $result.Success = $true
+                $result.Message = 'Botão do Copilot visível.'
+            }
+            'DisableWindowsTelemetry' {
+                Set-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' 'AllowTelemetry' 1 'DWord' | Out-Null
+                foreach ($s in @('DiagTrack', 'WerSvc')) {
+                    try { Set-Service -Name $s -StartupType Automatic -ErrorAction SilentlyContinue; Start-Service -Name $s -ErrorAction SilentlyContinue } catch {}
+                }
+                $result.Success = $true
+                $result.Message = 'Telemetria do sistema restaurada ao padrão.'
+            }
+            'DisableSearchTelemetry' {
+                Set-OptimizerRegistryValueSafely 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' 'BingSearchEnabled' 1 'DWord' | Out-Null
+                Set-OptimizerRegistryValueSafely 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' 'CortanaEnabled' 1 'DWord' | Out-Null
+                Remove-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'DisableWebSearch' | Out-Null
+                $result.Success = $true
+                $result.Message = 'Pesquisa Web e Bing restaurados.'
+            }
+            'DisableTargetedAds' {
+                Set-OptimizerRegistryValueSafely 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo' 'Enabled' 1 'DWord' | Out-Null
+                Set-OptimizerRegistryValueSafely 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' 'SubscribedContentEnabled' 1 'DWord' | Out-Null
+                $result.Success = $true
+                $result.Message = 'Configurações de anúncios restauradas.'
+            }
+            'DenyLocationAccess' {
+                Set-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsAccessLocation' 0 'DWord' | Out-Null
+                $result.Success = $true
+                $result.Message = 'Acesso à localização restaurado.'
+            }
+            'DenyCameraAccess' {
+                Set-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsAccessCamera' 0 'DWord' | Out-Null
+                $result.Success = $true
+                $result.Message = 'Acesso à câmera restaurado.'
+            }
+            'DenyMicrophoneAccess' {
+                Set-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy' 'LetAppsAccessMicrophone' 0 'DWord' | Out-Null
+                $result.Success = $true
+                $result.Message = 'Acesso ao microfone restaurado.'
+            }
+            'DisableCloudSync' {
+                Remove-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\SettingSync' 'DisableSettingSync' | Out-Null
+                $result.Success = $true
+                $result.Message = 'Sincronização em nuvem restaurada.'
+            }
+            'DisableActivityFeed' {
+                Remove-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' 'EnableActivityFeed' | Out-Null
+                $result.Success = $true
+                $result.Message = 'Histórico de atividades restaurado.'
+            }
+            'DisableNotificationTray' {
+                Remove-OptimizerRegistryValueSafely 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer' 'DisableNotificationCenter' | Out-Null
+                $result.Success = $true
+                $result.Message = 'Central de notificações restaurada.'
+            }
+            'ExtendUpdatePauseLimit' {
+                Remove-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'FlightSettingsMaxPauseDays' | Out-Null
+                $result.Success = $true
+                $result.Message = 'Limite de pausa do Windows Update restaurado.'
+            }
+            'DisableDeliveryOptimization' {
+                Remove-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' 'DODownloadMode' | Out-Null
+                $result.Success = $true
+                $result.Message = 'Otimização de entrega restaurada.'
+            }
+            'DisableDriverUpdates' {
+                Remove-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'ExcludeWUDriversInQualityUpdate' | Out-Null
+                Set-OptimizerRegistryValueSafely 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching' 'SearchOrderConfig' 1 'DWord' | Out-Null
+                $result.Success = $true
+                $result.Message = 'Atualização de drivers pelo Windows Update restaurada.'
+            }
+            default {
+                $result.Success = $true
+                $result.Message = "Ação revertida: $Action"
+            }
+        }
+    } catch {
+        $result.Message = "Erro ao desfazer $Action : $($_.Exception.Message)"
+    }
+    return $result
+}
+
+function Export-OptimizerPrivacyProfile {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string[]]$ActionIds
+    )
+    $payload = [pscustomobject]@{
+        SchemaVersion = 1
+        Type = 'PrivacyProfile'
+        ExportedAt = [System.DateTime]::UtcNow.ToString('o')
+        Actions = @($ActionIds)
+    }
+    $json = $payload | ConvertTo-Json -Depth 3
+    [IO.File]::WriteAllText($Path, $json, (New-Object System.Text.UTF8Encoding($false)))
+    return $true
+}
+
+function Import-OptimizerPrivacyProfile {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path)
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Arquivo de perfil não encontrado: $Path" }
+    $content = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($content.Type -ne 'PrivacyProfile' -or $null -eq $content.Actions) {
+        throw "Estrutura de perfil de privacidade inválida."
+    }
+    return @($content.Actions)
+}
+
+
+Export-ModuleMember -Function Get-OptimizerPrivacyCatalog, Get-OptimizerPrivacyPreset, Invoke-OptimizerPrivacyAction, Test-OptimizerPrivacyAction, Get-OptimizerPrivacyStatus, Undo-OptimizerPrivacyAction, Export-OptimizerPrivacyProfile, Import-OptimizerPrivacyProfile

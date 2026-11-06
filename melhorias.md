@@ -462,3 +462,16 @@ O restante Ã© de outro domÃ­nio (agentes, social, web) ou jÃ¡ estÃ¡ marcado como
 | ConfiguraÃ§Ã£o externa | `config/optimizer.psd1` com validaÃ§Ã£o e fallback |
 | PSScriptAnalyzer no CI | job `lint` bloqueante |
 | Matriz do CI | Ubuntu + Windows; PS 5.1; validaÃ§Ã£o WPF |
+
+---
+
+## Pendências atuais (06/11/2026)
+
+- [ ] Aplicar no SignPath Foundation para certificado gratuito confiável; após aprovação, configurar secrets/vars (`SIGNPATH_API_TOKEN`, `SIGNPATH_ORGANIZATION_ID`, `SIGNPATH_PROJECT_SLUG`, `SIGNPATH_SIGNING_POLICY_SLUG`) e validar o release assinado.
+- [ ] Revisar alterações não commitadas em `Modules/Optimizer.Privacy.psm1`, `Modules/Optimizer.Technician.psm1`, `Modules/Optimizer.Tweaks.psm1` e testes correspondentes; decidir se entram no próximo commit.
+- [ ] Remover/ignorar arquivos temporários `scratch_*.ps1` e avaliar `Tools/Launcher/` antes de versionar.
+- [ ] Validação manual de acessibilidade (Narrador/NVDA, Alto Contraste, DPI).
+- [ ] Capturas/GIF do fluxo (item 23) e decisão de i18n (item 24).
+- [ ] Testar em outro PC e em mídia read-only (fallback `%TEMP%\PCOptimizer-Portable`).
+- [ ] PSScriptAnalyzer global ainda aponta achados pré-existentes fora do escopo portable.
+- [ ] Assinatura atual do pacote é self-signed; SmartScreen pode mostrar editor desconhecido até SignPath/CA.

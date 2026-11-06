@@ -1,4 +1,4 @@
-# Read-only inventory API and destructive-command allowlist safety.
+﻿# Read-only inventory API and destructive-command allowlist safety.
 $ErrorActionPreference = 'Stop'
 $modulePath = Join-Path $PSScriptRoot '../Modules/Optimizer.Technician.psm1'
 $repairPath = Join-Path $PSScriptRoot '../Modules/Repair.Tools.ps1'
@@ -17,5 +17,7 @@ if ($env:OS -eq 'Windows_NT') {
     if ($rows.Count -eq 0 -or $rows[0].PSObject.Properties.Name -notcontains 'Detail') { throw 'Processes inventory is empty or invalid' }
     $cancelled = @(Get-OptimizerTechnicalInventory -Area Processes -State @{ Cancel=$true; Message='' })
     if ($cancelled.Count -gt 1) { throw 'Inventory ignores cancellation' }
+    $simStartup = Set-OptimizerStartupItemState -Name 'TestApp' -Action Disable -WhatIf
+    if (-not $simStartup.Success) { throw 'Startup item state simulation failed' }
 }
-Write-Output 'Technical inventory and repair command allowlist validated.'
+Write-Output 'Technical inventory, startup manager and repair command allowlist validated.'
