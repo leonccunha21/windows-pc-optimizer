@@ -1086,6 +1086,22 @@ if ($ValidateUI) {
             Start-Sleep -Milliseconds 20
         }
         if ($null -ne $script:worker -or @($script:agentRecommendations).Count -lt 1 -or [string]::IsNullOrWhiteSpace([string]$ui.AgentSummary.Text)) { throw 'WPF local agent runspace failed.' }
+        foreach ($area in @('Processes','Startup','Software','Network','Updates','Storage')) {
+            Start-Work 'Inspect' @{Area=$area}
+            $deadline = [DateTime]::UtcNow.AddSeconds(60)
+            while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+                $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+                Start-Sleep -Milliseconds 20
+            }
+            if ($null -ne $script:worker -or @($ui.WorkbenchGrid.ItemsSource).Count -lt 1) { throw "WPF inspect area failed: $area" }
+        }
+        $ui.NetworkTarget.Text = 'http://invalido'
+        $ui.NetworkPort.Text = '0'
+        $ui.NetworkProbeButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+        if ($null -ne $script:worker -or [string]::IsNullOrWhiteSpace([string]$ui.NetworkSummary.Text)) { throw 'WPF network probe invalid-input UI failed.' }
+        $ui.AgentApplyButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+        if (@($script:optimizations | Where-Object Selected).Count -lt 1 -or @($script:privacyCatalog | Where-Object Selected).Count -lt 1 -or @($script:tweaksCatalog | Where-Object Selected).Count -lt 1) { throw 'AgentApply preselection did not mark recommended items.' }
+        if ([string]$ui.AgentSummary.Text -notmatch 'Pré-selecionados|Pré-seleção') { throw 'AgentApply summary was not updated.' }
     } finally {
         $env:LOCALAPPDATA = $previousLocalAppData
         $timer.Stop()
@@ -1120,6 +1136,20 @@ if ($ValidateUI) {
         if ([string]$ui[$repairCheck[0]].Tag -ne [string]$repairCheck[1]) { throw "Repair button wiring failed: $($repairCheck[0])" }
     }
     if (-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'Modules\Repair.Tools.ps1'))) { throw 'Repair.Tools.ps1 missing for repair buttons.' }
+    if ([bool]$script:isAdmin -and [string]$ui.ElevateButton.Visibility -ne 'Collapsed') { throw 'Elevate button should be hidden when already admin.' }
+    foreach ($navCheck in @(@('NavOverview',0,-1),@('NavDiagnose',2,-1),@('NavHealth',3,-1),@('NavCleanup',1,-1),@('NavMaintenance',4,0),@('NavBench',4,4),@('NavPrivacy',4,5),@('NavTweaks',4,6),@('NavReport',5,-1),@('NavSettings',6,-1))) {
+        $ui[$navCheck[0]].RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+        if ([int]$ui.Pages.SelectedIndex -ne [int]$navCheck[1]) { throw "Navigation failed: $($navCheck[0]) page" }
+        if ([int]$navCheck[2] -ge 0 -and [int]$ui.MaintenanceTabs.SelectedIndex -ne [int]$navCheck[2]) { throw "Navigation failed: $($navCheck[0]) maintenance tab" }
+    }
+    if (-not $ui.DetailsButton.IsEnabled) { throw 'Details button should be enabled after scan/cleanup.' }
+    if (-not $ui.ExportResultsButton.IsEnabled) { throw 'Export CSV button should be enabled after cleanup.' }
+    if (-not [string]::IsNullOrWhiteSpace([string]$env:PC_OPTIMIZER_PORTABLE_DATA)) {
+        $ui.PreferenceApplyButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+        if ([string]$ui.PreferenceStatus.Text -notmatch 'salvas') { throw 'Preference apply click did not save portable preferences.' }
+        $ui.PreferenceResetButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+        if ([string]$ui.PreferenceStatus.Text -notmatch 'padrão') { throw 'Preference reset click did not restore defaults.' }
+    }
     Write-Output 'WPF layout, accessible sidebar navigation, workbench tabs and async scan/cleanup passed.'
     return
 }

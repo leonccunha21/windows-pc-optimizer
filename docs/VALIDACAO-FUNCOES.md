@@ -24,6 +24,7 @@ Validação executada no Windows 10 (PowerShell 5.1/WPF) contra HEAD `ccae23a` e
 | Repair console | `Repair.Tools.ps1` allowlist/sintaxe e wiring dos botões | Modos mapeados; comandos elevados não executados na validação | `FunctionValidation` + `ValidateUI` wiring passaram |
 | Preferências | `Preferences.Smoke` | Defaults/persistência/privacidade | Passou |
 | Portable | `Portable.Smoke`, self-test do EXE, `-ValidateUI` no pacote extraído | Estrutura, hashes, ZIP e UI válidos; sem `.bat` | Passou |
+| Click-through GUI | Navegação completa (10 botões), presets, DNS, AgentApply, NetworkProbe inválido, Preferences (portable), Elevate state, repair wiring, Details/Export enabled | Cada controle produz o estado esperado | `ValidateUI` passou no repo e no pacote extraído |
 
 Limites conhecidos:
 
