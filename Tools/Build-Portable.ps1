@@ -90,12 +90,95 @@ function Get-Sha256 {
     }
 }
 
+function ConvertTo-AssemblyVersion {
+    param([Parameter(Mandatory)][string]$Version)
+    $parts = @($Version -split '[._-]' | Where-Object { $_ -match '^\d+$' })
+    if ($parts.Count -eq 0) { return '0.0.0.0' }
+    while ($parts.Count -lt 4) { $parts += '0' }
+    return ($parts[0..3] -join '.')
+}
+
+function Get-CSharpCompiler {
+    $candidates = New-Object 'System.Collections.Generic.List[string]'
+    if (-not [string]::IsNullOrWhiteSpace($env:SystemRoot)) {
+        $candidates.Add((Join-Path $env:SystemRoot 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'))
+        $candidates.Add((Join-Path $env:SystemRoot 'Microsoft.NET\Framework\v4.0.30319\csc.exe'))
+    }
+    $command = Get-Command csc.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -ne $command) { return $command.Source }
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) { return $candidate }
+    }
+    $programFiles = @($env:ProgramFiles, $env:ProgramW6432) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    foreach ($base in $programFiles) {
+        $visualStudio = Join-Path $base 'Microsoft Visual Studio'
+        if (-not (Test-Path -LiteralPath $visualStudio -PathType Container)) { continue }
+        $found = Get-ChildItem -LiteralPath $visualStudio -Recurse -Filter csc.exe -File -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -ne $found) { return $found.FullName }
+    }
+    return $null
+}
+
+function Build-NativeLauncher {
+    param([Parameter(Mandatory)][string]$Version)
+    if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
+        Write-Warning 'Compilação do PC-Optimizer.exe ignorada fora do Windows; o pacote de release deve ser gerado no Windows.'
+        return $false
+    }
+    $csc = Get-CSharpCompiler
+    if ([string]::IsNullOrWhiteSpace($csc)) {
+        throw 'O compilador C# (csc.exe) não foi encontrado. Instale o .NET Framework 4.x ou o Build Tools do Visual Studio para gerar o PC-Optimizer.exe.'
+    }
+    $sourceDirectory = Join-Path $repoRoot 'Tools/Portable/Launcher'
+    $programPath = Join-Path $sourceDirectory 'Program.cs'
+    $assemblyTemplate = Join-Path $sourceDirectory 'AssemblyInfo.cs'
+    foreach ($requiredSource in @($programPath, $assemblyTemplate)) {
+        if (-not (Test-Path -LiteralPath $requiredSource -PathType Leaf)) {
+            throw "Fonte do launcher nativo ausente: $requiredSource"
+        }
+    }
+    $assemblyVersion = ConvertTo-AssemblyVersion -Version $Version
+    $buildTemp = Join-Path ([IO.Path]::GetTempPath()) ('pc-optimizer-launcher-' + [guid]::NewGuid().ToString('N'))
+    [void](New-Item -ItemType Directory -Path $buildTemp -Force)
+    try {
+        $assemblyInfo = Get-Content -LiteralPath $assemblyTemplate -Raw -Encoding UTF8
+        $assemblyInfo = $assemblyInfo.Replace('__ASSEMBLY_VERSION__', $assemblyVersion).Replace('__PRODUCT_VERSION__', $Version)
+        $assemblyPath = Join-Path $buildTemp 'AssemblyInfo.cs'
+        [IO.File]::WriteAllText($assemblyPath, $assemblyInfo, (New-Object System.Text.UTF8Encoding($false)))
+        $outputPath = Join-Path $script:StageDirectory 'PC-Optimizer.exe'
+        $iconPath = Join-Path $sourceDirectory 'PC-Optimizer.ico'
+        $compilerArguments = @(
+            '/nologo',
+            '/target:winexe',
+            '/optimize+',
+            '/debug-',
+            '/platform:anycpu',
+            "/out:$outputPath",
+            '/reference:System.dll',
+            '/reference:System.Windows.Forms.dll',
+            '/reference:System.Drawing.dll',
+            $programPath,
+            $assemblyPath
+        )
+        if (Test-Path -LiteralPath $iconPath -PathType Leaf) {
+            $compilerArguments += "/win32icon:$iconPath"
+        }
+        & $csc @compilerArguments
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $outputPath -PathType Leaf)) {
+            throw 'Falha ao compilar o PC-Optimizer.exe.'
+        }
+        return $true
+    } finally {
+        if (Test-Path -LiteralPath $buildTemp) {
+            Remove-Item -LiteralPath $buildTemp -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Test-PortableTree {
     param([Parameter(Mandatory)][string]$Stage)
     $required = @(
-        'Iniciar-PC-Optimizer.bat',
         'Iniciar-PC-Optimizer.ps1',
-        'Executar-Otimizador.bat',
         'Otimizador-GUI.ps1',
         'Otimizar-PC.ps1',
         'Modules/Optimizer.Core.psm1',
@@ -108,9 +191,30 @@ function Test-PortableTree {
         'VERSION.txt',
         'SHA256SUMS.txt'
     )
+    $onWindows = [Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT
+    if ($onWindows) {
+        $required += 'PC-Optimizer.exe'
+    }
     foreach ($relative in $required) {
         if (-not (Test-Path -LiteralPath (Join-Path $Stage $relative) -PathType Leaf)) {
             throw "Pacote incompleto: $relative"
+        }
+    }
+    $forbiddenBats = @(Get-ChildItem -LiteralPath $Stage -Recurse -File -Filter '*.bat' -ErrorAction SilentlyContinue)
+    if ($forbiddenBats.Count -gt 0) {
+        throw 'O pacote portátil não deve conter arquivos .bat: ' + ($forbiddenBats.FullName -join ', ')
+    }
+    if ($onWindows) {
+        $exePath = Join-Path $Stage 'PC-Optimizer.exe'
+        $exeStream = [IO.File]::OpenRead($exePath)
+        try {
+            $header = New-Object byte[] 2
+            if ($exeStream.Read($header, 0, 2) -ne 2) { throw 'O PC-Optimizer.exe está truncado.' }
+            if ($header[0] -ne [byte]77 -or $header[1] -ne [byte]90) {
+                throw 'O PC-Optimizer.exe não é um executável PE válido.'
+            }
+        } finally {
+            $exeStream.Dispose()
         }
     }
     $parseFailures = 0
@@ -178,18 +282,23 @@ try {
         'SECURITY.md',
         'docs/CATALOGO-LIMPEZA.md',
         'Tools/Diagnostico-Eventos.ps1',
-        'Tools/Diagnostico-Rede.ps1',
-        'Tools/Executar-Diagnostico-Eventos.bat',
-        'Tools/Executar-Diagnostico-Rede.bat'
+        'Tools/Diagnostico-Rede.ps1'
     )) {
         Copy-PortableFile -RelativePath $file
     }
-    foreach ($launcher in @('Iniciar-PC-Optimizer.bat', 'Iniciar-PC-Optimizer.ps1', 'Executar-Otimizador.bat', 'LEIA-ME.txt')) {
+    foreach ($launcher in @('Iniciar-PC-Optimizer.ps1', 'LEIA-ME.txt')) {
         $launcherSource = Join-Path $repoRoot ("Tools/Portable/$launcher")
         if (-not (Test-Path -LiteralPath $launcherSource -PathType Leaf)) {
             throw "Launcher obrigatório ausente: $launcher"
         }
         Copy-Item -LiteralPath $launcherSource -Destination (Join-Path $script:StageDirectory $launcher) -Force
+    }
+    $nativeLauncherBuilt = Build-NativeLauncher -Version $normalizedVersion
+    if ($nativeLauncherBuilt -and -not $SkipUiValidation -and [Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
+        Write-Step 'Executando self-test do PC-Optimizer.exe'
+        $launcherExe = Join-Path $script:StageDirectory 'PC-Optimizer.exe'
+        $launcherSelfTest = Start-Process -FilePath $launcherExe -ArgumentList '-SelfTest' -Wait -PassThru
+        if ($launcherSelfTest.ExitCode -ne 0) { throw 'O self-test do PC-Optimizer.exe falhou.' }
     }
 
     $dataDirectory = Join-Path $script:StageDirectory 'Dados'
@@ -262,7 +371,7 @@ Requires: Windows 10/11 + Windows PowerShell 5.1 or PowerShell 7
         Write-Output ''
         Write-Output ('Pacote: {0}' -f $script:StageDirectory)
     }
-    Write-Output 'Portable package ready. Copy the folder or ZIP and run Iniciar-PC-Optimizer.bat.'
+    Write-Output 'Portable package ready. Copy the folder or ZIP and run PC-Optimizer.exe.'
 } catch {
     if (Test-Path -LiteralPath $script:StageDirectory) {
         Remove-Item -LiteralPath $script:StageDirectory -Recurse -Force -ErrorAction SilentlyContinue

@@ -7,7 +7,7 @@ RESUMO
 ------
 1. Baixe PC-Optimizer-Portable-4.5.zip e o arquivo .sha256.
 2. Extraia o ZIP para uma pasta comum (pen drive, HD externo ou disco local).
-3. Execute Iniciar-PC-Optimizer.bat.
+3. Execute PC-Optimizer.exe.
 4. Analise, selecione as categorias e confirme a limpeza.
 
 NAO E NECESSARIO
@@ -24,8 +24,8 @@ Em midia somente leitura, o programa usa %TEMP%\PCOptimizer-Portable.
 
 VERIFICAR
 ---------
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Iniciar-PC-Optimizer.ps1 -SelfTest
-powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Iniciar-PC-Optimizer.ps1 -ValidateUI
+Start-Process -FilePath .\PC-Optimizer.exe -ArgumentList '-SelfTest' -Wait
+Start-Process -FilePath .\PC-Optimizer.exe -ArgumentList '-ValidateUI' -Wait
 
 MANUTENCAO
 ----------

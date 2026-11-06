@@ -76,7 +76,7 @@ if ($missing.Count -gt 0) {
 }
 
 # WPF requires an STA thread. Relaunch only when the user started the .ps1
-# directly from a non-STA shell; the .bat launcher already passes -STA.
+# directly from a non-STA shell; the native launcher already passes -STA.
 if ([Threading.Thread]::CurrentThread.GetApartmentState() -ne [Threading.ApartmentState]::STA) {
     try {
         $hostPath = (Get-Process -Id $PID).Path

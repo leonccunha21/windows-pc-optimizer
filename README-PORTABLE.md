@@ -14,24 +14,28 @@ drive, HD externo, pasta de rede mapeada ou diretamente no disco local.
 
 1. Extraia o ZIP `PC-Optimizer-Portable-4.5.zip` para uma pasta comum.
 2. Abra a pasta extraída.
-3. Clique duas vezes em **`Iniciar-PC-Optimizer.bat`**.
+3. Clique duas vezes em **`PC-Optimizer.exe`**.
 4. Analise primeiro; a limpeza só começa depois da confirmação.
 
-Não é necessário instalar, registrar serviço, criar atalho ou ter o repositório
-Git ao lado. O alias `Executar-Otimizador.bat` faz a mesma coisa.
+Não é necessário instalar, registrar serviço, criar atalho, ter o repositório
+Git ao lado ou usar qualquer arquivo `.bat`. O `PC-Optimizer.exe` é o launcher
+nativo do pacote; o `Iniciar-PC-Optimizer.ps1` é apenas o motor interno.
 
 ### Verificação sem abrir a interface
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Iniciar-PC-Optimizer.ps1 -SelfTest
+$selfTest = Start-Process -FilePath .\PC-Optimizer.exe -ArgumentList '-SelfTest' -Wait -PassThru
+if ($selfTest.ExitCode -ne 0) { throw 'Self-test falhou.' }
 ```
 
-Saída esperada: `Portable self-test passed.`
+Saída esperada: código de saída `0` (`Start-Process -Wait` é necessário porque
+o `PC-Optimizer.exe` é um aplicativo Windows GUI).
 
 ### Verificação completa da interface
 
 ```powershell
-powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Iniciar-PC-Optimizer.ps1 -ValidateUI
+$validate = Start-Process -FilePath .\PC-Optimizer.exe -ArgumentList '-ValidateUI' -Wait -PassThru
+if ($validate.ExitCode -ne 0) { throw 'Validação da interface falhou.' }
 ```
 
 Esse teste abre e fecha a janela, usa uma pasta temporária descartável e não
@@ -49,9 +53,9 @@ altera configurações do Windows.
 | Permissões | Usuário comum para a maior parte; elevação sob demanda |
 | Rede | Opcional, apenas para testes de conectividade e atualizações |
 
-O launcher prioriza `powershell.exe` (Windows PowerShell 5.1) porque a interface
-WPF e os módulos do sistema foram validados nesse runtime. Se ele não existir,
-usa `pwsh.exe`.
+O launcher nativo `PC-Optimizer.exe` prioriza `powershell.exe` (Windows PowerShell 5.1)
+porque a interface WPF e os módulos do sistema foram validados nesse runtime.
+Se ele não existir, usa `pwsh.exe`.
 
 ---
 
@@ -59,9 +63,8 @@ usa `pwsh.exe`.
 
 ```
 PC-Optimizer-Portable-4.5/
-├─ Iniciar-PC-Optimizer.bat      <- clique aqui
-├─ Iniciar-PC-Optimizer.ps1      <- launcher e self-test
-├─ Executar-Otimizador.bat       <- alias de compatibilidade
+├─ PC-Optimizer.exe              <- clique aqui
+├─ Iniciar-PC-Optimizer.ps1      <- motor interno do launcher e self-test
 ├─ Otimizador-GUI.ps1            <- interface principal
 ├─ Otimizar-PC.ps1               <- console legado/avançado
 ├─ LEIA-ME.txt                   <- guia curto
@@ -78,7 +81,8 @@ PC-Optimizer-Portable-4.5/
 ```
 
 O pacote **não** inclui `Tests/`, `.git/`, builds antigos, executáveis de
-terceiros nem arquivos de desenvolvimento.
+terceiros ou arquivos de desenvolvimento. O único executável é o
+`PC-Optimizer.exe`, compilado a partir de `Tools/Portable/Launcher`.
 
 ---
 
@@ -107,7 +111,7 @@ seleciona e confirma. Elas são operações explícitas e documentadas na interf
 ### Interface gráfica (recomendado)
 
 ```text
-Iniciar-PC-Optimizer.bat
+PC-Optimizer.exe
 ```
 
 Abre a central de manutenção com limpeza guiada, diagnóstico, saúde do
@@ -125,9 +129,9 @@ uso geral.
 
 ### Diagnósticos independentes
 
-```text
-Tools\Executar-Diagnostico-Rede.bat
-Tools\Executar-Diagnostico-Eventos.bat
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Tools\Diagnostico-Rede.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Tools\Diagnostico-Eventos.ps1
 ```
 
 São somente leitura e não exigem a interface.
@@ -192,14 +196,14 @@ Não há registro, serviço ou cache global para limpar.
 
 | Sintoma | Ação |
 |---|---|
-| SmartScreen bloqueia o `.bat` | **Mais informações** → **Executar assim mesmo** |
+| SmartScreen bloqueia o `.exe` | **Mais informações** → **Executar assim mesmo** |
 | “PowerShell não encontrado” | Reative o Windows PowerShell 5.1 ou instale o PowerShell 7 |
 | Janela não abre | Confirme que `Modules/` e `UI/` estão ao lado de `Otimizador-GUI.ps1` |
-| Erro de política de execução | Use o `.bat`; ele aplica `Bypass` somente ao processo atual |
+| Erro de política de execução | Use o `PC-Optimizer.exe`; ele aplica `Bypass` somente ao processo atual |
 | `Dados/` não grava | Use uma pasta local; em mídia somente leitura o fallback é automático |
 | Antivírus alerta | O código é aberto; SFC/DISM e limpeza de temporários podem gerar alerta |
 | Categoria administrativa ignorada | Use **Abrir como administrador** na interface |
-| Interface em PowerShell 7 falha | Execute pelo `.bat`, que prioriza o Windows PowerShell 5.1 |
+| Interface em PowerShell 7 falha | Execute o `PC-Optimizer.exe`, que prioriza o Windows PowerShell 5.1 |
 
 Logs úteis:
 
@@ -236,9 +240,12 @@ PC-Optimizer-Portable-4.5.zip
 PC-Optimizer-Portable-4.5.zip.sha256
 ```
 
-O script copia apenas a lista explícita de runtime, valida sintaxe/XAML, gera
-`VERSION.txt`, `SHA256SUMS.txt` e recusa a build se algum arquivo obrigatório
-estiver ausente. `dist/` é ignorado pelo Git.
+O script copia apenas a lista explícita de runtime, valida sintaxe/XAML, compila
+o launcher nativo `PC-Optimizer.exe` a partir de `Tools/Portable/Launcher` com
+o `csc.exe` do Windows, gera `VERSION.txt`, `SHA256SUMS.txt` e recusa a build
+se algum arquivo obrigatório estiver ausente. Em sistemas não-Windows, a
+compilação do EXE é ignorada com aviso; o release oficial deve ser gerado no
+Windows para incluir o executável. `dist/` é ignorado pelo Git.
 
 ---
 

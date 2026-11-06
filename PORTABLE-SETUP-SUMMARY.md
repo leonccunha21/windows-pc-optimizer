@@ -7,9 +7,8 @@ sem instalar nada e sem baixar o repositório na máquina de destino.
 
 | Arquivo | Função |
 |---|---|
-| `Iniciar-PC-Optimizer.bat` | Entrada principal; detecta PowerShell, aplica Bypass só ao processo e abre a interface |
-| `Iniciar-PC-Optimizer.ps1` | Valida arquivos, prepara `Dados/`, aplica modo STA e oferece `-SelfTest` |
-| `Executar-Otimizador.bat` | Alias de compatibilidade |
+| `PC-Optimizer.exe` | Entrada principal nativa; detecta PowerShell, aplica Bypass só ao processo e abre a interface |
+| `Iniciar-PC-Optimizer.ps1` | Motor interno do launcher; valida arquivos, prepara `Dados/`, aplica modo STA e oferece `-SelfTest` |
 | `Otimizador-GUI.ps1` | Interface WPF |
 | `Otimizar-PC.ps1` | Console legado/avançado |
 | `Modules/` | Núcleo, limpeza, catálogo, preferências, privacidade, ajustes e diagnósticos |
@@ -36,10 +35,11 @@ dist/PC-Optimizer-Portable-4.5.zip.sha256
 O script:
 
 1. valida sintaxe PowerShell e XAML (`Tests/Validate-Syntax.ps1`);
-2. copia uma lista explícita de runtime, sem `Tests/`, `.git/` ou artefatos locais;
-3. gera `VERSION.txt` e `SHA256SUMS.txt`;
-4. valida a árvore e executa o self-test do pacote no Windows;
-5. cria o ZIP e o checksum SHA-256.
+2. copia uma lista explícita de runtime, sem `Tests/`, `.git/`, arquivos `.bat` ou artefatos locais;
+3. compila o `PC-Optimizer.exe` a partir de `Tools/Portable/Launcher` no Windows;
+4. gera `VERSION.txt` e `SHA256SUMS.txt`;
+5. valida a árvore e executa o self-test do pacote no Windows;
+6. cria o ZIP e o checksum SHA-256.
 
 ## CI e release
 

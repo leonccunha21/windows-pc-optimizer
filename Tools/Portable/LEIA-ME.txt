@@ -9,13 +9,13 @@ COMECE AQUI
    drive externo). Nao e necessario executar como administrador.
 2. Abra a pasta extraida e clique duas vezes em:
 
-   Iniciar-PC-Optimizer.bat
+   PC-Optimizer.exe
 
 3. A interface abre em poucos segundos. A limpeza so acontece depois da
    analise e da confirmacao.
 
 Para modo console/avancado, execute Otimizar-PC.ps1 pelo PowerShell.
-O alias Executar-Otimizador.bat continua funcionando.
+Nao e necessario usar nenhum arquivo .bat.
 
 REQUISITOS
 ----------
@@ -39,7 +39,7 @@ preservada. Nao ha chaves de registro para remover.
 PROBLEMAS COMUNS
 ----------------
 - SmartScreen: clique em "Mais informacoes" e depois em "Executar assim mesmo".
-- Politica de execucao: use Iniciar-PC-Optimizer.bat, que aplica Bypass apenas
+- Politica de execucao: use PC-Optimizer.exe, que aplica Bypass apenas
   ao processo atual.
 - Antivirus: o programa usa SFC, DISM e limpeza de temporarios; algumas suites
   podem pedir confirmacao. O codigo-fonte e aberto para auditoria.
@@ -52,7 +52,7 @@ VERIFICAR O PACOTE
 - Hashes internos: SHA256SUMS.txt.
 - Teste rapido, sem abrir a interface:
 
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Iniciar-PC-Optimizer.ps1 -SelfTest
+  Start-Process -FilePath .\PC-Optimizer.exe -ArgumentList '-SelfTest' -Wait
 
 LICENCA
 -------

@@ -30,10 +30,9 @@ try {
     $stage = Join-Path $temporary $stageName
     Assert-Portable (Test-Path -LiteralPath $stage -PathType Container) 'Portable staging folder was not created.'
 
-    foreach ($required in @(
-        'Iniciar-PC-Optimizer.bat',
+    $onWindows = [Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT
+    $requiredFiles = @(
         'Iniciar-PC-Optimizer.ps1',
-        'Executar-Otimizador.bat',
         'Otimizador-GUI.ps1',
         'Otimizar-PC.ps1',
         'Modules/Optimizer.Core.psm1',
@@ -45,12 +44,32 @@ try {
         'README-PORTABLE.md',
         'VERSION.txt',
         'SHA256SUMS.txt'
-    )) {
+    )
+    if ($onWindows) {
+        $requiredFiles += 'PC-Optimizer.exe'
+    }
+    foreach ($required in $requiredFiles) {
         Assert-Portable (Test-Path -LiteralPath (Join-Path $stage $required) -PathType Leaf) "Missing portable file: $required"
     }
 
-    foreach ($forbidden in @('Tests', '.git', 'Repositorios-Github', 'winscript-portable.exe', 'Tools/Build-Portable.ps1', 'Tools/Portable')) {
+    foreach ($forbidden in @('Tests', '.git', 'Repositorios-Github', 'winscript-portable.exe', 'Tools/Build-Portable.ps1', 'Tools/Portable', 'Iniciar-PC-Optimizer.bat', 'Executar-Otimizador.bat')) {
         Assert-Portable (-not (Test-Path -LiteralPath (Join-Path $stage $forbidden))) "Forbidden development artifact included: $forbidden"
+    }
+    $batFiles = @(Get-ChildItem -LiteralPath $stage -Recurse -File -Filter '*.bat' -ErrorAction SilentlyContinue)
+    Assert-Portable ($batFiles.Count -eq 0) 'Portable package must not contain .bat files.'
+
+    if ($onWindows) {
+        $exePath = Join-Path $stage 'PC-Optimizer.exe'
+        $exeInfo = Get-Item -LiteralPath $exePath
+        Assert-Portable ($exeInfo.Length -gt 0) 'PC-Optimizer.exe is empty.'
+        $exeStream = [IO.File]::OpenRead($exePath)
+        try {
+            $header = New-Object byte[] 2
+            Assert-Portable ($exeStream.Read($header, 0, 2) -eq 2) 'PC-Optimizer.exe is truncated.'
+            Assert-Portable ($header[0] -eq [byte]77 -and $header[1] -eq [byte]90) 'PC-Optimizer.exe is not a valid PE executable.'
+        } finally {
+            $exeStream.Dispose()
+        }
     }
 
     $metadata = Get-Content -LiteralPath (Join-Path $stage 'VERSION.txt') -Raw
@@ -74,7 +93,12 @@ try {
     $actualHash = Get-Sha256 -Path $zip
     Assert-Portable ($expectedHash -eq $actualHash) 'Portable ZIP checksum does not match.'
 
-    if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
+    if ($onWindows) {
+        $launcherExe = Join-Path $stage 'PC-Optimizer.exe'
+        if (Test-Path -LiteralPath $launcherExe -PathType Leaf) {
+            $launcherSelfTest = Start-Process -FilePath $launcherExe -ArgumentList '-SelfTest' -Wait -PassThru
+            Assert-Portable ($launcherSelfTest.ExitCode -eq 0) 'Native launcher self-test failed.'
+        }
         $windowsPowerShell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
         if (Test-Path -LiteralPath $windowsPowerShell -PathType Leaf) {
             & $windowsPowerShell -NoLogo -NoProfile -ExecutionPolicy Bypass -File (Join-Path $stage 'Iniciar-PC-Optimizer.ps1') -SelfTest | Out-Null
