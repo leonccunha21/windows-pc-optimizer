@@ -1,160 +1,262 @@
-# Windows PC Optimizer - Portable Version
+# PC Optimizer Portable
 
-## Sobre este pacote
+Pacote autônomo do PC Optimizer para uso em qualquer computador Windows, sem
+instalação e sem baixar o repositório completo. Pode ser executado de um pen
+drive, HD externo, pasta de rede mapeada ou diretamente no disco local.
 
-Este é um pacote **portátil** do Windows PC Optimizer que pode ser executado a partir de uma unidade USB, drive externo, ou qualquer armazenamento removível sem instalação no sistema.
+**Versão:** 4.5  
+**Interface:** WPF (Windows PowerShell 5.1 ou PowerShell 7)  
+**Licença:** MIT
 
-## Requisitos do sistema
+---
 
-- **Windows 10 ou superior** (32-bit ou 64-bit)
-- **PowerShell 5.1 ou superior** (incorporado no Windows 10)
-- **Acesso administrativo para algumas operações** (opcional, mas recomendado para SMART completo)
+## 1. Início rápido
 
-## Como usar
+1. Extraia o ZIP `PC-Optimizer-Portable-4.5.zip` para uma pasta comum.
+2. Abra a pasta extraída.
+3. Clique duas vezes em **`Iniciar-PC-Optimizer.bat`**.
+4. Analise primeiro; a limpeza só começa depois da confirmação.
 
-### 1. Preparar a unidade portátil
+Não é necessário instalar, registrar serviço, criar atalho ou ter o repositório
+Git ao lado. O alias `Executar-Otimizador.bat` faz a mesma coisa.
 
-1. **Baixe ou copie** este entire repositório para sua unidade USB
-2. **Crie uma pasta** chamada `windows-pc-optimizer` na raiz da sua unidade USB
-3. **Verifique** se todas as pastas e arquivos estão presentes
-
-### 2. Executar o otimizador
-
-**Opção A: Clique duas vezes (recomendado)**
-
-1. Na sua unidade USB, abra a pasta `windows-pc-optimizer`
-2. Clique duas vezes em `Executar-Otimizador.bat`
-3. O otimizador será carregado e executado
-
-**Opção B: PowerShell direta**
-
-1. Abra PowerShell como administrador (clique com o botão direito → "Executar como administrador")
-2. Navegue até o local do otimizador:
-   ```
-   cd "C:\Users\SeuNome\AppData\Local\Programs\WindowsPC_Optimizer"
-   ```
-   *(ou onde quer que você tenha extraído o programa)*
-3. Execute:
-   ```powershell
-   ."./Modules/Optimizer.Core.psm1" -Force
-   ```
-4. Ou execute o script principal:
-   ```powershell
-   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "Otimizador-GUI.ps1"
-   ```
-
-### 3. Desinstalar ou limpar
-
-Como este é um programa portátil:
-
-- **Sem entradas no registro**: Nenhuma alteração no registro do Windows
-- **Sem alterações no sistema**: Nenhuma alteração permanente no computador hospedeiro
-- **Sem configurações personalizadas salvas**: Todas as configurações são resetadas cada vez que você executa
-
-Para limpar da sua unidade USB:
-1. Excluia a pasta inteira `windows-pc-optimizer`
-2. Remova qualquer arquivo temporário criado (geralmente na pasta Temp do seu usuário)
-
-## Estrutura do diretório portátil
-
-```
-/windows-pc-optimizer-portable/
-├── Executar-Otimizador.bat
-├── Otimizador-GUI.ps1
-├── Otimizar-PC.ps1
-├── README.md
-├── README-PORTABLE.md
-├── .gitignore
-├── .editorconfig
-├── Modules/
-│   ├── Optimizer.Core.psm1
-│   ├── Optimizer.Preferences.psm1
-│   ├── Optimizer.Technician.psm1
-│   ├── Optimizer.NetworkDiagnostics.psm1
-│   └── Optimizer.Events.psm1
-├── Tests/
-│   ├── Core.Smoke.ps1
-│   ├── Events.Smoke.ps1
-│   ├── Network.Smoke.ps1
-│   ├── Optimizer.Tests.ps1
-│   ├── Preferences.Smoke.ps1
-│   ├── Technician.Smoke.ps1
-│   └── UI.UX.Smoke.ps1
-├── UI/
-│   └── MainWindow.xaml
-└── Outros arquivos de suporte...
-```
-
-## Funcionalidades notáveis
-
-### Portátil significa:
-
-✅ **Sem instalação no sistema** - Apenas copie e execute
-✅ **Sem alterações no registro** - Não afeta o computador hospedeiro
-✅ **Sem configurações persistentes** - Comece limpo cada vez
-✅ **Funciona em qualquer lugar** - Execute a partir de qualquer unidade USB
-✅ **Funciona em qualquer computador** - Não requer permissões administrativas (exceto para SMART completo)
-
-### Funcionalidades disponíveis:
-
-- **Limpeza e otimização** - Limpe arquivos temporários e registre otimizações
-- **Diagnóstico do sistema** - Verifique bateria, discos e componentes do sistema
-- **Remoção de aplicativos** - Gerencie aplicativos Windows e Store
-- **Atualização de drivers** - Verifique e atualize drivers
-- **Reparos do sistema** - Execute ferramentas de reparo do Windows
-- **Inventário técnico** - Detalhes completos do sistema e hardware
-- **Análise de rede** - Verifique conectividade e configuração de rede
-- **Logs de eventos** - Analise logs de eventos do Windows
-- **Modo alto contraste e escalabilidade** - Acessibilidade integrada
-
-## Dicas e atalhos
-
-### Criar um atalho no seu desktop
-
-1. Na sua unidade USB, clique com o botão direito em `Executar-Otimizador.bat`
-2. Selecione "Enviar para" → "Área de trabalho (criar atalho)"
-3. Mova o atalho do desktop para a sua unidade USB para fácil acesso
-
-### Usar a partir do PowerShell
+### Verificação sem abrir a interface
 
 ```powershell
-# Execute o otimizador a partir de qualquer lugar
-cd "C:\Users\SeuNome\AppData\Local\Programs\WindowsPC_Optimizer"
-."./Executar-Otimizador.bat"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Iniciar-PC-Optimizer.ps1 -SelfTest
 ```
 
-### Manter atualizações
+Saída esperada: `Portable self-test passed.`
 
-Baixe a versão mais recente do repositório oficial:
-https://github.com/leonccunha21/windows-pc-optimizer
+### Verificação completa da interface
 
-## Perguntas frequentes
+```powershell
+powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Iniciar-PC-Optimizer.ps1 -ValidateUI
+```
 
-### P: O otimizador funciona em computadores sem permissão administrativa?
-R: Sim! A maioria das funcionalidades funciona sem privilégios administrativos. No entanto, a temperatura completa do SMART do disco e a análise de horas requerem privilégios administrativos para dados mais detalhados.
+Esse teste abre e fecha a janela, usa uma pasta temporária descartável e não
+altera configurações do Windows.
 
-### P: Posso usar este em um computador compartilhado?
-R: Absolutamente! Como é portátil, não deixa rastros no computador hospedeiro e não altera configurações do sistema.
+---
 
-### P: E se eu excluír acidentalmente arquivos?
-R: O otimizador usa um modo **"What If"** seguro que apenas simula exclusões antes de realmente executar qualquer ação. Todas as exclusões verdadeiras exigem confirmação adicional.
+## 2. Requisitos
 
-### P: Este programa é seguro?
-R: Totalmente seguro! O código-fonte está disponível publicamente, não instala malware, e todas as operações são opcionais e requerem confirmação antes da execução.
+| Item | Requisito |
+|---|---|
+| Sistema | Windows 10 ou 11 (x64 ou x86) |
+| Runtime | Windows PowerShell 5.1 (incluído) ou PowerShell 7 |
+| Espaço | Cerca de 200 MB para o pacote e arquivos temporários |
+| Permissões | Usuário comum para a maior parte; elevação sob demanda |
+| Rede | Opcional, apenas para testes de conectividade e atualizações |
 
-## Sobre o desenvolvimento
+O launcher prioriza `powershell.exe` (Windows PowerShell 5.1) porque a interface
+WPF e os módulos do sistema foram validados nesse runtime. Se ele não existir,
+usa `pwsh.exe`.
 
-Este é um fork **portátil** do Windows PC Optimizer original, projetado especificamente para:
+---
 
-- **Profissionais de TI** que precisam de ferramentas em multiple computadores
-- **Administradores de sistema** que trabalham em múltiplas estações de trabalho
-- **Usuários móveis** que precisam de manutenção do sistema em qualquer lugar
-- **Testadores** que precisam de um ambiente de teste limpo e consistente
+## 3. O que está incluído
 
-O programa original permanece inalterado, e esta versão portátil é uma adaptação separada do repositório original.
+```
+PC-Optimizer-Portable-4.5/
+├─ Iniciar-PC-Optimizer.bat      <- clique aqui
+├─ Iniciar-PC-Optimizer.ps1      <- launcher e self-test
+├─ Executar-Otimizador.bat       <- alias de compatibilidade
+├─ Otimizador-GUI.ps1            <- interface principal
+├─ Otimizar-PC.ps1               <- console legado/avançado
+├─ LEIA-ME.txt                   <- guia curto
+├─ README-PORTABLE.md            <- este documento
+├─ VERSION.txt                   <- versão, data e commit de origem
+├─ SHA256SUMS.txt                <- hashes dos arquivos do pacote
+├─ Modules/                      <- núcleo, limpeza, privacidade e ajustes
+├─ UI/                           <- layout WPF
+├─ Data/cleanup-rules.json       <- catálogo declarativo de limpeza
+├─ config/optimizer.psd1         <- políticas de retenção e proteção
+├─ Tools/                        <- diagnósticos de rede e eventos
+├─ docs/CATALOGO-LIMPEZA.md      <- referência do catálogo
+└─ Dados/                        <- preferências e logs locais (criado no uso)
+```
 
-## Agradecimentos
+O pacote **não** inclui `Tests/`, `.git/`, builds antigos, executáveis de
+terceiros nem arquivos de desenvolvimento.
 
-- Baseado no Windows PC Optimizer original por leonccunha21
-- Traduzido para um formato portátil por OpenCode
-- Agradecimentos à comunidade por feedback e suporte contínuo
+---
+
+## 4. Comportamento portátil
+
+- **Preferências:** ficam em `Dados/preferences.json` quando a pasta do pacote é
+  gravável. Isso permite levar tema, escala de texto e categorias selecionadas
+  junto com o pen drive.
+- **Logs do launcher:** ficam em `Dados/Logs/portable-launcher.log`.
+- **Mídia somente leitura:** se `Dados/` não puder ser criada ou escrita, o
+  programa usa `%TEMP%\PCOptimizer-Portable` automaticamente.
+- **Logs do console legado:** continuam em `%TEMP%` e são temporários.
+- **Relatórios:** o usuário escolhe onde salvar; nenhum caminho de cliente é
+  serializado nos relatórios JSON/HTML.
+- **Sem instalação:** não há serviço, driver, tarefa agendada ou chave de
+  desinstalação. Remover a pasta remove o programa.
+
+O modo portátil não significa que todas as ações são temporárias: recursos de
+**Privacidade** e **Ajustes** alteram configurações do Windows quando o usuário
+seleciona e confirma. Elas são operações explícitas e documentadas na interface.
+
+---
+
+## 5. Modos de uso
+
+### Interface gráfica (recomendado)
+
+```text
+Iniciar-PC-Optimizer.bat
+```
+
+Abre a central de manutenção com limpeza guiada, diagnóstico, saúde do
+equipamento, bancada técnica, relatórios e preferências.
+
+### Console legado / avançado
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Otimizar-PC.ps1
+```
+
+Use `-DryRun` para simular sem remover arquivos. O console é voltado a
+profissionais que já conhecem as rotinas; a interface é o caminho seguro para
+uso geral.
+
+### Diagnósticos independentes
+
+```text
+Tools\Executar-Diagnostico-Rede.bat
+Tools\Executar-Diagnostico-Eventos.bat
+```
+
+São somente leitura e não exigem a interface.
+
+### Elevação sob demanda
+
+O botão **Abrir como administrador** na aba Limpeza reinicia a interface elevada
+com confirmação. Categorias administrativas são ignoradas enquanto a sessão não
+for elevada.
+
+---
+
+## 6. Segurança e privacidade
+
+- Sem telemetria, analytics, login ou chamada de rede automática.
+- Análise não remove arquivos; a remoção exige seleção e confirmação.
+- Código-fonte, fotos, documentos e pastas de projeto são preservados por
+  política (`config/optimizer.psd1`).
+- Junctions, links simbólicos e caminhos fora da raiz permitida são recusados.
+- Logs estruturados do console redigem caminhos absolutos/UNC, IPs, e-mails e
+  tokens longos.
+- Preferências não guardam nome de cliente, IP, caminho limpo ou inventário.
+- O ZIP acompanha um arquivo `.sha256`; os arquivos internos têm hashes em
+  `SHA256SUMS.txt`.
+
+---
+
+## 7. Verificação de integridade
+
+No PowerShell, na pasta do ZIP:
+
+```powershell
+$hash = (Get-FileHash .\PC-Optimizer-Portable-4.5.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+$expected = (Get-Content .\PC-Optimizer-Portable-4.5.zip.sha256 -Raw).Split(' ')[0]
+if ($hash -eq $expected) { 'Integridade OK' } else { 'Falha na verificação' }
+```
+
+Dentro do pacote:
+
+```powershell
+Get-Content .\SHA256SUMS.txt | ForEach-Object {
+    $parts = $_ -split '  ', 2
+    $actual = (Get-FileHash -LiteralPath $parts[1] -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actual -ne $parts[0]) { Write-Warning "Hash diferente: $($parts[1])" }
+}
+```
+
+---
+
+## 8. Atualização
+
+1. Baixe o novo ZIP e o respectivo `.sha256`.
+2. Extraia em uma pasta nova (recomendado) ou substitua os arquivos antigos.
+3. Preserve a pasta `Dados/` se quiser manter as preferências.
+4. Execute o self-test antes de usar em produção.
+
+Não há registro, serviço ou cache global para limpar.
+
+---
+
+## 9. Solução de problemas
+
+| Sintoma | Ação |
+|---|---|
+| SmartScreen bloqueia o `.bat` | **Mais informações** → **Executar assim mesmo** |
+| “PowerShell não encontrado” | Reative o Windows PowerShell 5.1 ou instale o PowerShell 7 |
+| Janela não abre | Confirme que `Modules/` e `UI/` estão ao lado de `Otimizador-GUI.ps1` |
+| Erro de política de execução | Use o `.bat`; ele aplica `Bypass` somente ao processo atual |
+| `Dados/` não grava | Use uma pasta local; em mídia somente leitura o fallback é automático |
+| Antivírus alerta | O código é aberto; SFC/DISM e limpeza de temporários podem gerar alerta |
+| Categoria administrativa ignorada | Use **Abrir como administrador** na interface |
+| Interface em PowerShell 7 falha | Execute pelo `.bat`, que prioriza o Windows PowerShell 5.1 |
+
+Logs úteis:
+
+```text
+Dados\Logs\portable-launcher.log
+%TEMP%\PCOptimizer-Portable\Logs\portable-launcher.log
+```
+
+---
+
+## 10. Build e release (mantenedores)
+
+O pacote é gerado a partir do repositório com:
+
+```powershell
+pwsh -NoProfile -File .\Tools\Build-Portable.ps1
+```
+
+Opções:
+
+```powershell
+# Versão explícita, saída em uma pasta específica e sem ZIP
+pwsh -File .\Tools\Build-Portable.ps1 -Version 4.5 -OutputDirectory .\dist -NoZip
+
+# Pular a validação de sintaxe do repositório (o release já roda os testes)
+pwsh -File .\Tools\Build-Portable.ps1 -SkipTests
+```
+
+Saídas em `dist/`:
+
+```text
+PC-Optimizer-Portable-4.5/
+PC-Optimizer-Portable-4.5.zip
+PC-Optimizer-Portable-4.5.zip.sha256
+```
+
+O script copia apenas a lista explícita de runtime, valida sintaxe/XAML, gera
+`VERSION.txt`, `SHA256SUMS.txt` e recusa a build se algum arquivo obrigatório
+estiver ausente. `dist/` é ignorado pelo Git.
+
+---
+
+## 11. Limitações conhecidas
+
+- Drivers e reparos que exigem reinicialização continuam dependendo do sistema
+  hospedeiro e de elevação.
+- A temperatura/horas SMART podem ficar indisponíveis sem administrador.
+- Não há assinatura Authenticode neste pacote; o Windows pode exibir aviso de
+  origem desconhecida.
+- O pacote não substitui backup, antivírus ou julgamento profissional antes de
+  operações destrutivas.
+
+---
+
+## 12. Licença e contato
+
+MIT. Consulte `LICENSE`. Projeto independente, sem vínculo com CCleaner,
+Microsoft ou qualquer fornecedor de limpeza comercial.
+
+Repositório: <https://github.com/leonccunha21/windows-pc-optimizer>

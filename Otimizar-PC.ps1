@@ -66,10 +66,17 @@ param(
 )
 
 $ErrorActionPreference = "Continue"
-$LogFile = "$env:TEMP\OtimizadorPC_log.txt"
-$StructuredLogFile = "$env:TEMP\OtimizadorPC_log.jsonl"
+$RuntimeDataDirectory = if ([string]::IsNullOrWhiteSpace($env:TEMP)) { [IO.Path]::GetTempPath() } else { $env:TEMP }
+if (-not [string]::IsNullOrWhiteSpace($env:PC_OPTIMIZER_LOG_DIR)) {
+    $RuntimeDataDirectory = $env:PC_OPTIMIZER_LOG_DIR
+    if (-not (Test-Path -LiteralPath $RuntimeDataDirectory -PathType Container)) {
+        [void](New-Item -ItemType Directory -Path $RuntimeDataDirectory -Force -ErrorAction SilentlyContinue)
+    }
+}
+$LogFile = Join-Path $RuntimeDataDirectory "OtimizadorPC_log.txt"
+$StructuredLogFile = Join-Path $RuntimeDataDirectory "OtimizadorPC_log.jsonl"
 $StructuredLogMaxBytes = 5MB
-$ReportFile = "$env:TEMP\OtimizadorPC_report.html"
+$ReportFile = Join-Path $RuntimeDataDirectory "OtimizadorPC_report.html"
 $Protected = @("Epic Games","Fortnite","EpicGames","FortniteGame",".git")
 $Version = "3.3.0"
 

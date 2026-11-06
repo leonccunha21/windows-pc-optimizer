@@ -464,12 +464,15 @@ function Update-SidebarSelection {
         2 { $current = 'NavDiagnose' }
         3 { $current = 'NavHealth' }
         4 {
-            $current = if ([int]$ui.MaintenanceTabs.SelectedIndex -eq 4) { 'NavBench' } else { 'NavMaintenance' }
+            if ([int]$ui.MaintenanceTabs.SelectedIndex -eq 4) { $current = 'NavBench' }
+            elseif ([int]$ui.MaintenanceTabs.SelectedIndex -eq 5) { $current = 'NavPrivacy' }
+            elseif ([int]$ui.MaintenanceTabs.SelectedIndex -eq 6) { $current = 'NavTweaks' }
+            else { $current = 'NavMaintenance' }
         }
         5 { $current = 'NavReport' }
         6 { $current = 'NavSettings' }
     }
-    foreach ($name in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport','NavSettings')) {
+    foreach ($name in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavPrivacy','NavTweaks','NavReport','NavSettings')) {
         $ui[$name].Background = if ($name -eq $current) { $window.Resources['UiColor0E887A'] } else { [Windows.Media.Brushes]::Transparent }
     }
 }
@@ -481,6 +484,7 @@ function Open-OptimizerSection([int]$PageIndex, [int]$MaintenanceIndex = -1) {
 foreach ($navigation in @(
     @('NavOverview',0,-1),@('NavDiagnose',2,-1),@('NavHealth',3,-1),
     @('NavCleanup',1,-1),@('NavMaintenance',4,0),@('NavBench',4,4),
+    @('NavPrivacy',4,5),@('NavTweaks',4,6),
     @('NavReport',5,-1),@('NavSettings',6,-1)
 )) {
     $ui[$navigation[0]].Tag = @([int]$navigation[1],[int]$navigation[2])
@@ -523,6 +527,8 @@ $ui.HealthHome.Add_Click({ $ui.Pages.SelectedIndex = 3; Start-Work 'Health' $nul
 $ui.HealthShortcut.Add_Click({ $ui.Pages.SelectedIndex = 3 })
 $ui.MaintenanceShortcut.Add_Click({ $ui.Pages.SelectedIndex = 4 })
 $ui.WorkbenchShortcut.Add_Click({ Open-OptimizerSection -PageIndex 4 -MaintenanceIndex 4; $ui.WorkbenchTabs.SelectedIndex = 0 })
+$ui.PrivacyShortcut.Add_Click({ Open-OptimizerSection -PageIndex 4 -MaintenanceIndex 5 })
+$ui.TweaksShortcut.Add_Click({ Open-OptimizerSection -PageIndex 4 -MaintenanceIndex 6 })
 
 # Independent technician modules: only explicit commands are run; all inventory stays read-only.
 foreach ($entry in @(
@@ -846,6 +852,12 @@ $window.Add_PreviewKeyDown({
         $keyArgs.Handled = $true
         Open-OptimizerSection -PageIndex 4 -MaintenanceIndex 4
         $ui.WorkbenchTabs.SelectedIndex = 0
+    } elseif ([Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control -and $keyArgs.Key -eq [Windows.Input.Key]::P) {
+        $keyArgs.Handled = $true
+        Open-OptimizerSection -PageIndex 4 -MaintenanceIndex 5
+    } elseif ([Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control -and $keyArgs.Key -eq [Windows.Input.Key]::T) {
+        $keyArgs.Handled = $true
+        Open-OptimizerSection -PageIndex 4 -MaintenanceIndex 6
     } elseif ([Windows.Input.Keyboard]::Modifiers -band [Windows.Input.ModifierKeys]::Control -and $keyArgs.Key -in @([Windows.Input.Key]::D1,[Windows.Input.Key]::D2,[Windows.Input.Key]::D3,[Windows.Input.Key]::D4,[Windows.Input.Key]::D5,[Windows.Input.Key]::D6,[Windows.Input.Key]::D7)) {
         $keyArgs.Handled = $true
         $keyMap = @{D1=0;D2=2;D3=3;D4=1;D5=4;D6=5;D7=6}
@@ -973,7 +985,7 @@ if ($ValidateUI) {
         $window.Close()
         if (Test-Path $fixture) { Remove-Item -LiteralPath $fixture -Recurse -Force }
     }
-    foreach ($required in @('CloseButton','ElevateButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','PrivacyGrid','TweaksGrid','HealthAnalyzeButton','BatteryReportButton','WorkbenchShortcut','WorkbenchGrid','InvProcessesButton','InvSoftwareButton','NetworkGrid','NetworkSnapshotButton','NetworkProbeButton','EventsGrid','EventsAnalyzeButton','SfcVerifyButton','ExportResultsButton')) {
+    foreach ($required in @('CloseButton','ElevateButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','PrivacyGrid','TweaksGrid','HealthAnalyzeButton','BatteryReportButton','WorkbenchShortcut','PrivacyShortcut','TweaksShortcut','NavPrivacy','NavTweaks','WorkbenchGrid','InvProcessesButton','InvSoftwareButton','NetworkGrid','NetworkSnapshotButton','NetworkProbeButton','EventsGrid','EventsAnalyzeButton','SfcVerifyButton','ExportResultsButton')) {
         if ($null -eq $ui[$required]) { throw "Controle ausente na interface: $required" }
     }
     $savedDisplay = $script:activePreferences

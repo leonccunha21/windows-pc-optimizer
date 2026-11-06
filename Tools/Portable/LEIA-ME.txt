@@ -1,0 +1,60 @@
+PC OPTIMIZER PORTABLE
+=====================
+
+Versao 4.5 - nao requer instalacao nem o repositorio completo.
+
+COMECE AQUI
+-----------
+1. Extraia o ZIP para uma pasta de sua escolha (pen drive, area de trabalho ou
+   drive externo). Nao e necessario executar como administrador.
+2. Abra a pasta extraida e clique duas vezes em:
+
+   Iniciar-PC-Optimizer.bat
+
+3. A interface abre em poucos segundos. A limpeza so acontece depois da
+   analise e da confirmacao.
+
+Para modo console/avancado, execute Otimizar-PC.ps1 pelo PowerShell.
+O alias Executar-Otimizador.bat continua funcionando.
+
+REQUISITOS
+----------
+- Windows 10 ou 11 (x64 ou x86)
+- Windows PowerShell 5.1 (incluido no Windows) ou PowerShell 7
+- 200 MB livres. Algumas categorias de sistema exigem elevacao sob demanda.
+
+DADOS E PRIVACIDADE
+-------------------
+- Nao ha instalador, servico, telemetria ou acesso automatico a rede.
+- Preferencias e logs ficam em Dados\ quando a pasta for gravavel. Em midia
+  somente leitura, o programa usa %TEMP%\PCOptimizer-Portable.
+- Nenhum caminho de cliente e gravado nos logs estruturados.
+- O programa nao remove nada durante a analise. Toda limpeza e confirmada.
+
+ATUALIZAR
+---------
+Substitua os arquivos antigos pelo conteudo do novo ZIP. A pasta Dados pode ser
+preservada. Nao ha chaves de registro para remover.
+
+PROBLEMAS COMUNS
+----------------
+- SmartScreen: clique em "Mais informacoes" e depois em "Executar assim mesmo".
+- Politica de execucao: use Iniciar-PC-Optimizer.bat, que aplica Bypass apenas
+  ao processo atual.
+- Antivirus: o programa usa SFC, DISM e limpeza de temporarios; algumas suites
+  podem pedir confirmacao. O codigo-fonte e aberto para auditoria.
+- Interface nao abre: confirme que extraiu o ZIP inteiro e que a pasta Modules
+  esta ao lado do arquivo Otimizador-GUI.ps1.
+
+VERIFICAR O PACOTE
+------------------
+- SHA256 do ZIP: arquivo .sha256 ao lado do ZIP.
+- Hashes internos: SHA256SUMS.txt.
+- Teste rapido, sem abrir a interface:
+
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Iniciar-PC-Optimizer.ps1 -SelfTest
+
+LICENCA
+-------
+MIT. Consulte LICENSE. Este e um projeto independente, sem vinculo com o
+CCleaner ou com a Microsoft.

@@ -8,6 +8,16 @@ $testDir=Join-Path ([IO.Path]::GetTempPath()) ('optimizer-settings-test-' + [gui
 [void](New-Item -ItemType Directory -Path $testDir -Force)
 $path=Join-Path $testDir 'preferences.json'
 try {
+    $portableData = Join-Path $testDir 'portable-data'
+    [void](New-Item -ItemType Directory -Path $portableData -Force)
+    $previousPortableData = $env:PC_OPTIMIZER_PORTABLE_DATA
+    $env:PC_OPTIMIZER_PORTABLE_DATA = $portableData
+    try {
+        $portablePath = Get-OptimizerPreferencesPath
+        Assert-Preferences ($portablePath -eq (Join-Path $portableData 'preferences.json')) 'Portable preferences path was not honored.'
+    } finally {
+        $env:PC_OPTIMIZER_PORTABLE_DATA = $previousPortableData
+    }
     $default=Read-OptimizerPreferences -Path $path
     Assert-Preferences ($default.SchemaVersion -eq 2 -and -not $default.HighContrast -and $default.TextScale -eq 100 -and @($default.SelectedCategories).Count -eq 0) 'Defaults incorrect.'
     $selected=[pscustomobject]@{SchemaVersion=2;HighContrast=$true;TextScale=125;SelectedCategories=@('temp','chrome-Default-Code Cache');Customer='PRIVATE-NAME';IP='192.0.2.2';CleanupPath='SECRET'}

@@ -12,7 +12,7 @@ $names = @($layout.SelectNodes('//*[@x:Name]', $ns) | ForEach-Object {
 })
 $dupes = @($names | Group-Object | Where-Object Count -gt 1)
 Assert-OptimizerUx ($dupes.Count -eq 0) 'Duplicate x:Name values block WPF binding.'
-foreach ($required in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport','NavSettings','Pages','MaintenanceTabs','WorkbenchTabs','WorkbenchGrid','NetworkGrid','EventsGrid')) {
+foreach ($required in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavPrivacy','NavTweaks','NavReport','NavSettings','Pages','MaintenanceTabs','WorkbenchTabs','WorkbenchGrid','NetworkGrid','EventsGrid')) {
     Assert-OptimizerUx ($names -contains $required) "Missing UI navigation control: $required"
 }
 $workbench = $layout.SelectSingleNode("//*[@x:Name='WorkbenchTabs']", $ns)
@@ -28,7 +28,7 @@ Assert-OptimizerUx ($unnamed.Count -eq 0) 'Some buttons lack accessible Automati
 $dataGrids = @($layout.SelectNodes("//*[local-name()='DataGrid']"))
 $unnamedGrids = @($dataGrids | Where-Object { -not $_.GetAttribute('AutomationProperties.Name') })
 Assert-OptimizerUx ($unnamedGrids.Count -eq 0) 'Some data grids lack accessible AutomationProperties.Name.'
-$navButtonNames = @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavSettings','NavReport')
+$navButtonNames = @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavPrivacy','NavTweaks','NavSettings','NavReport')
 for ($index = 0; $index -lt $navButtonNames.Count; $index++) {
     $name = $navButtonNames[$index]
     $btn = $layout.SelectSingleNode("//*[@x:Name='$name']", $ns)
@@ -83,7 +83,7 @@ $settingsTab = @($layout.SelectNodes("//*[local-name()='TabItem']") | Where-Obje
 Assert-OptimizerUx ($settingsTab.Count -eq 1) 'Preferences must have exactly one main tab.'
 Assert-OptimizerUx ($dynamicReferences.Count -ge 90) 'Theme resources not used consistently.'
 $gui = Get-Content -LiteralPath (Join-Path $root 'Otimizador-GUI.ps1') -Raw -Encoding UTF8
-foreach ($marker in @('function Open-OptimizerSection','Update-SidebarSelection','[Windows.Input.Key]::B','NavBench.RaiseEvent','WorkbenchTabs.SelectedIndex','Aplicar filtro','Restore-OptimizerCategorySelection','Save-OptimizerCategorySelection','Set-OptimizerDialogDirectory','ElevateButton.Add_Click')) {
+foreach ($marker in @('function Open-OptimizerSection','Update-SidebarSelection','[Windows.Input.Key]::B','NavBench.RaiseEvent','NavPrivacy','NavTweaks','WorkbenchTabs.SelectedIndex','Aplicar filtro','Restore-OptimizerCategorySelection','Save-OptimizerCategorySelection','Set-OptimizerDialogDirectory','ElevateButton.Add_Click')) {
     Assert-OptimizerUx ($gui.Contains($marker)) "Missing functional keyboard/navigation binding: $marker"
 }
 Write-Output 'UX structural navigation, accessibility names and contrast checks passed.'

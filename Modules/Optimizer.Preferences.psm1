@@ -51,6 +51,11 @@ function Test-OptimizerPreferenceValues {
 function Get-OptimizerPreferencesPath {
     [CmdletBinding()]
     param()
+    # Portable builds set this variable so preferences travel with the package
+    # instead of being left behind in the host user's profile.
+    if (-not [string]::IsNullOrWhiteSpace($env:PC_OPTIMIZER_PORTABLE_DATA)) {
+        return (Join-Path $env:PC_OPTIMIZER_PORTABLE_DATA 'preferences.json')
+    }
     $local = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
     if ([string]::IsNullOrWhiteSpace($local)) {
         throw 'A pasta local de preferências não está disponível neste perfil.'

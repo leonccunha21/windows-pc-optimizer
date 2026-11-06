@@ -9,3 +9,6 @@ OtimizadorPC_log.txt
 *.exe
 Repositorios-Github
 optimizer-execution-results.md
+
+# Pacote portátil gerado
+dist/
