@@ -290,7 +290,7 @@
        <Border Style="{StaticResource Card}">
         <StackPanel>
          <TextBlock Text="Bateria e armazenamento" FontSize="{DynamicResource UiFont20}" FontWeight="SemiBold"/>
-         <TextBlock Text="A bateria usa o relatório oficial do Windows (powercfg). Os discos usam o status do subsistema de armazenamento e os contadores SMART disponíveis. Leituras não alteram nada." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,10,0,16"/>
+         <TextBlock Text="A bateria usa o relatório oficial do Windows (powercfg). Os discos usam o status do subsistema de armazenamento e os contadores SMART disponíveis. Temperatura/horas completas requerem administrador; saúde e volumes aparecem sem ele. Leituras não alteram nada." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,10,0,16"/>
          <WrapPanel>
           <Button x:Name="HealthAnalyzeButton" Content="Analisar bateria e discos" AutomationProperties.Name="Analisar bateria e discos" />
           <Button x:Name="BatteryReportButton" Content="Salvar relatório de bateria" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Salvar relatório de bateria" />

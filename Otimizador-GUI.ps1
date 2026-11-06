@@ -193,7 +193,7 @@ function Update-DiskView {
     }
     if ($script:disks.Note) { $diskRows.Add([pscustomobject]@{ Area='Discos'; Item='Observação'; Value=$script:disks.Note }) }
     $script:diagnostics = @($script:diagnostics | Where-Object { $_.Area -ne 'Discos' }) + $diskRows.ToArray()
-    $ui.HealthNote.Text = if ($script:disks.Note) { $script:disks.Note } else { 'Contadores SMART variam por fabricante e controladora. Ausência de leitura não significa disco saudável.' }
+    $ui.HealthNote.Text = if ($script:disks.Note) { $script:disks.Note } else { 'Contadores SMART variam por fabricante e controladora. Ausência de leitura não significa disco saudável. SMART completo (temperatura/horas) requer administrador.' }
 }
 function Update-AppxGrid {
     $rows = if ($ui.AppxBloatOnly.IsChecked) { @($script:appx | Where-Object Suggested) } else { @($script:appx) }

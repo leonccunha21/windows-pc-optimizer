@@ -339,23 +339,29 @@ function Get-OptimizerDiskHealth {
     if ($env:OS -ne 'Windows_NT') {
         return [pscustomobject]@{ Disks=@(); Volumes=@(); Note='Consulta disponível apenas no Windows.' }
     }
+    $smartError = ''
     if (Get-Command Get-PhysicalDisk -ErrorAction SilentlyContinue) {
         try {
             foreach ($disk in @(Get-PhysicalDisk -ErrorAction Stop)) {
                 $temperature = $null; $wear = $null; $hours = $null; $readErrors = $null
-                try {
-                    $counter = $disk | Get-StorageReliabilityCounter -ErrorAction Stop
-                    $temperature = Get-OptimizerPropertyValue $counter 'Temperature'
-                    $wear = Get-OptimizerPropertyValue $counter 'Wear'
-                    $hours = Get-OptimizerPropertyValue $counter 'PowerOnHours'
-                    $readErrors = Get-OptimizerPropertyValue $counter 'ReadErrorsTotal'
-                } catch { Write-Verbose 'Leitura opcional indisponível.' }
+                if ([string]::IsNullOrWhiteSpace($smartError)) {
+                    try {
+                        $counter = $disk | Get-StorageReliabilityCounter -ErrorAction Stop
+                        $temperature = Get-OptimizerPropertyValue $counter 'Temperature'
+                        $wear = Get-OptimizerPropertyValue $counter 'Wear'
+                        $hours = Get-OptimizerPropertyValue $counter 'PowerOnHours'
+                        $readErrors = Get-OptimizerPropertyValue $counter 'ReadErrorsTotal'
+                    } catch {
+                        $smartError = $_.Exception.Message
+                        Write-Verbose ('SMART indisponível: ' + $smartError)
+                    }
+                }
                 $health = [string](Get-OptimizerPropertyValue $disk 'HealthStatus')
                 $rating = switch ($health) {
-                    'Healthy' { 'Boa' }
+                    'Healthy' { 'Saudável' }
                     'Warning' { 'Atenção' }
                     'Unhealthy' { 'Crítica' }
-                    default { if ($health) { $health } else { 'Indisponível' } }
+                    default { if ($health) { $health } else { 'Não informado' } }
                 }
                 $size = Get-OptimizerPropertyValue $disk 'Size'
                 $disks.Add([pscustomobject]@{
@@ -372,7 +378,7 @@ function Get-OptimizerDiskHealth {
                     ReadErrors=if ($null -ne $readErrors) { [string]$readErrors } else { '—' }
                 })
             }
-        } catch { $note = 'Consulta SMART indisponível: ' + $_.Exception.Message }
+        } catch { $note = 'Consulta de discos indisponível: ' + $_.Exception.Message }
     }
     if ($disks.Count -eq 0) {
         try {
@@ -394,7 +400,7 @@ function Get-OptimizerDiskHealth {
                 Letter=[string]$volume.DriveLetter; Label=[string](Get-OptimizerPropertyValue $volume 'FileSystemLabel')
                 FileSystem=[string](Get-OptimizerPropertyValue $volume 'FileSystem'); Free=if ($null -ne $remaining) { Format-OptimizerSize $remaining } else { '—' }
                 Total=if ($null -ne $total) { Format-OptimizerSize $total } else { '—' }
-                Health=[string](Get-OptimizerPropertyValue $volume 'HealthStatus')
+                Health=switch ([string](Get-OptimizerPropertyValue $volume 'HealthStatus')) { 'Healthy' { 'Saudável' } 'Warning' { 'Atenção' } 'Unhealthy' { 'Crítica' } default { if (Get-OptimizerPropertyValue $volume 'HealthStatus') { [string](Get-OptimizerPropertyValue $volume 'HealthStatus') } else { '-' } } }
             })
         }
     } catch { Write-Verbose 'Leitura opcional indisponível.' }
@@ -404,6 +410,9 @@ function Get-OptimizerDiskHealth {
                 $volumes.Add([pscustomobject]@{ Letter=[string]$logical.DeviceID; Label=[string]$logical.VolumeName; FileSystem=[string]$logical.FileSystem; Free=Format-OptimizerSize $logical.FreeSpace; Total=Format-OptimizerSize $logical.Size; Health='Não informado' })
             }
         } catch { Write-Verbose 'Leitura opcional indisponível.' }
+    }
+    if ([string]::IsNullOrWhiteSpace($note) -and -not [string]::IsNullOrWhiteSpace($smartError)) {
+        $note = 'Temperatura/horas via SMART requerem permissão de administrador (Get-StorageReliabilityCounter: ' + $smartError + '). Execute como administrador para obter o SMART completo; a saúde do disco segue visível.'
     }
     [pscustomobject]@{ Disks=$disks.ToArray(); Volumes=$volumes.ToArray(); Note=$note }
 }
