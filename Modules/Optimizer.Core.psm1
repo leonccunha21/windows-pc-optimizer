@@ -774,9 +774,16 @@ function Get-OptimizerAppInventory {
     [CmdletBinding()]
     param()
     if ($env:OS -ne 'Windows_NT') { return @() }
+    if (-not (Get-Command Get-AppxPackage -ErrorAction SilentlyContinue)) { return @() }
     $catalog = Get-OptimizerBloatCatalog
     $rows = New-Object 'System.Collections.Generic.List[object]'
-    foreach ($package in @(Get-AppxPackage -ErrorAction Stop | Where-Object { -not $_.IsFramework -and -not $_.IsResourcePackage })) {
+    $packages = @()
+    try {
+        $packages = @(Get-AppxPackage -ErrorAction Stop | Where-Object { -not $_.IsFramework -and -not $_.IsResourcePackage })
+    } catch {
+        return @()
+    }
+    foreach ($package in $packages) {
         $match = @($catalog | Where-Object { $package.Name -like $_.Match }) | Select-Object -First 1
         $rows.Add([pscustomobject]@{
             Selected=$false
