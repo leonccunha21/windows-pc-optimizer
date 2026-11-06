@@ -767,16 +767,12 @@ $ui.TweaksSelectNoneButton.Add_Click({
     $ui.Status.Text = 'Todos os ajustes foram desmarcados.'
 })
 $ui.TweaksDnsGoogleButton.Add_Click({
-    foreach ($item in $script:tweaksCatalog) {
-        if ($item.Id -like 'SetDns*') { $item.Selected = ($item.Id -eq 'SetDnsGoogle') }
-    }
+    foreach ($item in $script:tweaksCatalog) { $item.Selected = ($item.Id -eq 'SetDnsGoogle') }
     $ui.TweaksGrid.Items.Refresh()
     $ui.Status.Text = 'DNS Google marcado.'
 })
 $ui.TweaksDnsCloudflareButton.Add_Click({
-    foreach ($item in $script:tweaksCatalog) {
-        if ($item.Id -like 'SetDns*') { $item.Selected = ($item.Id -eq 'SetDnsCloudflare') }
-    }
+    foreach ($item in $script:tweaksCatalog) { $item.Selected = ($item.Id -eq 'SetDnsCloudflare') }
     $ui.TweaksGrid.Items.Refresh()
     $ui.Status.Text = 'DNS Cloudflare marcado.'
 })
@@ -1034,6 +1030,20 @@ if ($ValidateUI) {
             Start-Sleep -Milliseconds 20
         }
         if ($null -ne $script:worker -or @($ui.WorkbenchGrid.ItemsSource).Count -lt 1) { throw 'WPF integrated technician inventory/runspace failed.' }
+        Start-Work 'Health' $null
+        $deadline = [DateTime]::UtcNow.AddSeconds(60)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or @($ui.BatteryGrid.ItemsSource).Count -lt 1 -or @($ui.DiskGrid.ItemsSource).Count -lt 1 -or @($ui.VolumeGrid.ItemsSource).Count -lt 1) { throw 'WPF health/battery/disk runspace failed.' }
+        Start-Work 'Agent' @{ Diagnostics=@($script:diagnostics); Health=([pscustomobject]@{ Battery=$script:battery; Disks=$script:disks }); Scan=$script:scan; AppInventory=@($script:appx); IsAdmin=[bool]$script:isAdmin }
+        $deadline = [DateTime]::UtcNow.AddSeconds(30)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or @($script:agentRecommendations).Count -lt 1 -or [string]::IsNullOrWhiteSpace([string]$ui.AgentSummary.Text)) { throw 'WPF local agent runspace failed.' }
     } finally {
         $env:LOCALAPPDATA = $previousLocalAppData
         $timer.Stop()
