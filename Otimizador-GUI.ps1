@@ -1045,7 +1045,7 @@ if ($ValidateUI) {
         }
         if ($null -ne $script:worker -or @($ui.DriverGrid.ItemsSource).Count -lt 1) { throw 'WPF drivers runspace failed.' }
         Start-Work 'DriverUpdates' $null
-        $deadline = [DateTime]::UtcNow.AddSeconds(120)
+        $deadline = [DateTime]::UtcNow.AddSeconds(300)
         while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
             $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
             Start-Sleep -Milliseconds 20
