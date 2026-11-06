@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Catálogo declarativo de limpeza em `Data/cleanup-rules.json`, com categorias do Windows e de aplicativos, risco e observação por pasta.
+- Categorias de navegador por perfil: Firefox (`cache2` e `startupCache`), Opera, Vivaldi e Chromium, além de Chrome, Edge e Brave.
+- Relatórios WER do usuário e do sistema (`{ProgramData}\Microsoft\Windows\WER`), sendo o segundo elevado e identificado como risco baixo.
+- O aviso de análise sem elevação lista nominalmente as categorias administrativas ignoradas, em vez de uma mensagem genérica.
+- Chrome, Edge e Brave migrados da lista fixa do núcleo para o catálogo, com descoberta de perfis por `*`.
+- Caches de Slack e Visual Studio Code (`Cache`, `Code Cache` e `GPUCache`), sempre com o aplicativo fechado e sem tocar em conversas, projetos ou extensões.
+- Expansão de um segmento `*` no caminho do catálogo, limitada a 64 pastas por regra e sem atravessar junctions/links; curingas parciais são recusados.
+- `Modules/Optimizer.CleanupCatalog.psm1` para resolver tokens de ambiente, ignorar pastas ausentes e validar ids duplicados.
+- Botão **Abrir como administrador** na aba Limpeza, com confirmação e reabertura elevada; fica oculto quando a sessão já é administrativa.
+- Colunas **Risco** e **Observação** na grade de limpeza e aviso extra na confirmação para categorias de risco médio/alto.
+- Testes `Tests/CleanupCatalog.Smoke.ps1` no CI em PowerShell 7 e Windows PowerShell 5.1, incluindo expansão de perfis, cobertura de WER e recusa de curinga parcial; `Tests/Core.Smoke.ps1` também verifica o bloqueio de limpeza administrativa sem elevação.
+- Documentação `docs/CATALOGO-LIMPEZA.md` com fontes públicas, formato do catálogo e método clean-room inspirado no projeto Craft Anything (MIT/Apache-2.0), sem reutilização de código ou definições de produtos comerciais.
+
+### Security
+- Categorias que exigem administrador são ignoradas sem elevação e nunca são limpas nesse estado.
+- Categorias com padrões restritos (por exemplo, miniaturas do Explorer) só aceitam os arquivos declarados; as demais extensões preservadas continuam bloqueadas.
+
 ## [4.4] - 2026-11-04
 
 ### Added

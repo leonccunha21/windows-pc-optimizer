@@ -64,6 +64,13 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: ./Tests/Events.Smoke.ps1
+      - name: Declarative cleanup catalog tests
+        shell: pwsh
+        run: ./Tests/CleanupCatalog.Smoke.ps1
+      - name: Declarative cleanup catalog under Windows PowerShell 5.1
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./Tests/CleanupCatalog.Smoke.ps1
       - name: Technician inventory and repair allowlist tests
         shell: pwsh
         run: ./Tests/Technician.Smoke.ps1

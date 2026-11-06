@@ -190,6 +190,7 @@
         <Button x:Name="DetailsButton" Content="Prévia / resultado" Background="#40566C" IsEnabled="False" AutomationProperties.Name="Prévia / resultado" />
         <Button x:Name="SelectAllButton" Content="Selecionar tudo" AutomationProperties.Name="Selecionar todas as categorias" Background="#40566C"/>
         <Button x:Name="SelectNoneButton" Content="Desmarcar tudo" AutomationProperties.Name="Desmarcar todas as categorias" Background="#40566C"/><Button x:Name="ExportResultsButton" Content="Exportar CSV" AutomationProperties.Name="Exportar resultado da limpeza em CSV" Background="#40566C" IsEnabled="False"/>
+        <Button x:Name="ElevateButton" Content="Abrir como administrador" AutomationProperties.Name="Reabrir o PC Optimizer como administrador" ToolTip="Necessário para categorias de sistema como Temp do Windows, Windows Update e Prefetch." Background="#40566C"/>
        </WrapPanel>
       </StackPanel>
       <DataGrid x:Name="Categories" Grid.Row="1">
@@ -198,6 +199,8 @@
         <DataGridTextColumn Header="Categoria" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
         <DataGridTextColumn Header="Arquivos" Binding="{Binding Count}" Width="80" IsReadOnly="True"/>
         <DataGridTextColumn Header="Espaço" Binding="{Binding Size}" Width="100" IsReadOnly="True"/>
+        <DataGridTextColumn Header="Risco" Binding="{Binding Risk}" Width="70" IsReadOnly="True"/>
+        <DataGridTextColumn Header="Observação" Binding="{Binding Note}" Width="220" IsReadOnly="True"/>
        </DataGrid.Columns>
       </DataGrid>
       <TextBox x:Name="ScanWarnings" Grid.Row="2" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="95" VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="#FFF5DF"/>

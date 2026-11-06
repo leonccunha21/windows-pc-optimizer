@@ -8,6 +8,7 @@ A interface 4.0 está em `Otimizador-GUI.ps1` e `UI/MainWindow.xaml`. As operaç
 ./Tests/Validate-Syntax.ps1
 ./Tests/Optimizer.Tests.ps1
 ./Tests/Core.Smoke.ps1
+./Tests/CleanupCatalog.Smoke.ps1
 powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI
 ```
 
@@ -15,7 +16,8 @@ A última etapa requer Windows, testa o fluxo assíncrono com um perfil temporá
 
 ## Regras do núcleo de limpeza
 
-- Toda nova categoria precisa de raiz explícita e teste de segurança com dados descartáveis.
+- Toda nova categoria precisa de raiz explícita e teste de segurança com dados descartáveis. Prefira declarar pastas de cache em `Data/cleanup-rules.json` com risco e observação; veja `docs/CATALOGO-LIMPEZA.md`.
+- Não copie definições de produtos comerciais nem faça engenharia reversa dos seus binários. Use documentação pública e caminhos oficiais dos aplicativos.
 - A análise não modifica arquivos; a limpeza exige uma análise recente e confirmação na interface.
 - Revalide caminhos, links, marcadores de proteção, tamanho e data antes de excluir.
 - Não use exclusão recursiva, eliminação de logs, limpadores de Registro ou desativação indiscriminada de serviços.

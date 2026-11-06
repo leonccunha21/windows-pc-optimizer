@@ -59,7 +59,7 @@ foreach ($pair in @(
     Assert-OptimizerUx ($ratio -ge 4.5) ("Insufficient text contrast: {0} on {1} ({2:N2})" -f $pair[0],$pair[1],$ratio)
 }
 $gui = Get-Content -LiteralPath (Join-Path $root 'Otimizador-GUI.ps1') -Raw -Encoding UTF8
-foreach ($marker in @('function Open-OptimizerSection','Update-SidebarSelection','[Windows.Input.Key]::B','NavBench.RaiseEvent','WorkbenchTabs.SelectedIndex')) {
+foreach ($marker in @('function Open-OptimizerSection','Update-SidebarSelection','[Windows.Input.Key]::B','NavBench.RaiseEvent','WorkbenchTabs.SelectedIndex','ElevateButton.Add_Click')) {
     Assert-OptimizerUx ($gui.Contains($marker)) "Missing functional keyboard/navigation binding: $marker"
 }
 Write-Output 'UX structural navigation, accessibility names and contrast checks passed.'

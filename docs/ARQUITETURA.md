@@ -6,12 +6,14 @@
 - `Otimizador-GUI.ps1`: interface WPF; execução assíncrona com runspace e cancelamento cooperativo.
 - `UI/MainWindow.xaml`: layout, navegação e elementos acessíveis.
 - `Modules/Optimizer.Core.psm1`: núcleo de análise, validação de caminhos, limpeza confirmada, diagnóstico e exportação HTML/JSON.
+- `Modules/Optimizer.CleanupCatalog.psm1`: lê o catálogo declarativo, resolve tokens de ambiente, expande perfis por segmento `*` e devolve apenas pastas existentes.
+- `Data/cleanup-rules.json`: regras próprias de limpeza (pasta, processo, risco e observação), sem definições extraídas de produtos comerciais.
 - `Otimizar-PC.ps1`: console legado **isolado** da interface. Pode conter ações de alto impacto e exige `-Legacy` e administrador. As opções automáticas não são recomendadas.
 - `Tests/`: verificações de sintaxe, regressões de compatibilidade e segurança com arquivos fictícios.
 
 ## Fluxo principal
 
-1. **Análise**: identifica apenas diretórios permitidos; ignora navegadores em uso, arquivos recentes, documentos, projetos e links.
+1. **Análise**: identifica apenas diretórios permitidos; ignora navegadores em uso, arquivos recentes, documentos, projetos e links. Categorias marcadas como `RequiresAdmin` são omitidas sem elevação, com aviso explícito.
 2. **Revisão**: mostra categorias, contagem e lista de arquivos candidatos. Seleção em massa é opcional.
 3. **Confirmação**: exige consentimento explícito antes da exclusão permanente.
 4. **Execução**: revalida caminhos, datas, tamanhos e permissões. O progresso corresponde a arquivos avaliados. Cancelamento interrompe entre itens.

@@ -4,6 +4,7 @@
 
 - Sintaxe de todos os PS1/PSM1, ausência de funções duplicadas e XML da interface.
 - Testes com arquivos temporários isolados: retenção, projetos, extensões pessoais, cancelamento, prévia, seleção, arquivo alterado, expiração, links, proteção adicionada após análise, bytes removidos e escape de HTML.
+- Catálogo declarativo: tokens de ambiente, pastas ausentes, ids duplicados, risco/observação, filtros por padrão/extensão, expansão de dois perfis por `*`, recusa de curinga parcial, cobertura de WER do usuário/sistema e bloqueio de limpeza administrativa sem elevação.
 - CI: Windows/Linux, Windows PowerShell 5.1 e carregamento real de XAML/eventos WPF e ciclo de análise/limpeza em segundo plano com perfil descartável.
 
 ## Manual necessária antes de distribuir amplamente
@@ -12,6 +13,8 @@
 - Revisar a interface em 100%, 125%, 150% e 200% de DPI; redimensionar e navegar por teclado.
 - Analisar um perfil com muitos temporários: janela deve continuar respondendo, Interromper deve funcionar e fechar durante trabalho deve aguardar.
 - Chrome/Edge/Brave abertos: conferir avisos. Fechar, analisar, reabrir antes da limpeza e confirmar que arquivos são ignorados.
+- Firefox/Opera/Vivaldi/Chromium: repetir o teste com mais de um perfil. Confirmar que cada perfil aparece separado, com id único e nome identificando a pasta.
+- Sem elevação: confirmar que categorias de sistema são omitidas com aviso nominal e que **Abrir como administrador** reabre a interface. Com elevação, confirmar que o botão fica oculto e que as categorias aparecem.
 - Limpar apenas uma categoria; conferir prévia e resultado. Testar arquivo bloqueado por outro programa.
 - Notebook com/sem bateria, desktop, Defender desativado por outro antivírus: indisponibilidade deve aparecer sem falso sucesso.
 - Exportar HTML com acentos e símbolos; conferir no navegador e na impressão PDF.

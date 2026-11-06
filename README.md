@@ -7,7 +7,7 @@ Interface desktop em português para o dia a dia de manutenção de computadores
 ## Abrir
 
 1. Baixe o [ZIP do projeto](https://github.com/leonccunha21/windows-pc-optimizer/archive/refs/heads/main.zip).
-2. **Extraia a pasta inteira**, mantendo `Modules` e `UI` ao lado dos scripts.
+2. **Extraia a pasta inteira**, mantendo `Modules`, `Data` e `UI` ao lado dos scripts.
 3. Abra `Executar-Otimizador.bat`. A interface comum **não exige administrador**.
 4. Faça o diagnóstico, analise a limpeza, revise os arquivos e confirme as categorias desejadas.
 
@@ -18,7 +18,7 @@ Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil 
 | Área | Recursos |
 |---|---|
 | Visão geral | Fluxo de atendimento, espaço analisado e resultado real da última limpeza |
-| Limpeza | Prévia por categoria e arquivo, seleção/desmarcação em massa, resultado detalhado, CSV opcional (com aviso de privacidade) e progresso por arquivo; caches Chrome, Edge e Brave; retenção mínima de 7 dias |
+| Limpeza | Prévia por categoria e arquivo, seleção/desmarcação em massa, resultado detalhado, CSV opcional (com aviso de privacidade) e progresso por arquivo; caches Chrome, Edge, Brave, Firefox, Opera, Vivaldi e Chromium (por perfil); catálogo declarativo de caches do Windows e de aplicativos, com risco e observação por categoria; botão para reabrir a interface como administrador; retenção mínima de 7 dias |
 | Diagnóstico | Sistema, fabricante/modelo, CPU, RAM, discos, espaço livre, bateria e estado do Defender quando disponível |
 | Rede | Diagnóstico local de adaptadores, IPv4, gateway, DNS e perfis; testes DNS/TCP com destino explícito |
 | Saúde | Bateria com relatório oficial do Windows (powercfg), capacidade de projeto e ciclos; discos físicos com contadores SMART, temperatura, desgaste e volumes |
@@ -74,11 +74,15 @@ A aba **Rede** consolida o diagnóstico local. A consulta usa apenas o ambiente 
 - Preserva arquivos recentes, extensões comuns de código/documentos/mídia/arquivos compactados e pastas com marcadores de projeto (`.git`, `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`).
 - Um arquivo vazio chamado `.optimizer-protect` protege a pasta e seus descendentes.
 - Não percorre junctions ou links simbólicos. Antes de excluir, verifica novamente os ancestrais, tamanho e data de modificação.
+- O catálogo em `Data/cleanup-rules.json` declara pasta, processo, risco e observação de cada categoria. Categorias que exigem administrador são ignoradas sem elevação e informadas no aviso da análise.
+- O botão **Abrir como administrador** reabre a interface elevada após confirmação; ele desaparece quando a sessão já está elevada.
+- Perfis de navegador são descobertos por um segmento `*` no caminho (por exemplo, `Profiles\*\cache2`). A expansão é limitada a 64 pastas por regra, não atravessa junctions/links e não aceita curingas parciais.
+- Categorias com filtro de padrão só aceitam os arquivos declarados (por exemplo, `thumbcache_*.db`); o restante continua sujeito à lista de extensões preservadas.
 - Apaga arquivos individuais, nunca diretórios recursivamente. Arquivos em uso ou sem permissão são registrados como ignorados.
 - A análise expira em 30 minutos. Após uma limpeza, uma nova análise é obrigatória.
 - A exclusão é permanente: revise a prévia. Um ponto de restauração não recupera arquivos pessoais excluídos.
 
-Não há limpeza de Registro, alteração automática de serviços, pagefile, rede ou exclusão de logs na nova interface. Espaço liberado representa os bytes dos arquivos cuja exclusão foi confirmada; não é promessa de ganho de velocidade nem medição de alocação física em discos comprimidos.
+O formato do catálogo, as fontes públicas usadas e o passo a passo para novas categorias estão em [docs/CATALOGO-LIMPEZA.md](docs/CATALOGO-LIMPEZA.md). Não há limpeza de Registro, alteração automática de serviços, pagefile, rede ou exclusão de logs na nova interface. Espaço liberado representa os bytes dos arquivos cuja exclusão foi confirmada; não é promessa de ganho de velocidade nem medição de alocação física em discos comprimidos.
 
 ## Fluxo de oficina
 
@@ -95,6 +99,7 @@ Não há limpeza de Registro, alteração automática de serviços, pagefile, re
 ./Tests/Validate-Syntax.ps1
 ./Tests/Optimizer.Tests.ps1
 ./Tests/Core.Smoke.ps1
+./Tests/CleanupCatalog.Smoke.ps1
 ./Tests/Technician.Smoke.ps1
 ./Tests/Network.Smoke.ps1
 powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI

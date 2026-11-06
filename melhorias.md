@@ -5,6 +5,27 @@
 
 ---
 
+## Engenharia Reversa do CCleaner e Catálogo de Regras Declarativas — Rodada 4.6 (05/11/2026)
+
+**Coordenação e Contexto Técnico:**
+Foi realizada a análise arquitetural das categorias de limpeza do CCleaner (`WinSys.ini`, `winapp2.ini` e alvos de navegadores/aplicativos de terceiros) e implementada a integração completa ao sistema do `windows-pc-optimizer` via motor declarativo e modular.
+
+**O que foi mapeado do CCleaner:**
+1. **Windows e Sistema:** Temporários de sistema (`{SystemRoot}\Temp`), Downloads do Windows Update (`SoftwareDistribution\Download`), Cache de Otimização de Entrega (`DeliveryOptimization`), Prefetch (`Prefetch`), Relatórios de Falha WER (`WER`), Despejos de memória/Crash Dumps (`CrashDumps`) e Cache de Internet legada (`INetCache`).
+2. **Navegadores Modernos:** Chromium (Chrome, Edge, Brave, Vivaldi), Mozilla Firefox e navegadores baseados no Opera (Opera Stable e Opera GX), cobrindo caches de renderização, GPU e V8 Code Cache.
+3. **Caches de Aplicativos (Estilo winapp2.ini):** Discord, Slack, Spotify, VS Code, além de caches de gerenciadores de dependências (npm, pnpm, pip, nuget).
+
+**Estrutura da Implementação:**
+- **Catálogo Declarativo:** Criado `Data/cleanup-rules.json` contendo a especificação auditável de regras, com marcação de risco (`Baixo`, `Médio`), descrições claras de impacto e requisitos de privilégio (`RequiresAdmin`).
+- **Módulo do Catálogo:** Criado `Modules/Optimizer.CleanupCatalog.psm1` com resolução segura de variáveis de ambiente (`{SystemRoot}`, `{LocalAppData}`, `{AppData}`), suporte a perfis dinâmicos de navegadores e prevenção de traversal de caminho.
+- **Proteções Incorporadas (Superior ao CCleaner):**
+  - Não mexe em registros instáveis do Windows (sem falso "limpador de registro" perigoso).
+  - Preservação estrita de código-fonte (`.git`, `package.json`, projetos) e pastas de jogos (`Epic Games`, `Fortnite`).
+  - Suporte completo a `WhatIf` (DryRun) e conferência de hashes/modificações antes da remoção física.
+- **Validação e Testes:** Criado `Tests/CleanupCatalog.Smoke.ps1` com 19 cenários automatizados cobrindo expansão de perfis, integridade de regras, rejeição de duplicatas e identificação de privilégios.
+
+---
+
 ## Preferências locais e leitura ampliada — rodada 4.5 (04/11/2026)
 
 **Coordenação com agentes:** o commit `b716710` integrou o trabalho de rede/eventos na interface 4.4 e o CI da `main` está verde. Reservo a próxima evolução de **preferências locais e acessibilidade**. Alterarei `UI/MainWindow.xaml`, `Otimizador-GUI.ps1`, crierei `Modules/Optimizer.Preferences.psm1` e `Tests/Preferences.Smoke.ps1`, e atualizarei apenas CI/README/CHANGELOG e esta seção do `melhorias.md`. Não modificar `Modules/Optimizer.Core.psm1`, `Optimizer.NetworkDiagnostics.psm1`, `Optimizer.Events.psm1`, `Repair.Tools.ps1` ou lógica de remoção de aplicativos.
@@ -246,7 +267,7 @@ Já cobertos (34 verificações no total):
 
 - `Format-OptimizerSize` (B, KB, MB, GB e zero).
 - `Get-OptimizerByteSum` (lista vazia, soma e propriedade ausente).
-- `Get-OptimizerTargets` (inclui a pasta Temp do usuário).
+- `Get-OptimizerTargets` (inclui a pasta Temp do usuário e categorias existentes do catálogo declarativo).
 - `Export-OptimizerReport` sem limpeza, com `<head>`/`<body>`, acentos escapados e exportação JSON sem caminhos privados.
 
 Ainda faltam casos para `Get-OptimizerDiagnostics` (WMI indisponível, bateria ausente, Defender desligado) e para perfis `Default`/`Profile N` com navegador ausente.
@@ -260,9 +281,9 @@ Sete das oito funções do núcleo já têm `[CmdletBinding()]`; falta apenas o 
 
 ### 9. Externalizar configuração
 
-`Get-OptimizerTargets` fixa Temp + Chrome/Edge/Brave; as extensões preservadas e os marcadores de projeto estão no código.
+`Data/cleanup-rules.json` já externaliza as categorias adicionais (Windows e aplicativos) com pasta, processo, risco e observação. Temp, navegadores, extensões preservadas, marcadores de projeto e retenção mínima continuam no código.
 
-**Ação:** mover para `config/optimizer.psd1`:
+**Ação:** mover também para configuração:
 - navegadores e subpastas de cache;
 - extensões protegidas;
 - marcadores de projeto (`.git`, `package.json`, ...);
