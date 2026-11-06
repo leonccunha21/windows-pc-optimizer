@@ -6,6 +6,7 @@ Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Preferences.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Privacy.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Tweaks.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Agent.psm1') -Force
 [xml]$layout = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'UI\MainWindow.xaml') -Raw -Encoding UTF8
 $reader = New-Object System.Xml.XmlNodeReader $layout
 $window = [Windows.Markup.XamlReader]::Load($reader)
@@ -16,7 +17,7 @@ foreach ($node in $layout.SelectNodes('//*[@x:Name]', $namespaces)) {
     $ui[$node.GetAttribute('Name','http://schemas.microsoft.com/winfx/2006/xaml')] = $window.FindName($node.GetAttribute('Name','http://schemas.microsoft.com/winfx/2006/xaml'))
 }
 $script:scan = $null; $script:cleanup = $null; $script:diagnostics = @(); $script:worker = $null
-$script:battery = $null; $script:disks = $null; $script:appx = @(); $script:optimizations = @(); $script:driverUpdates = $null
+$script:battery = $null; $script:disks = $null; $script:appx = @(); $script:optimizations = @(); $script:driverUpdates = $null; $script:agentRecommendations = @()
 $script:lastSaveDirectory = ''
 $script:state = [hashtable]::Synchronized(@{Cancel=$false; Message=''; Result=$null; Error=$null; Total=0; Processed=0})
 $script:modulePath = Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1'
@@ -25,6 +26,7 @@ $script:networkPath = Join-Path $PSScriptRoot 'Modules\Optimizer.NetworkDiagnost
 $script:eventsPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Events.psm1'
 $script:privacyPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Privacy.psm1'
 $script:tweaksPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Tweaks.psm1'
+$script:agentPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Agent.psm1'
 $script:isAdmin = $false
 try {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -185,7 +187,7 @@ function Save-OptimizerDialogDirectory($Dialog) {
 }
 
 function Set-Busy([bool]$Busy) {
-    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','ElevateButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','OptimizationRunButton','PreferenceApplyButton','PreferenceResetButton','HealthShortcut','MaintenanceShortcut','WorkbenchShortcut','InvProcessesButton','InvStartupButton','InvSoftwareButton','InvNetworkButton','InvUpdatesButton','InvStorageButton','NetworkSnapshotButton','NetworkRevealButton','NetworkProbeButton','EventsAnalyzeButton','SfcVerifyButton','DismScanButton','ChkdskScanButton','SfcRepairButton','DismRepairButton')) { $ui[$name].IsEnabled = -not $Busy }
+    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','ElevateButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','OptimizationRunButton','PreferenceApplyButton','PreferenceResetButton','HealthShortcut','MaintenanceShortcut','WorkbenchShortcut','AgentButton','AgentApplyButton','InvProcessesButton','InvStartupButton','InvSoftwareButton','InvNetworkButton','InvUpdatesButton','InvStorageButton','NetworkSnapshotButton','NetworkRevealButton','NetworkProbeButton','EventsAnalyzeButton','SfcVerifyButton','DismScanButton','ChkdskScanButton','SfcRepairButton','DismRepairButton')) { $ui[$name].IsEnabled = -not $Busy }
     $ui.CleanButton.IsEnabled = -not $Busy -and $null -ne $script:scan -and -not $script:scan.Cancelled -and @($script:scan.Files).Count -gt 0
     $ui.DetailsButton.IsEnabled = -not $Busy -and ($null -ne $script:scan -or $null -ne $script:cleanup)
     $ui.ExportResultsButton.IsEnabled = -not $Busy -and $null -ne $script:cleanup
@@ -258,7 +260,7 @@ function Start-Work([string]$Operation, $Payload) {
     $script:state.Cancel = $false; $script:state.Error = $null; $script:state.Result = $null; $script:state.Message = 'Preparando...'; $script:state.Processed = 0; $script:state.Total = 0
     $script:worker = [PowerShell]::Create()
     [void]$script:worker.AddScript({
-        param($ModulePath, $TechnicianPath, $NetworkPath, $EventsPath, $PrivacyPath, $TweaksPath, $Operation, $Payload, $State)
+        param($ModulePath, $TechnicianPath, $NetworkPath, $EventsPath, $PrivacyPath, $TweaksPath, $AgentPath, $Operation, $Payload, $State)
         try {
             Import-Module $ModulePath -Force -ErrorAction Stop
             Import-Module $TechnicianPath -Force -ErrorAction Stop
@@ -266,6 +268,7 @@ function Start-Work([string]$Operation, $Payload) {
             Import-Module $EventsPath -Force -ErrorAction Stop
             Import-Module $PrivacyPath -Force -ErrorAction Stop
             Import-Module $TweaksPath -Force -ErrorAction Stop
+            Import-Module $AgentPath -Force -ErrorAction Stop
             switch ($Operation) {
                 'Scan' {
                     if ($null -ne $Payload -and $null -ne $Payload.Targets) { $State.Result = Get-OptimizerScan -State $State -Targets $Payload.Targets }
@@ -303,9 +306,13 @@ function Start-Work([string]$Operation, $Payload) {
                     }
                     $State.Result = $list.ToArray()
                 }
+                'Agent' {
+                    $State.Message = 'Assistente local analisando diagnóstico, saúde, limpeza e aplicativos...'
+                    $State.Result = @(Get-OptimizerAgentRecommendations -Diagnostics $Payload.Diagnostics -Health $Payload.Health -Scan $Payload.Scan -AppInventory $Payload.AppInventory -IsAdmin $Payload.IsAdmin)
+                }
             }
         } catch { $State.Error = $_.Exception.Message }
-    }).AddArgument($script:modulePath).AddArgument($script:technicianPath).AddArgument($script:networkPath).AddArgument($script:eventsPath).AddArgument($script:privacyPath).AddArgument($script:tweaksPath).AddArgument($Operation).AddArgument($Payload).AddArgument($script:state)
+    }).AddArgument($script:modulePath).AddArgument($script:technicianPath).AddArgument($script:networkPath).AddArgument($script:eventsPath).AddArgument($script:privacyPath).AddArgument($script:tweaksPath).AddArgument($script:agentPath).AddArgument($Operation).AddArgument($Payload).AddArgument($script:state)
     $script:handle = $script:worker.BeginInvoke()
     Set-Busy $true
     $timer.Start()
@@ -447,6 +454,12 @@ $timer.Add_Tick({
                 $ui.TweaksSummary.Text = "$applied de $($results.Count) ajustes do sistema aplicados com sucesso."
                 if ($failed.Count -gt 0) { $ui.TweaksNote.Text = (@($failed | ForEach-Object { "$($_.Action): $($_.Message)" }) -join ' | ') }
             }
+            'Agent' {
+                $script:agentRecommendations = @($script:state.Result)
+                $top = @($script:agentRecommendations | Select-Object -First 3 | ForEach-Object { $_.Title }) -join ' • '
+                $ui.AgentSummary.Text = "Recomendações: $top. Use Pré-selecionar para marcar os itens; nada foi aplicado."
+                $ui.Status.Text = 'Assistente local concluiu. Revise as recomendações antes de aplicar.'
+            }
         }
     } catch {
         $ui.Status.Text = 'Falha: ' + $_.Exception.Message
@@ -529,6 +542,49 @@ $ui.MaintenanceShortcut.Add_Click({ $ui.Pages.SelectedIndex = 4 })
 $ui.WorkbenchShortcut.Add_Click({ Open-OptimizerSection -PageIndex 4 -MaintenanceIndex 4; $ui.WorkbenchTabs.SelectedIndex = 0 })
 $ui.PrivacyShortcut.Add_Click({ Open-OptimizerSection -PageIndex 4 -MaintenanceIndex 5 })
 $ui.TweaksShortcut.Add_Click({ Open-OptimizerSection -PageIndex 4 -MaintenanceIndex 6 })
+$ui.AgentButton.Add_Click({
+    if ($null -ne $script:worker) { return }
+    $health = $null
+    if ($null -ne $script:battery -or $null -ne $script:disks) {
+        $health = [pscustomobject]@{ Battery=$script:battery; Disks=$script:disks }
+    }
+    Start-Work 'Agent' @{
+        Diagnostics=@($script:diagnostics)
+        Health=$health
+        Scan=$script:scan
+        AppInventory=@($script:appx)
+        IsAdmin=[bool]$script:isAdmin
+    }
+})
+$ui.AgentApplyButton.Add_Click({
+    if ($script:agentRecommendations.Count -eq 0) {
+        $ui.AgentSummary.Text = 'Clique primeiro em Recomendar melhores opções.'
+        $ui.Status.Text = 'Nenhuma recomendação do assistente nesta sessão.'
+        return
+    }
+    $optimizationIds = @()
+    $privacyIds = @()
+    $tweakIds = @()
+    $cleanupIds = @()
+    foreach ($recommendation in $script:agentRecommendations) {
+        $optimizationIds += @($recommendation.OptimizationIds)
+        $privacyIds += @($recommendation.PrivacyIds)
+        $tweakIds += @($recommendation.TweakIds)
+        $cleanupIds += @($recommendation.CleanupCategoryIds)
+    }
+    foreach ($entry in $script:optimizations) { $entry.Selected = $entry.Id -in $optimizationIds }
+    foreach ($entry in $script:privacyCatalog) { $entry.Selected = $entry.Id -in $privacyIds }
+    foreach ($entry in $script:tweaksCatalog) { $entry.Selected = $entry.Id -in $tweakIds }
+    if ($null -ne $script:scan) {
+        foreach ($category in @($script:scan.Categories)) { $category.Selected = [string]$category.Id -in $cleanupIds }
+    }
+    $ui.OptimizationGrid.Items.Refresh()
+    $ui.PrivacyGrid.Items.Refresh()
+    $ui.TweaksGrid.Items.Refresh()
+    if ($null -ne $script:scan) { $ui.Categories.Items.Refresh() }
+    $ui.AgentSummary.Text = 'Itens recomendados pré-selecionados. Reveja cada aba e confirme antes de aplicar ou limpar.'
+    $ui.Status.Text = 'Pré-seleção do assistente aplicada. Nada foi executado.'
+})
 
 # Independent technician modules: only explicit commands are run; all inventory stays read-only.
 foreach ($entry in @(
@@ -985,7 +1041,7 @@ if ($ValidateUI) {
         $window.Close()
         if (Test-Path $fixture) { Remove-Item -LiteralPath $fixture -Recurse -Force }
     }
-    foreach ($required in @('CloseButton','ElevateButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','PrivacyGrid','TweaksGrid','HealthAnalyzeButton','BatteryReportButton','WorkbenchShortcut','PrivacyShortcut','TweaksShortcut','NavPrivacy','NavTweaks','WorkbenchGrid','InvProcessesButton','InvSoftwareButton','NetworkGrid','NetworkSnapshotButton','NetworkProbeButton','EventsGrid','EventsAnalyzeButton','SfcVerifyButton','ExportResultsButton')) {
+    foreach ($required in @('CloseButton','ElevateButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','PrivacyGrid','TweaksGrid','HealthAnalyzeButton','BatteryReportButton','WorkbenchShortcut','PrivacyShortcut','TweaksShortcut','AgentButton','AgentApplyButton','AgentSummary','NavPrivacy','NavTweaks','WorkbenchGrid','InvProcessesButton','InvSoftwareButton','NetworkGrid','NetworkSnapshotButton','NetworkProbeButton','EventsGrid','EventsAnalyzeButton','SfcVerifyButton','ExportResultsButton')) {
         if ($null -eq $ui[$required]) { throw "Controle ausente na interface: $required" }
     }
     $savedDisplay = $script:activePreferences

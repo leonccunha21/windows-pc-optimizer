@@ -22,6 +22,7 @@ $required = @(
     'Modules/Optimizer.Preferences.psm1',
     'Modules/Optimizer.Privacy.psm1',
     'Modules/Optimizer.Tweaks.psm1',
+    'Modules/Optimizer.Agent.psm1',
     'Modules/Optimizer.Technician.psm1',
     'Modules/Optimizer.NetworkDiagnostics.psm1',
     'Modules/Optimizer.Events.psm1',

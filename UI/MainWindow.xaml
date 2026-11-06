@@ -253,6 +253,17 @@
          </WrapPanel>
         </StackPanel>
        </Border>
+       <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+        <StackPanel>
+         <TextBlock Text="Assistente local de otimização" FontSize="{DynamicResource UiFont18}" FontWeight="SemiBold"/>
+         <TextBlock Text="O agente roda localmente, sem rede e sem telemetria. Ele lê diagnóstico, saúde, limpeza e aplicativos, recomenda as melhores opções com motivo e prioridade, e nunca aplica nada sem sua confirmação." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" LineHeight="23" Margin="0,12,0,18"/>
+         <WrapPanel>
+          <Button x:Name="AgentButton" Content="Recomendar melhores opções" AutomationProperties.Name="Recomendar melhores opções com o assistente local" />
+          <Button x:Name="AgentApplyButton" Content="Pré-selecionar recomendações" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Pré-selecionar itens recomendados pelo assistente local" />
+         </WrapPanel>
+         <TextBlock x:Name="AgentSummary" Text="Nenhuma análise do assistente nesta sessão." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,10,0,0"/>
+        </StackPanel>
+       </Border>
       </StackPanel>
      </ScrollViewer>
     </TabItem>

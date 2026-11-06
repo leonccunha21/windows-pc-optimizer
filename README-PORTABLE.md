@@ -71,7 +71,7 @@ PC-Optimizer-Portable-4.5/
 ├─ README-PORTABLE.md            <- este documento
 ├─ VERSION.txt                   <- versão, data e commit de origem
 ├─ SHA256SUMS.txt                <- hashes dos arquivos do pacote
-├─ Modules/                      <- núcleo, limpeza, privacidade e ajustes
+├─ Modules/                      <- núcleo, limpeza, privacidade, ajustes e assistente local
 ├─ UI/                           <- layout WPF
 ├─ Data/cleanup-rules.json       <- catálogo declarativo de limpeza
 ├─ config/optimizer.psd1         <- políticas de retenção e proteção
@@ -115,7 +115,10 @@ PC-Optimizer.exe
 ```
 
 Abre a central de manutenção com limpeza guiada, diagnóstico, saúde do
-equipamento, bancada técnica, relatórios e preferências.
+equipamento, bancada técnica, relatórios e preferências. Na Visão geral, o
+botão **Recomendar melhores opções** abre o assistente local: ele analisa o
+equipamento sem rede, mostra as melhores opções com motivo e prioridade e só
+pré-seleciona itens; nada é aplicado sem confirmação.
 
 ### Console legado / avançado
 

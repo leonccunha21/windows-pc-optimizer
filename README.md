@@ -19,7 +19,7 @@ Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil 
 
 | Área | Recursos |
 |---|---|
-| Visão geral | Fluxo de atendimento, espaço analisado e resultado real da última limpeza |
+| Visão geral | Fluxo de atendimento, espaço analisado, resultado real da última limpeza e assistente local que recomenda as melhores opções com motivo e prioridade |
 | Limpeza | Prévia por categoria e arquivo, seleção/desmarcação em massa, resultado detalhado, CSV opcional (com aviso de privacidade) e progresso por arquivo; caches Chrome, Edge, Brave, Firefox, Opera, Vivaldi e Chromium (por perfil); catálogo declarativo de caches do Windows e de aplicativos, com risco e observação por categoria; botão para reabrir a interface como administrador; retenção mínima de 7 dias |
 | Diagnóstico | Sistema, fabricante/modelo, CPU, RAM, discos, espaço livre, bateria e estado do Defender quando disponível |
 | Rede | Diagnóstico local de adaptadores, IPv4, gateway, DNS e perfis; testes DNS/TCP com destino explícito |
