@@ -1,0 +1,273 @@
+[Windows PC Optimizer - Portable Version Setup Instructions]
+
+PRIMEIROS PASSOS - CONFIGURAÇÃO RÁPIDA
+
+1. BAIXAR O PROGRAMA
+   ├─ Baixe este entire diretório (windows-pc-optimizer) da GitHub
+   └─ Ou extraia o ZIP do repositório oficial
+
+2. CRIAR A PASTA PORTÁVEL
+   ├─ Crie uma pasta chamada "windows-pc-optimizer-portable"
+   ├─ Mova TODOS os arquivos e pastas do diretório aqui:
+   │   ├── Executar-Otimizador.bat
+   │   ├── Otimizador-GUI.ps1
+   │   ├── Otimizar-PC.ps1
+   │   ├── README.md
+   │   ├── README-PORTABLE.md
+   │   ├── RUN-PORTABLE.BAT
+   │   ├── .gitignore
+   │   ├── .editorconfig
+   │   └── [todas as outras pastas]
+   └─ Exemplo de estrutura:
+       C:\meus-arquivos\windows-pc-optimizer-portable\Executar-Otimizador.bat
+
+3. TESTAR O PORTÁTIL
+   ├─ Abra uma janela de comando
+   └─ Navegue até sua pasta portátil:
+       cd C:\meus-arquivos\windows-pc-optimizer-portable
+
+4. EXECUTAR O PORTÁTIL
+   ├─ Opção 1: Clique duas vezes em RUN-PORTABLE.BAT
+   ├─ Opção 2: Clique duas vezes em Executar-Otimizador.bat
+   └─ Opção 3: Execute via PowerShell:
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File "Otimizador-GUI.ps1"
+
+5. CONFIGURAR O DESKTOP SHORTCUT (OPCIONAL)
+   ├─ Na sua pasta portátil, clique com o botão direito em RUN-PORTABLE.BAT
+   ├─ Selecione "Enviar para" → "Área de trabalho (criar atalho)"
+   └─ Mova o atalho do desktop para dentro da pasta portátil para fácil acesso
+
+6. TESTE COMPLETO
+   ├─ O programa deve carregar sem erros
+   ├─ Interface gráfica deve aparecer
+   └─ Todas as funcionalidades devem estar disponíveis
+
+
+REQUISITOS E COMPATIBILIDADE
+
+SISTEMA OPERACIONAL:
+   ✅ Windows 10 (32-bit ou 64-bit)
+   ✅ Windows 11 (32-bit ou 64-bit)
+   ✅ Windows Server 2016 ou superior
+   ✅ Funciona em sistemas sem privilégios administrativos
+
+HARDWARE:
+   ✅ Qualquer CPU compatível com x86 ou x64
+   ✅ Mínimo 2GB de RAM
+   ✅ 500MB de espaço livre em disco
+   ✅ Acesso a uma porta USB para unidades portáteis
+
+SOFTWARE:
+   ✅ PowerShell 5.1 ou superior (incorporado no Windows 10)
+   ✅ .NET Framework 4.7.2 ou superior (geralmente instalado)
+   ✅ DirectX 9.0c ou superior (para interface WPF)
+
+
+LIMITAÇÕES E CONSIDERAÇÕES ESPECIAIS
+
+PERMISSÕES ADMINISTRATIVAS:
+   • Sem privilégios administrativos: Todas as funcionalidades funcionam normalmente
+   • Com privilégios administrativos: SMART completo (temperatura/horas de disco) e algumas reparações do sistema são habilitadas
+   • Sem privilégios administrativos: Temperatura e horas SMART mostram "—" (não disponíveis)
+
+REQUISITOS DE DISCO:
+   • Alguma espaço livre em disco necessário para cache temporário
+   • Cache é limpo automaticamente ao fechar o programa
+   • Sem necessidade de espaço livre no disco do sistema
+
+REQUISITOS DE REDE:
+   • Sem requisitos de rede para operação básica
+   • Rede necessária apenas para:
+       - Verificação de atualizações de drivers (Windows Update)
+       - Verificação de conectividade de rede
+       - Análises de snaphost de rede (opcional)
+
+INCOMPATIBILIDADES CONHECIDAS:
+   • Windows 8/8.1: Algumas funcionalidades WPF podem não funcionar corretamente
+   • PowerShell 6/7 (Core): Pode ter problemas com interface WPF - use PowerShell Windows nativo
+   • Modems dial-up: Podem interferir com testes de rede
+   • Modems LTE/5G: Podem falhar testes de conectividade (normal)
+
+
+FUNICIONALIDADES PORTÁTEIS
+
+O QUE FUNCIONA:
+   ✅ Limpeza de arquivos temporários do sistema (Temp, Prefetch, etc.)
+   ✅ Verificação e otimização do registro do Windows
+   ✅ Limpeza de arquivos não utilizados e cache
+   ✅ Análise de bateria e disco
+   ✅ Verificação de drivers e atualizações
+   ✅ Remoção de aplicativos Windows e Store
+   ✅ Ferramentas de reparo do sistema (SFC, DISM)
+   ✅ Inventário técnico do sistema
+   ✅ Análise de rede e conectividade
+   ✅ Logs de eventos do Windows
+   ✅ Interface gráfica com temas e escalabilidade
+   ✅ Relatórios de histórico salvos em qualquer localização
+
+O QUE É PARCIALMENTE PORTÁTIL:
+   ⚠️ Limpeza de driver: Requer driver DDI para funcionamento completo
+   ⚠️ Some reparações do sistema: Podem requerer privilégios administrativos
+   ⚠️ Análise de rede: Pode criar arquivos temporários na máquina local
+
+O QUE NÃO FUNCIONA COMPLETAMENTE:
+   ❌ Efeito de desktop do Windows: Não funciona em unidades portáteis (seguro)
+   ❌ Configurações persistentes do Windows: Não escritas para evitar danos
+   ❌ Instalação de drivers: Drivers não podem ser instalados permanentemente
+   ❌ Reparos do sistema: Alguns reparos requerem configuração do sistema do Windows
+   ❌ Otimizações avançadas: Algumas otimizações agressivas desabilitadas por padrão
+
+
+APLICAÇÕES DE CASOS DE USO
+
+PROFISSIONAIS DE TI:
+   • Manutenção preventiva em múltiplos computadores
+   • Solução de problemas sem alterar configurações do sistema
+   • Auditoria de segurança em computadores não confiáveis
+   • Instalação em unidades USB para solução de problemas em campo
+
+USUÁRIOS MÓVEIS:
+   • Suporte técnico em caminho para o trabalho
+   • Manutenção do computador em computadores de hotéis/qualquer lugar
+   • Suporte remoto para família/amigos a partir de qualquer lugar
+   • Teste de manutenção antes de instalar no sistema local
+
+DESENVOLVEDORES E TESTADORES:
+   • Ambiente de teste consistente e limpo
+   • Reprodução de bugs sem configurações de ambiente
+   • Teste em múltiplos sistemas operacionais sem conflito
+   • Verificação de compatibilidade em diferentes hardwares
+
+ESTUDANTES E EDUCADORES:
+   • Laboratório de informática portátil para ensinar manutenção do sistema
+   • Ambiente de prática seguro para praticar habilidades técnicas
+   • Demonstração de ferramentas de manutenção para estudantes
+
+
+MANUTENÇÃO E SUPORTE
+
+ATUALIZAR O PORTÁTIL:
+   • Baixe a versão mais recente do GitHub
+   • Substitua os arquivos na sua pasta portátil
+   • Nenhuma reconfiguração necessária
+   • Todos os dados e configurações são preservados
+
+VERIFICAR INCORREÇÕES:
+   • Execute o teste UI: RUN-PORTABLE.BAT -ValidateUI
+   • Testes de erro: powershell.exe -File "Otimizador-GUI.ps1" -ValidateUI
+   • Execute os testes de smoke: powershell.exe -File "Tests\Core.Smoke.ps1"
+
+OBTER SUPORTE:
+   • Leia TODO o README.md e README-PORTABLE.md
+   • Verifique o CHANGELOG.md para correções conhecidas
+   • Documentação de debug em: windows-pc-optimizerportable.log
+   • Relate bugs no repositório GitHub
+
+
+LIMPEZA E SEGURANÇA
+
+LIMPEZA DO SISTEMA:
+   • Cache temporário é limpo automaticamente
+   • Arquivos temporários são excluídos após cada execução
+   • Sem lixo de log acumulado ou arquivos temporários
+   • Limpeza segura para computadores compartilhados
+
+SEGURANÇA E PRIVACIDADE:
+   • Sem escrever no registro do Windows
+   • Sem modificar configurações do sistema
+   • Sem persistir configurações de usuário
+   • Sem instalar malware ou trojans
+   • Código-fonte aberto para auditoria
+   • Sem colheita de dados ou telemetria
+
+SEGURANÇA DO COMPUTADOR HOSPEDEIRO:
+   • Tudo é executado na memória do processo apenas
+   • Sem alterações permanentes no computador hospedeiro
+   • Canais de segurança protegidos para operações de arquivo
+   • Modo "What If" seguro para todas as exclusões
+   • Backup automático antes de operações de sistema
+
+
+FERRAMENTAS DE DIAGNÓSTICO
+
+VERIFICAR FUNCIONAMENTO:
+   • powershell.exe -File "Otimizador-GUI.ps1" -ValidateUI
+       (Executa validação completa de UI)
+
+VERIFICAR DEPENDÊNCIAS:
+   • powershell.exe -File "Otimizador-GUI.ps1" -CheckDependencies
+       (Verifica versões do sistema e dependências)
+
+VERIFICAR CONECTIVIDADE:
+   • powershell.exe -File "Otimizador-GUI.ps1" -NetworkTest
+       (Testa conectividade de rede)
+
+VERIFICAR SAÚDE DO SISTEMA:
+   • Execute o Otimizador completamente
+       (Todos os logs de diagnóstico são coletados automaticamente)
+
+
+VERSÃO E HISTÓRICO
+
+VERSÃO ATUAL: 4.0 Portable Edition
+   Baseado no Windows PC Optimizer versão 4.0.1
+   Adicionado suporte portátil por OpenCode
+   Data: 2026-11-04
+
+HISTÓRICO DE ATUALIZAÇÕES:
+   • 4.0 Portable Edition (2026-11-04)
+       - Lançamento inicial da versão portátil
+       - Baseado no Windows PC Optimizer 4.0.1
+       - Interface gráfica completa e funcionalidades
+   • Future releases will add more portable-specific features
+       - Melhorias de integração USB
+       - Suporte para unidades criptografadas
+       - Recursos de backup e restauração
+
+
+AVISO LEGAL E ISENÇÃO DE RESPONSABILIDADE
+
+ESTE PROGRAMA É FORNECIDO "COMO ESTÁ". SEM GARANTIAS.
+NENHUMA GARANTIA DE MERCADORIA, ADEQUAÇÃO A UM PROPÓSITO ESPECÍFICO,
+OU NÃO VIOLAÇÃO É DADA. VOCÊ USA O PROGRAMA POR SUA PRÓPRIA CONTA.
+NENHUMA PESSOA OU ENTIDADE SERÁ RESPONSÁVEL POR QUAISQUER DANOS,
+INCLUINDO, SEM LIMITAÇÃO, DANOS DIRETOS, INDIRETOS, ACIDENTAIS,
+ESPECIALES, EXEMPLARES OU CONSEQUENTES.
+VOCÊ ASSUME TODO O RISCO DE USAR ESTE PROGRAMA PORTÁTIL.
+RECOMENDAMOS EXECUTÁ-LO EM UMA MÁQUINA DE TESTE PRIMEIRO.
+PARA OBTENÇÃO DE MAIS INFORMAÇÕES, CONTATE O DESENVOLVEDOR.
+
+
+CONTATO E COMUNIDADE
+
+SITE OFICIAL: https://github.com/leonccunha21/windows-pc-optimizer
+
+REPOSITÓRIO: https://github.com/leonccunha21/windows-pc-optimizer
+
+COMUNIDADE: https://github.com/leonccunha21/windows-pc-optimizer/discussions
+
+DOCUMENTAÇÃO: https://github.com/leonccunha21/windows-pc-optimizer/wiki
+
+ISSUES: https://github.com/leonccunha21/windows-pc-optimizer/issues
+
+FETCH ISSUES: https://github.com/leonccunha21/windows-pc-optimizer/issues/new/choose
+
+CRIAR ISSUES: https://github.com/leonccunha21/windows-pc-optimizer/issues
+
+PARA DESENVOLVEDORES:
+   Contribuir: https://github.com/leonccunha21/windows-pc-optimizer/fork
+   Commit: git clone https://github.com/leonccunha21/windows-pc-optimizer.git
+   Branch: Use feature/ para novas funcionalidades
+   Test: Execute os testes de smoke antes de commit
+   Documentation: Mantenha README.md e README-PORTABLE.md atualizados
+
+
+
+[END OF DOCUMENT]
+
+Este documento é parte do pacote portátil do Windows PC Optimizer.
+Para mais informações, visite a documentação oficial do programa.
+
+Para configurar e usar o Windows PC Optimizer em uma unidade USB, você só precisa copiar
+esta pasta para o seu drive USB e executar RUN-PORTABLE.BAT a partir de lá.
+O programa funciona imediatamente sem instalação!
