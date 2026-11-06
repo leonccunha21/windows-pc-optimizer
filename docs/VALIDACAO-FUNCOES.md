@@ -1,6 +1,6 @@
 # Matriz de validação função por função
 
-Validação executada no Windows 10 (PowerShell 5.1/WPF) contra HEAD `f18f631` e pacote portátil assinado. Operações de aplicação usam confirmação; a validação usa `-WhatIf` ou fixture descartável.
+Validação executada no Windows 10 (PowerShell 5.1/WPF) contra HEAD `ccae23a` e pacote portátil assinado. Operações de aplicação usam confirmação; a validação usa `-WhatIf` ou fixture descartável.
 
 | Função/área | Operação validada | Resultado esperado | Evidência |
 |---|---|---|---|
