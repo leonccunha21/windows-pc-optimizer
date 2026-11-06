@@ -31,10 +31,30 @@ Assert-Validation (@($diskHealth.Disks).Count -ge 1 -and @($diskHealth.Volumes).
 $drivers = @(Get-OptimizerDrivers)
 Assert-Validation ($drivers.Count -ge 1) 'Drivers inventory empty.'
 
-if (Get-Command Get-AppxPackage -ErrorAction SilentlyContinue) {
-    $apps = @(Get-OptimizerAppInventory)
-    Assert-Validation ($apps.Count -ge 1) 'App inventory empty when Appx is available.'
+$apps = @(Get-OptimizerAppInventory)
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+    Assert-Validation ($apps.Count -ge 1) 'App inventory empty on Windows PowerShell.'
     Assert-Validation (@($apps | Where-Object { $_.PSObject.Properties['PackageFullName'] }).Count -ge 1) 'App inventory missing package names.'
+} else {
+    Assert-Validation ($null -ne $apps) 'App inventory must not throw on PowerShell 7 when Appx is unavailable.'
+}
+$driverUpdates = Get-OptimizerDriverUpdates
+Assert-Validation ($null -ne $driverUpdates -and $null -ne $driverUpdates.Updates) 'Driver updates shape invalid.'
+$validationDirectory = Join-Path ([IO.Path]::GetTempPath()) ('optimizer-function-validation-' + [guid]::NewGuid().ToString('N'))
+[void](New-Item -ItemType Directory -Path $validationDirectory -Force)
+try {
+    $batteryReportPath = Join-Path $validationDirectory 'bateria.html'
+    $savedBatteryReport = Save-OptimizerBatteryReport -Path $batteryReportPath
+    Assert-Validation (Test-Path -LiteralPath $savedBatteryReport) 'Battery report file was not created.'
+    $reportHtml = Join-Path $validationDirectory 'relatorio.html'
+    $reportJson = Join-Path $validationDirectory 'relatorio.json'
+    Export-OptimizerReport -Path $reportHtml -Customer 'Validacao' -Notes 'Teste' -Diagnostics $diagnostics -Format HTML
+    Export-OptimizerReport -Path $reportJson -Customer 'Validacao' -Notes 'Teste' -Diagnostics $diagnostics -Format JSON
+    Assert-Validation ((Test-Path -LiteralPath $reportHtml) -and (Test-Path -LiteralPath $reportJson)) 'Report export files were not created.'
+    $jsonText = Get-Content -LiteralPath $reportJson -Raw
+    Assert-Validation ($jsonText -notmatch 'C:\\Users\\') 'JSON report exposed a user path.'
+} finally {
+    if (Test-Path -LiteralPath $validationDirectory) { Remove-Item -LiteralPath $validationDirectory -Recurse -Force }
 }
 
 foreach ($area in @('Processes','Startup','Software','Network','Updates','Storage')) {
@@ -43,8 +63,18 @@ foreach ($area in @('Processes','Startup','Software','Network','Updates','Storag
 }
 $network = @(Get-OptimizerNetworkSnapshot -IncludeAddresses:$false)
 Assert-Validation ($network.Count -ge 1) 'Network snapshot empty.'
+$probe = @(Invoke-OptimizerConnectivityCheck -DnsName 'localhost' -Target '127.0.0.1' -Port 135)
+Assert-Validation ($probe.Count -ge 1) 'Network probe returned no rows.'
 $events = Get-OptimizerEventSummary -Days 14
 Assert-Validation ($events.Available -or $events.Examined -ge 0) 'Events summary shape invalid.'
+$repairPath = Join-Path $root 'Modules/Repair.Tools.ps1'
+$repairTokens = $null; $repairErrors = $null
+[void][System.Management.Automation.Language.Parser]::ParseFile($repairPath, [ref]$repairTokens, [ref]$repairErrors)
+Assert-Validation (@($repairErrors).Count -eq 0) 'Repair.Tools.ps1 has parse errors.'
+$repairText = Get-Content -LiteralPath $repairPath -Raw
+foreach ($mode in @('SFC-Verify','DISM-Scan','CHKDSK-Scan','SFC-Repair','DISM-Repair')) {
+    Assert-Validation ($repairText -match [regex]::Escape($mode)) "Repair mode missing: $mode"
+}
 
 foreach ($item in @(Get-OptimizerOptimizations)) {
     $result = @(Invoke-OptimizerOptimization -Ids @($item.Id) -WhatIf) | Select-Object -First 1
