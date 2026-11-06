@@ -11,17 +11,39 @@
 
 | Item | Entrega desta rodada |
 |---|---|
-| 7 | **Ampliado** — `Tests/Core.Smoke.ps1` passou a 51 verificações: descoberta de perfil Chrome em `LOCALAPPDATA` descartável, carregamento do `config/optimizer.psd1`, configuração customizada e fallback seguro para configuração inválida. Cenários de WMI/bateria indisponível seguem pendentes. |
+| 7 | **Ampliado** — `Tests/Core.Smoke.ps1` passou a 58 verificações: descoberta de perfil Chrome em `LOCALAPPDATA` descartável, carregamento do `config/optimizer.psd1`, configuração customizada e fallback seguro para configuração inválida. Cenários de WMI/bateria indisponível seguem pendentes. |
 | 8 | **Concluído** — comment-based help em `Get-OptimizerTargets`, `Test-OptimizerPath`, `Get-OptimizerScan`, `Get-OptimizerDiagnostics` e `Export-OptimizerReport`; `[CmdletBinding()]` adicionado ao helper `Get-OptimizerByteSum`. |
 | 9 | **Concluído** — `config/optimizer.psd1` externaliza retenção mínima, navegadores, subpastas de cache, extensões protegidas, pastas protegidas e marcadores de projeto. O carregador valida tipos, caminhos relativos, ids e limites, lê o arquivo como dados no PS 5.1 (sem executar código) e volta aos padrões embutidos para qualquer valor fora da política. |
+| 10 | **Concluído** — o console legado grava log estruturado em JSON Lines (`timestamp`, `level`, `function`, `target`, `result`, `version`) com rotação de 5 MB. Caminhos absolutos/UNC, IPs, e-mails e tokens longos são redigidos antes da gravação; nenhum caminho de cliente é persistido. |
 | 12 | **Concluído** — `Write-Progress` adicionado às rotinas longas do legado (`Optimize-Disk`, caches de navegadores/pacotes/aplicativos, `Disable-Services`, `Disable-Bloatware`), com conclusão explícita do progresso. |
 | 17 | **Quase concluído** — `AutomationProperties.Name` em todos os `DataGrid`, `ScanWarnings`, `AppxBloatOnly` e `TabControl`; ordem de tabulação explícita (`TabIndex` 1–8) na navegação lateral; testes estáticos verificam a presença. Falta apenas ensaio manual com Narrador/NVDA, Alto Contraste do Windows e DPI variados. |
 | 18 | **Concluído com limite de privacidade** — a seleção de categorias é restaurada após nova análise e gravada em `SelectedCategories` (schema 2). A pasta de destino é memorizada **apenas durante a sessão**; não é gravada em disco para não registrar caminhos do cliente. |
 | 19 | **Concluído** — a janela de resultado detalhado ganhou filtro por categoria/caminho/status/detalhe (botão, Enter e limpar). A exportação CSV já havia sido restaurada na integração da bancada e permanece opcional, com aviso de privacidade. |
 
-**Testes executados nesta rodada:** `Validate-Syntax.ps1`, `Core.Smoke.ps1` (51 verificações), `Preferences.Smoke.ps1`, `UI.UX.Smoke.ps1`, `Optimizer.Tests.ps1`, `Network.Smoke.ps1`, `Events.Smoke.ps1`, `Technician.Smoke.ps1`, PSScriptAnalyzer nos arquivos modificados e `Otimizador-GUI.ps1 -ValidateUI` com captura de prévia no Windows PowerShell 5.1. Todos passaram.
+**Testes executados nesta rodada:** `Validate-Syntax.ps1`, `Core.Smoke.ps1` (58 verificações), `Preferences.Smoke.ps1`, `UI.UX.Smoke.ps1`, `Optimizer.Tests.ps1`, `CleanupCatalog.Smoke.ps1`, `Network.Smoke.ps1`, `Events.Smoke.ps1`, `Technician.Smoke.ps1`, PSScriptAnalyzer nos arquivos modificados e `Otimizador-GUI.ps1 -ValidateUI` com captura de prévia no Windows PowerShell 5.1. Todos passaram.
 
-**Ainda bloqueado ou fora desta rodada:** item 10 (logs estruturados no legado), item 13 (assinatura Authenticode exige certificado), item 14 (Release real exige tag/push), item 23 (GIF exige gravação manual) e item 24 (i18n é decisão de produto). A validação manual de acessibilidade também continua pendente. Os módulos `Optimizer.Privacy.psm1` e `Optimizer.Tweaks.psm1` pertencem à frente paralela de privacidade/ajustes e não tiveram sua lógica alterada por esta rodada.
+**Ainda bloqueado ou fora desta rodada:** item 13 (assinatura Authenticode exige certificado), item 14 (Release real exige tag/push), item 23 (GIF exige gravação manual) e item 24 (i18n é decisão de produto). A validação manual de acessibilidade também continua pendente. Os módulos `Optimizer.Privacy.psm1` e `Optimizer.Tweaks.psm1` pertencem à frente paralela de privacidade/ajustes e não tiveram sua lógica alterada por esta rodada.
+
+---
+
+## Engenharia Reversa do CCleaner e Catálogo de Regras Declarativas — Rodada 4.6 (05/11/2026)
+
+**Coordenação e Contexto Técnico:**
+Foi realizada a análise arquitetural das categorias de limpeza do CCleaner (`WinSys.ini`, `winapp2.ini` e alvos de navegadores/aplicativos de terceiros) e implementada a integração completa ao sistema do `windows-pc-optimizer` via motor declarativo e modular.
+
+**O que foi mapeado do CCleaner:**
+1. **Windows e Sistema:** Temporários de sistema (`{SystemRoot}\Temp`), Downloads do Windows Update (`SoftwareDistribution\Download`), Cache de Otimização de Entrega (`DeliveryOptimization`), Prefetch (`Prefetch`), Relatórios de Falha WER (`WER`), Despejos de memória/Crash Dumps (`CrashDumps`) e Cache de Internet legada (`INetCache`).
+2. **Navegadores Modernos:** Chromium (Chrome, Edge, Brave, Vivaldi), Mozilla Firefox e navegadores baseados no Opera (Opera Stable e Opera GX), cobrindo caches de renderização, GPU e V8 Code Cache.
+3. **Caches de Aplicativos (Estilo winapp2.ini):** Discord, Slack, Spotify, VS Code, além de caches de gerenciadores de dependências (npm, pnpm, pip, nuget).
+
+**Estrutura da Implementação:**
+- **Catálogo Declarativo:** Criado `Data/cleanup-rules.json` contendo a especificação auditável de regras, com marcação de risco (`Baixo`, `Médio`), descrições claras de impacto e requisitos de privilégio (`RequiresAdmin`).
+- **Módulo do Catálogo:** Criado `Modules/Optimizer.CleanupCatalog.psm1` com resolução segura de variáveis de ambiente (`{SystemRoot}`, `{LocalAppData}`, `{AppData}`), suporte a perfis dinâmicos de navegadores e prevenção de traversal de caminho.
+- **Proteções Incorporadas (Superior ao CCleaner):**
+  - Não mexe em registros instáveis do Windows (sem falso "limpador de registro" perigoso).
+  - Preservação estrita de código-fonte (`.git`, `package.json`, projetos) e pastas de jogos (`Epic Games`, `Fortnite`).
+  - Suporte completo a `WhatIf` (DryRun) e conferência de hashes/modificações antes da remoção física.
+- **Validação e Testes:** Criado `Tests/CleanupCatalog.Smoke.ps1` com 28 cenários automatizados cobrindo expansão de perfis, integridade de regras, rejeição de duplicatas e identificação de privilégios.
 
 ---
 
@@ -166,10 +188,10 @@
 |---|---|
 | P0 1–5 | **Concluído**: menu, CHANGELOG, atualização/Git automáticos desativados, HTML escapado, administrador exigido somente no console legado |
 | P1 6 | **Concluído**: job `lint` bloqueante no CI com PSScriptAnalyzer |
-| P1 7 | **Parcial**: 51 verificações, incluindo config e perfil de navegador; cenários WMI/bateria ausente seguem pendentes |
+| P1 7 | **Parcial**: 58 verificações, incluindo config e perfil de navegador; cenários WMI/bateria ausente seguem pendentes |
 | P1 8 | **Concluído**: `[CmdletBinding()]` nas funções públicas do núcleo e comment-based help nas funções principais |
 | P1 9 | **Concluído**: `config/optimizer.psd1` com validação e fallback seguro |
-| P1 10 | **Pendente**: logs legados estruturados |
+| P1 10 | **Concluído**: logs legados estruturados em JSONL com rotação e redação de dados pessoais |
 | P1 11 | **Concluído**: relatório HTML válido e JSON opcional sem caminhos de arquivos excluídos |
 | P1 12 | **Concluído**: `Write-Progress` nas rotinas longas do console antigo |
 | P2 13 | **Pendente**: assinatura Authenticode e gestão de certificados |
@@ -182,7 +204,7 @@
 | P4 21–22 | **Concluído**: documentação de arquitetura, templates de issue e PR |
 | P4 23–24 | **Pendente**: GIF de demonstração e tradução, caso necessário |
 
-**Próxima prioridade:** logs estruturados no legado, assinatura Authenticode/Release por tag e validação manual de acessibilidade. Não habilitar operações destrutivas legadas para atingir paridade artificial com CCleaner.
+**Próxima prioridade:** assinatura Authenticode/Release por tag e validação manual de acessibilidade. Não habilitar operações destrutivas legadas para atingir paridade artificial com CCleaner.
 
 ---
 
@@ -265,11 +287,11 @@ Regras desativadas com justificativa: verbos/substantivos de domínio, `Write-Ho
 
 ### 7. Ampliar a cobertura do núcleo — **Parcialmente resolvido**
 
-Já cobertos (51 verificações no total):
+Já cobertos (58 verificações no total):
 
 - `Format-OptimizerSize` (B, KB, MB, GB e zero).
 - `Get-OptimizerByteSum` (lista vazia, soma e propriedade ausente).
-- `Get-OptimizerTargets` (pasta Temp, descoberta de perfil Chrome e subpastas de cache vindas da configuração).
+- `Get-OptimizerTargets` (pasta Temp, descoberta de perfil Chrome e subpastas de cache vindas da configuração; categorias existentes do catálogo declarativo são anexadas sem duplicar caminhos).
 - `Get-OptimizerConfiguration` (arquivo embarcado, configuração customizada, fallback seguro e rejeição de expressão dinâmica sem execução).
 - `Export-OptimizerReport` sem limpeza, com `<head>`/`<body>`, acentos escapados e exportação JSON sem caminhos privados.
 
@@ -282,13 +304,13 @@ Todas as funções do núcleo têm `[CmdletBinding()]`. Comment-based help foi a
 
 ### 9. ~~Externalizar configuração~~ — **Resolvido**
 
-`config/optimizer.psd1` concentra navegadores, subpastas de cache, extensões protegidas, pastas protegidas, marcadores de projeto e retenção mínima. `Get-OptimizerConfiguration` valida o arquivo e volta aos padrões embutidos se ele estiver ausente, malformado ou fora da política (retenção < 7 dias, caminho absoluto, `..`, id inválido ou lista vazia).
+### 9. ~~Externalizar configuração~~ — **Resolvido**
 
-### 10. Logs estruturados no legado
+`config/optimizer.psd1` concentra navegadores, subpastas de cache, extensões protegidas, pastas protegidas, marcadores de projeto e retenção mínima. `Get-OptimizerConfiguration` valida o arquivo e volta aos padrões embutidos se ele estiver ausente, malformado ou fora da política (retenção < 7 dias, caminho absoluto, `..`, id inválido ou lista vazia). As categorias adicionais de Windows/aplicativos ficam em `Data/cleanup-rules.json`, lido pelo catálogo declarativo.
 
-O núcleo não grava log persistente (bom para privacidade). O legado ainda usa um único `%TEMP%\OtimizadorPC_log.txt` sem rotação.
+### 10. ~~Logs estruturados no legado~~ — **Resolvido**
 
-**Ação (se o legado continuar):** JSON Lines com `timestamp`, `level`, `function`, `target`, `result`; rotação por tamanho; nunca logar caminhos pessoais.
+O núcleo não grava log persistente (bom para privacidade). O legado agora grava JSON Lines em `%TEMP%\OtimizadorPC_log.jsonl`, com `timestamp`, `level`, `function`, `target`, `result` e `version`, rotação por tamanho (5 MB) e redação de caminhos absolutos/UNC, IPs, e-mails e tokens longos antes da gravação. O log textual anterior continua disponível para leitura humana.
 
 ### 11. ~~Relatório: `<head>` e exportação JSON~~ — **Resolvido**
 
@@ -400,7 +422,7 @@ O restante é de outro domínio (agentes, social, web) ou já está marcado como
 | Etapa | Escopo | Entrega | Status |
 |---|---|---|---|
 | 1 | P0 (itens 1–5) | Menu sem duplicata, CHANGELOG padronizado, legado sem self-update inseguro, relatório legado escapado | **Concluído** |
-| 2 | P1 (itens 6–12) | PSScriptAnalyzer no CI, cobertura extra, config externa, relatório com `<head>`/JSON | 6, 8, 9, 11 e 12 concluídos; 7 ampliado; 10 pendente |
+| 2 | P1 (itens 6–12) | PSScriptAnalyzer no CI, cobertura extra, config externa, relatório com `<head>`/JSON | 6, 8, 9, 10, 11 e 12 concluídos; 7 ampliado |
 | 3 | P2 (itens 13–16) | Release assinado, workflow de tag, `-Auto` revisado, `SECURITY.md` | 15 e 16 concluídos; 13 e 14 pendentes |
 | 4 | P3/P4 (itens 17–24) | Acessibilidade, seleção em massa, progresso real, docs de arquitetura e templates | 18, 19, 20, 21 e 22 concluídos; 17 parcial; 23 e 24 pendentes |
 
@@ -409,7 +431,7 @@ O restante é de outro domínio (agentes, social, web) ou já está marcado como
 ## Critérios de aceite
 
 - [x] `Tests/Validate-Syntax.ps1` continua detectando zero duplicatas.
-- [x] `Tests/Core.Smoke.ps1` verde em Windows PowerShell 5.1 e PowerShell 7 (51 verificações).
+- [x] `Tests/Core.Smoke.ps1` verde em Windows PowerShell 5.1 e PowerShell 7 (58 verificações).
 - [x] `config/optimizer.psd1` validado com fallback seguro para valores fora da política.
 - [x] PSScriptAnalyzer sem Warning/Error com as settings do repo.
 - [x] Menu legado sem opções repetidas.

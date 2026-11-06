@@ -31,6 +31,39 @@ try {
     $scan = Get-OptimizerScan -Targets $targets
     Assert-True (@($scan.Files).Count -eq 1) 'Only the old temporary file is eligible'
     Assert-True ($scan.Files[0].Path -eq $old) 'Scan excludes recent files, code, photos and projects'
+    $patternCache = Join-Path $testRoot 'patterns'; [void](New-Item -ItemType Directory $patternCache)
+    $thumbnail = Join-Path $patternCache 'thumbcache_abc.db'; New-OldFile $thumbnail
+    $otherDb = Join-Path $patternCache 'notes.db'; New-OldFile $otherDb
+    $patternTarget = @([pscustomobject]@{Id='pattern';Name='Pattern';Path=$patternCache;Process='';RequiresAdmin=$false;Risk='Baixo';Note='Somente miniaturas';Patterns=@('thumbcache_*.db');AllowedExtensions=@('.db')})
+    $patternScan = Get-OptimizerScan -Targets $patternTarget
+    Assert-True (@($patternScan.Files).Count -eq 1 -and $patternScan.Files[0].Path -eq $thumbnail) 'Pattern allowlist excludes other database files'
+    Assert-True ($patternScan.Categories[0].Risk -eq 'Baixo' -and -not $patternScan.Categories[0].RequiresAdmin -and $patternScan.Categories[0].Note) 'Scan categories expose risk and notes'
+    $unsafeTarget = @([pscustomobject]@{Id='unsafe';Name='Unsafe';Path=$patternCache;Process='';RequiresAdmin=$false;Risk='Baixo';Note='';Patterns=@();AllowedExtensions=@('.db')})
+    $unsafeScan = Get-OptimizerScan -Targets $unsafeTarget
+    Assert-True (@($unsafeScan.Files).Count -eq 0) 'Extension override without a pattern keeps protected extensions blocked'
+    $adminCache = Join-Path $testRoot 'admin'; [void](New-Item -ItemType Directory -Path $adminCache)
+    $adminOld = Join-Path $adminCache 'old.tmp'; New-OldFile $adminOld
+    $adminTargets = @([pscustomobject]@{Id='admin-fixture';Name='Admin Fixture';Path=$adminCache;Process='';RequiresAdmin=$true;Risk='Baixo';Note='Somente teste'})
+    $adminScan = Get-OptimizerScan -Targets $adminTargets
+    if (& $core { Test-OptimizerElevated }) {
+        Assert-True (@($adminScan.Files).Count -eq 1 -and @($adminScan.Categories).Count -eq 1) 'Elevated scan includes admin category'
+    } else {
+        Assert-True (@($adminScan.Files).Count -eq 0 -and @($adminScan.Categories).Count -eq 0) 'Non-elevated scan skips admin category'
+        Assert-True (@($adminScan.Warnings | Where-Object { $_ -like '*Admin Fixture*' }).Count -eq 1) 'Skipped admin warning names the category'
+    }
+    $adminItem = Get-Item -LiteralPath $adminOld -Force
+    $adminCleanupScan = [pscustomobject]@{
+        CreatedUtc = [DateTime]::UtcNow
+        CutoffUtc = [DateTime]::UtcNow.AddDays(-7)
+        Cancelled = $false
+        Files = @([pscustomobject]@{ Category='admin-fixture'; CategoryName='Admin Fixture'; Path=$adminOld; Root=$adminCache; Process=''; Bytes=[long]$adminItem.Length; ModifiedUtc=$adminItem.LastWriteTimeUtc; Selected=$true })
+    }
+    $adminCleanup = Invoke-OptimizerCleanup -Scan $adminCleanupScan -CategoryIds admin-fixture -Targets $adminTargets -Confirm:$false
+    if (& $core { Test-OptimizerElevated }) {
+        Assert-True ((-not (Test-Path -LiteralPath $adminOld)) -and $adminCleanup.RemovedCount -eq 1) 'Elevated cleanup removes admin category file'
+    } else {
+        Assert-True ((Test-Path -LiteralPath $adminOld) -and $adminCleanup.SkippedCount -eq 1) 'Non-elevated cleanup refuses admin category'
+    }
     Assert-True (Test-Path $old) 'Analysis never deletes files'
     $result = Invoke-OptimizerCleanup -Scan $scan -CategoryIds fixture -Targets $targets -WhatIf
     Assert-True ((Test-Path $old) -and $result.RemovedBytes -eq 0) 'WhatIf preserves data and reports zero removed bytes'
@@ -112,6 +145,7 @@ try {
         $withChrome = @(Get-OptimizerTargets)
         Assert-True (@($withChrome | Where-Object { $_.Id -like 'chrome-Default-*' }).Count -eq 3) 'Chrome Default profile caches are discovered'
         Assert-True (@($withChrome | Where-Object { $_.Id -like '*-Code Cache' }).Count -ge 1) 'Browser cache subfolders come from configuration'
+        Assert-True (@($withChrome | Group-Object Id | Where-Object Count -gt 1).Count -eq 0) 'Default targets have unique ids'
     } finally { $env:LOCALAPPDATA = $originalLocalAppData }
     $defaultConfiguration = & $core { Get-OptimizerConfiguration }
     Assert-True ($defaultConfiguration.MinimumAgeDays -eq 7 -and @($defaultConfiguration.Browsers).Count -eq 3) 'Shipped cleanup configuration loads safely'

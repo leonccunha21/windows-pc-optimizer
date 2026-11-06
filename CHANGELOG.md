@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.5] - 2026-11-06
 
 ### Added
+- Catálogo declarativo de limpeza em `Data/cleanup-rules.json`, com categorias do Windows e de aplicativos, risco e observação por pasta.
+- Categorias de navegador por perfil: Firefox (`cache2` e `startupCache`), Opera, Vivaldi e Chromium, além de Chrome, Edge e Brave.
+- Relatórios WER do usuário e do sistema (`{ProgramData}\Microsoft\Windows\WER`), sendo o segundo elevado e identificado como risco baixo.
+- Caches de Slack e Visual Studio Code (`Cache`, `Code Cache` e `GPUCache`), sempre com o aplicativo fechado e sem tocar em conversas, projetos ou extensões.
+- Expansão de um segmento `*` no caminho do catálogo, limitada a 64 pastas por regra e sem atravessar junctions/links; curingas parciais são recusados.
+- `Modules/Optimizer.CleanupCatalog.psm1` para resolver tokens de ambiente, ignorar pastas ausentes e validar ids duplicados.
+- Botão **Abrir como administrador** na aba Limpeza, com confirmação e reabertura elevada; fica oculto quando a sessão já é administrativa.
+- Colunas **Risco** e **Observação** na grade de limpeza e aviso extra na confirmação para categorias de risco médio/alto.
+- Testes `Tests/CleanupCatalog.Smoke.ps1` no CI em PowerShell 7 e Windows PowerShell 5.1.
+- Documentação `docs/CATALOGO-LIMPEZA.md` com fontes públicas, formato do catálogo e método clean-room.
 - Integração completa das funcionalidades de otimização, telemetria e privacidade reversas do WinScript v2.28.0 (`flick9000/winscript`).
 - Novo módulo `Modules/Optimizer.Privacy.psm1`: 39 ações catalogadas abrangendo desativação de IA (Copilot, Recall, AI AppX), bloqueio de telemetria do Windows/apps (NVIDIA, VS Code, PowerShell, CCleaner), controle de permissões de aplicativos e predefinições (Básica, Rígida e Extrema).
 - Novo módulo `Modules/Optimizer.Tweaks.psm1`: 30 ajustes catalogados para configuração de DNS (Google, Cloudflare, Quad9, AdGuard, DHCP), redução de latência, desativação de MPO para gaming, modo escuro, menu de contexto clássico e exibição de arquivos/extensões.
@@ -16,15 +26,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configuração externa `config/optimizer.psd1` para navegadores, subpastas de cache, extensões/pastas protegidas, marcadores de projeto e retenção mínima, com validação estrita, leitura data-only compatível com PowerShell 5.1 e fallback seguro.
 - Comment-based help em `Get-OptimizerTargets`, `Test-OptimizerPath`, `Get-OptimizerScan`, `Get-OptimizerDiagnostics`, `Export-OptimizerReport` e `Get-OptimizerConfiguration`.
 - `Write-Progress` com contadores e conclusão nas rotinas longas do console legado.
+- Logs estruturados no console legado em JSON Lines, com rotação de 5 MB e redação de caminhos absolutos/UNC, IPs, e-mails e tokens longos antes da gravação.
 - Persistência da seleção de categorias de limpeza em `SelectedCategories` (schema 2), mantendo leitura de arquivos schema 1.
 - Filtro por categoria, caminho, status ou detalhe na janela de resultado detalhado.
 - Rótulos de automação em grids, abas, avisos e caixa de sugestões, além de ordem de tabulação explícita na navegação lateral.
-- Testes de configuração externa, descoberta de perfil de navegador e schema 2 de preferências; suíte do núcleo agora com 51 verificações.
+- Testes de configuração externa, descoberta de perfil de navegador e schema 2 de preferências; suíte do núcleo agora com 58 verificações.
 
 ### Changed
 - `Get-OptimizerScan` usa a retenção da configuração por padrão; valores explícitos abaixo de 7 dias continuam rejeitados.
 - A última pasta de destino dos relatórios é lembrada somente durante a sessão, sem gravar caminhos em disco.
-- O ZIP de release inclui a pasta `config`.
+- O ZIP de release inclui a pasta `config` e a pasta `Data`.
+
+### Security
+- Categorias que exigem administrador são ignoradas sem elevação e nunca são limpas nesse estado.
+- Categorias com padrões restritos (por exemplo, miniaturas do Explorer) só aceitam os arquivos declarados; as demais extensões preservadas continuam bloqueadas.
 
 ### Fixed
 - `[CmdletBinding()]` adicionado ao helper `Get-OptimizerByteSum`.

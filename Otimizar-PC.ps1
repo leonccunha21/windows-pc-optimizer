@@ -67,14 +67,69 @@ param(
 
 $ErrorActionPreference = "Continue"
 $LogFile = "$env:TEMP\OtimizadorPC_log.txt"
+$StructuredLogFile = "$env:TEMP\OtimizadorPC_log.jsonl"
+$StructuredLogMaxBytes = 5MB
 $ReportFile = "$env:TEMP\OtimizadorPC_report.html"
 $Protected = @("Epic Games","Fortnite","EpicGames","FortniteGame",".git")
 $Version = "3.3.0"
+
+function Format-StructuredLogValue {
+    param([AllowNull()][object]$Value)
+    if ($null -eq $Value) { return '' }
+    $text = [string]$Value
+    # Privacy: never persist absolute paths, UNC paths, IPs, e-mails or long tokens.
+    $text = $text -replace '(?i)[A-Z]:\\.*$', '[caminho omitido]'
+    $text = $text -replace '(?i)\\\\[^\s]+', '[caminho omitido]'
+    $text = $text -replace '\b\d{1,3}(\.\d{1,3}){3}\b', '[ip omitido]'
+    $text = $text -replace '(?i)\b[0-9a-f]{16,}\b', '[token omitido]'
+    $text = $text -replace '(?i)\b[^@\s]+@[^@\s]+\.[^@\s]+\b', '[email omitido]'
+    if ($text.Length -gt 300) { $text = $text.Substring(0,300) + '...' }
+    return $text
+}
+
+function Write-StructuredLog {
+    param(
+        [string]$Level = 'INFO',
+        [string]$Function = '',
+        [string]$Target = '',
+        [string]$Result = ''
+    )
+    try {
+        if ([string]::IsNullOrWhiteSpace($StructuredLogFile)) { return }
+        $maxBytes = 5MB
+        if ($null -ne $StructuredLogMaxBytes) { $maxBytes = [long]$StructuredLogMaxBytes }
+        if (Test-Path -LiteralPath $StructuredLogFile -PathType Leaf) {
+            $length = (Get-Item -LiteralPath $StructuredLogFile -ErrorAction Stop).Length
+            if ($length -ge $maxBytes) {
+                $rotated = "$StructuredLogFile.1"
+                if (Test-Path -LiteralPath $rotated) { Remove-Item -LiteralPath $rotated -Force -ErrorAction SilentlyContinue }
+                Move-Item -LiteralPath $StructuredLogFile -Destination $rotated -Force -ErrorAction Stop
+            }
+        }
+        $entry = [ordered]@{
+            timestamp = (Get-Date).ToUniversalTime().ToString('o')
+            level = Format-StructuredLogValue $Level
+            function = Format-StructuredLogValue $Function
+            target = Format-StructuredLogValue $Target
+            result = Format-StructuredLogValue $Result
+            version = Format-StructuredLogValue $Version
+        }
+        $json = ConvertTo-Json -InputObject $entry -Compress -Depth 3
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        [IO.File]::AppendAllText($StructuredLogFile, $json + [Environment]::NewLine, $utf8)
+    } catch { Write-Verbose "Falha ao gravar log estruturado: $($_.Exception.Message)" }
+}
 
 function Write-Log($msg, $level = "INFO") {
     $line = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [$level] $msg"
     if (-not $Silent) { Write-Host $line }
     Add-Content -Path $LogFile -Value $line -Encoding UTF8
+    $caller = 'Write-Log'
+    try {
+        $stack = Get-PSCallStack
+        if ($null -ne $stack -and $stack.Count -gt 1) { $caller = [string]$stack[1].Command }
+    } catch { Write-Verbose "Pilha de chamadas indisponivel para o log estruturado." }
+    Write-StructuredLog -Level $level -Function $caller -Result $msg
 }
 
 function Is-Protected($path) {

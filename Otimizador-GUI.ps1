@@ -31,6 +31,7 @@ try {
     $principal = New-Object Security.Principal.WindowsPrincipal($identity)
     $script:isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 } catch { Write-Verbose 'Não foi possível verificar elevação.' }
+if ($script:isAdmin) { $ui.ElevateButton.Visibility = 'Collapsed' }
 
 
 # Non-sensitive display settings, never stored alongside customer data or diagnostics.
@@ -184,7 +185,7 @@ function Save-OptimizerDialogDirectory($Dialog) {
 }
 
 function Set-Busy([bool]$Busy) {
-    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','OptimizationRunButton','PreferenceApplyButton','PreferenceResetButton','HealthShortcut','MaintenanceShortcut','WorkbenchShortcut','InvProcessesButton','InvStartupButton','InvSoftwareButton','InvNetworkButton','InvUpdatesButton','InvStorageButton','NetworkSnapshotButton','NetworkRevealButton','NetworkProbeButton','EventsAnalyzeButton','SfcVerifyButton','DismScanButton','ChkdskScanButton','SfcRepairButton','DismRepairButton')) { $ui[$name].IsEnabled = -not $Busy }
+    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','ElevateButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','OptimizationRunButton','PreferenceApplyButton','PreferenceResetButton','HealthShortcut','MaintenanceShortcut','WorkbenchShortcut','InvProcessesButton','InvStartupButton','InvSoftwareButton','InvNetworkButton','InvUpdatesButton','InvStorageButton','NetworkSnapshotButton','NetworkRevealButton','NetworkProbeButton','EventsAnalyzeButton','SfcVerifyButton','DismScanButton','ChkdskScanButton','SfcRepairButton','DismRepairButton')) { $ui[$name].IsEnabled = -not $Busy }
     $ui.CleanButton.IsEnabled = -not $Busy -and $null -ne $script:scan -and -not $script:scan.Cancelled -and @($script:scan.Files).Count -gt 0
     $ui.DetailsButton.IsEnabled = -not $Busy -and ($null -ne $script:scan -or $null -ne $script:cleanup)
     $ui.ExportResultsButton.IsEnabled = -not $Busy -and $null -ne $script:cleanup
@@ -266,7 +267,10 @@ function Start-Work([string]$Operation, $Payload) {
             Import-Module $PrivacyPath -Force -ErrorAction Stop
             Import-Module $TweaksPath -Force -ErrorAction Stop
             switch ($Operation) {
-                'Scan' { $State.Result = Get-OptimizerScan -State $State }
+                'Scan' {
+                    if ($null -ne $Payload -and $null -ne $Payload.Targets) { $State.Result = Get-OptimizerScan -State $State -Targets $Payload.Targets }
+                    else { $State.Result = Get-OptimizerScan -State $State }
+                }
                 'Clean' { $State.Result = Invoke-OptimizerCleanup -Scan $Payload.Scan -CategoryIds $Payload.Ids -State $State -Confirm:$false }
                 'Diagnose' { $State.Message = 'Consultando hardware e Windows...'; $State.Result = @(Get-OptimizerDiagnostics) }
                 'Health' {
@@ -496,6 +500,19 @@ try {
     $ui.PreferenceStatus.Text = 'Preferências indisponíveis; modo padrão aplicado.'
 }
 $ui.ScanButton.Add_Click({ Start-Work 'Scan' $null })
+$ui.ElevateButton.Add_Click({
+    if ($script:isAdmin) { return }
+    $answer = [Windows.MessageBox]::Show($window, "Reabrir o PC Optimizer como administrador?`n`nCategorias de sistema (Temp do Windows, Windows Update, Otimização de Entrega, Prefetch, despejos e WER da máquina) só aparecem com elevação.`n`nUse a mesma conta do cliente: credenciais de outro usuário mudam o perfil analisado.", 'Abrir como administrador', 'YesNo', 'Warning', 'No')
+    if ($answer -ne 'Yes') { return }
+    try {
+        $scriptPath = Join-Path $PSScriptRoot 'Otimizador-GUI.ps1'
+        $arguments = @('-NoLogo','-NoProfile','-STA','-ExecutionPolicy','Bypass','-File',('"{0}"' -f $scriptPath))
+        Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -WorkingDirectory $PSScriptRoot -Verb RunAs
+        $window.Close()
+    } catch {
+        $ui.Status.Text = 'Elevação cancelada ou indisponível. Nenhuma alteração foi feita.'
+    }
+})
 $ui.GoClean.Add_Click({ $ui.Pages.SelectedIndex = 1; Start-Work 'Scan' $null })
 $ui.DiagnoseHome.Add_Click({ $ui.Pages.SelectedIndex = 2; Start-Work 'Diagnose' $null })
 $ui.DiagnoseButton.Add_Click({ Start-Work 'Diagnose' $null })
@@ -708,7 +725,9 @@ $ui.CleanButton.Add_Click({
     if ($selected.Count -eq 0) { $ui.Status.Text = 'Selecione pelo menos uma categoria.'; return }
     Save-OptimizerCategorySelection
     $size = Format-OptimizerSize (($selected | Measure-Object Bytes -Sum).Sum)
-    $answer = [Windows.MessageBox]::Show($window, "Excluir permanentemente os arquivos analisados das $($selected.Count) categorias selecionadas ($size)?`n`nA exclusão não passa pela Lixeira. Arquivos em uso ou alterados serão ignorados.", 'Confirmar limpeza', 'YesNo', 'Warning', 'No')
+    $risk = @($selected | Where-Object { $_.Risk -eq 'Médio' -or $_.Risk -eq 'Alto' })
+    $riskNote = if ($risk.Count -gt 0) { "`n`nAtenção: $($risk.Count) categoria(s) de risco médio/alto. Confira a coluna Observação." } else { '' }
+    $answer = [Windows.MessageBox]::Show($window, "Excluir permanentemente os arquivos analisados das $($selected.Count) categorias selecionadas ($size)?$riskNote`n`nA exclusão não passa pela Lixeira. Arquivos em uso ou alterados serão ignorados.", 'Confirmar limpeza', 'YesNo', 'Warning', 'No')
     if ($answer -eq 'Yes') { Start-Work 'Clean' @{Scan=$script:scan; Ids=@($selected | ForEach-Object Id)} }
 })
 $ui.SelectAllButton.Add_Click({
@@ -924,7 +943,9 @@ if ($ValidateUI) {
         [IO.File]::WriteAllText($sample, 'UI test fixture')
         (Get-Item $sample).LastWriteTimeUtc = [DateTime]::UtcNow.AddDays(-10)
         $env:LOCALAPPDATA = $fixture
-        Start-Work 'Scan' $null
+        # Validação usa somente a pasta descartável, sem varrer o Windows real.
+        $fixtureTargets = @([pscustomobject]@{ Id='temp'; Name='Temporários do usuário'; Path=(Join-Path $fixture 'Temp'); Process=''; RequiresAdmin=$false; Risk='Baixo'; Note=''; Patterns=@(); AllowedExtensions=@() })
+        Start-Work 'Scan' @{ Targets=$fixtureTargets }
         $deadline = [DateTime]::UtcNow.AddSeconds(20)
         while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
             $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
@@ -952,7 +973,7 @@ if ($ValidateUI) {
         $window.Close()
         if (Test-Path $fixture) { Remove-Item -LiteralPath $fixture -Recurse -Force }
     }
-    foreach ($required in @('CloseButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','PrivacyGrid','TweaksGrid','HealthAnalyzeButton','BatteryReportButton','WorkbenchShortcut','WorkbenchGrid','InvProcessesButton','InvSoftwareButton','NetworkGrid','NetworkSnapshotButton','NetworkProbeButton','EventsGrid','EventsAnalyzeButton','SfcVerifyButton','ExportResultsButton')) {
+    foreach ($required in @('CloseButton','ElevateButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','PrivacyGrid','TweaksGrid','HealthAnalyzeButton','BatteryReportButton','WorkbenchShortcut','WorkbenchGrid','InvProcessesButton','InvSoftwareButton','NetworkGrid','NetworkSnapshotButton','NetworkProbeButton','EventsGrid','EventsAnalyzeButton','SfcVerifyButton','ExportResultsButton')) {
         if ($null -eq $ui[$required]) { throw "Controle ausente na interface: $required" }
     }
     $savedDisplay = $script:activePreferences

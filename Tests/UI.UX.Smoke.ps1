@@ -83,7 +83,7 @@ $settingsTab = @($layout.SelectNodes("//*[local-name()='TabItem']") | Where-Obje
 Assert-OptimizerUx ($settingsTab.Count -eq 1) 'Preferences must have exactly one main tab.'
 Assert-OptimizerUx ($dynamicReferences.Count -ge 90) 'Theme resources not used consistently.'
 $gui = Get-Content -LiteralPath (Join-Path $root 'Otimizador-GUI.ps1') -Raw -Encoding UTF8
-foreach ($marker in @('function Open-OptimizerSection','Update-SidebarSelection','[Windows.Input.Key]::B','NavBench.RaiseEvent','WorkbenchTabs.SelectedIndex','Aplicar filtro','Restore-OptimizerCategorySelection','Save-OptimizerCategorySelection','Set-OptimizerDialogDirectory')) {
+foreach ($marker in @('function Open-OptimizerSection','Update-SidebarSelection','[Windows.Input.Key]::B','NavBench.RaiseEvent','WorkbenchTabs.SelectedIndex','Aplicar filtro','Restore-OptimizerCategorySelection','Save-OptimizerCategorySelection','Set-OptimizerDialogDirectory','ElevateButton.Add_Click')) {
     Assert-OptimizerUx ($gui.Contains($marker)) "Missing functional keyboard/navigation binding: $marker"
 }
 Write-Output 'UX structural navigation, accessibility names and contrast checks passed.'

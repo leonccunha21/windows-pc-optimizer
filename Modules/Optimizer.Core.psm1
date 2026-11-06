@@ -142,6 +142,19 @@ function Get-OptimizerConfiguration {
     }
 }
 
+$script:cleanupCatalogModule = Join-Path $PSScriptRoot 'Optimizer.CleanupCatalog.psm1'
+if (Test-Path -LiteralPath $script:cleanupCatalogModule) {
+    Import-Module $script:cleanupCatalogModule -Force
+}
+
+function Get-OptimizerTargetValue {
+    param($Target, [string]$Name, $Default = $null)
+    if ($null -eq $Target) { return $Default }
+    $property = $Target.PSObject.Properties[$Name]
+    if ($null -eq $property) { return $Default }
+    return $property.Value
+}
+
 function Get-OptimizerByteSum {
     [CmdletBinding()]
     param($Items, [string]$Property = 'Bytes')
@@ -180,7 +193,7 @@ function Get-OptimizerTargets {
     if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) { return @() }
     $configuration = Get-OptimizerConfiguration
     # Explicit allowlist: no Documents, Downloads, registry, credentials or event logs.
-    $targets = @([pscustomobject]@{ Id='temp'; Name='Temporários do usuário'; Path=(Join-Path $env:LOCALAPPDATA 'Temp'); Process='' })
+    $targets = @([pscustomobject]@{ Id='temp'; Name='Temporários do usuário'; Path=(Join-Path $env:LOCALAPPDATA 'Temp'); Process=''; RequiresAdmin=$false; Risk='Baixo'; Note=''; Patterns=@(); AllowedExtensions=@() })
     foreach ($browser in $configuration.Browsers) {
         $relativeFolder = $browser.Folder -replace '[\\/]', [IO.Path]::DirectorySeparatorChar
         $base = Join-Path $env:LOCALAPPDATA $relativeFolder
@@ -188,8 +201,26 @@ function Get-OptimizerTargets {
         foreach ($profileDir in @(Get-ChildItem -LiteralPath $base -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'Default' -or $_.Name -match '^Profile \d+$' })) {
             foreach ($cache in $configuration.BrowserCacheFolders) {
                 $relativeCache = $cache -replace '[\\/]', [IO.Path]::DirectorySeparatorChar
-                $targets += [pscustomobject]@{ Id="$($browser.Id)-$($profileDir.Name)-$cache"; Name="$($browser.Name) / $($profileDir.Name) / $cache"; Path=(Join-Path $profileDir.FullName $relativeCache); Process=$browser.Process }
+                $targets += [pscustomobject]@{ Id="$($browser.Id)-$($profileDir.Name)-$cache"; Name="$($browser.Name) / $($profileDir.Name) / $cache"; Path=(Join-Path $profileDir.FullName $relativeCache); Process=$browser.Process; RequiresAdmin=$false; Risk='Baixo'; Note=''; Patterns=@(); AllowedExtensions=@() }
             }
+        }
+    }
+    $known = @{}
+    $knownPaths = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+    foreach ($target in $targets) {
+        $known[$target.Id] = $true
+        try { [void]$knownPaths.Add([IO.Path]::GetFullPath([string]$target.Path)) } catch { Write-Verbose "Caminho de destino inválido: $($target.Id)" }
+    }
+    # The declarative catalog adds Windows/app categories; folders already covered
+    # by config/optimizer.psd1 are skipped so the user never sees duplicates.
+    if (Get-Command -Name 'Get-OptimizerCleanupTargets' -ErrorAction SilentlyContinue) {
+        foreach ($extra in @(Get-OptimizerCleanupTargets)) {
+            if ($known.ContainsKey($extra.Id)) { continue }
+            $pathKey = $null
+            try { $pathKey = [IO.Path]::GetFullPath([string]$extra.Path) } catch { Write-Verbose "Caminho de catálogo inválido: $($extra.Id)" }
+            if ($null -ne $pathKey -and -not $knownPaths.Add($pathKey)) { continue }
+            $known[$extra.Id] = $true
+            $targets += $extra
         }
     }
     return $targets
@@ -259,13 +290,20 @@ function Get-OptimizerScan {
     $categories = New-Object 'System.Collections.Generic.List[object]'
     $warnings = New-Object 'System.Collections.Generic.List[string]'
     $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+    $elevated = $false
+    if (Get-Command -Name 'Test-OptimizerElevated' -ErrorAction SilentlyContinue) { $elevated = [bool](Test-OptimizerElevated) }
+    $skippedAdmin = New-Object 'System.Collections.Generic.List[string]'
     foreach ($target in $Targets) {
         if ($State.Cancel) { break }
         $State.Message = "Analisando $($target.Name)..."
         [long]$bytes = 0; $count = 0
+        $requiresAdmin = [bool](Get-OptimizerTargetValue $target 'RequiresAdmin' $false)
+        if ($requiresAdmin -and -not $elevated) { $skippedAdmin.Add([string]$target.Name); continue }
+        $patterns = @(Get-OptimizerTargetValue $target 'Patterns' @())
+        $allowedExtensions = @(Get-OptimizerTargetValue $target 'AllowedExtensions' @())
         if (-not (Test-Path -LiteralPath $target.Path -PathType Container)) { continue }
         if ($target.Process -and (Get-Process -Name $target.Process -ErrorAction SilentlyContinue)) {
-            $warnings.Add("$($target.Name): navegador aberto; categoria ignorada. Feche-o e analise novamente.")
+            $warnings.Add("$($target.Name): aplicativo aberto; categoria ignorada. Feche-o e analise novamente.")
             continue
         }
         $stack = New-Object 'System.Collections.Generic.Stack[string]'
@@ -279,15 +317,25 @@ function Get-OptimizerScan {
                 if (-not (Test-OptimizerPath -Path $entry.FullName -Root $target.Path)) { continue }
                 if ($entry.PSIsContainer) { $stack.Push($entry.FullName); continue }
                 if ($entry.LastWriteTimeUtc -ge $cutoff) { continue }
-                # Source code and potentially personal content are never cleanup candidates.
-                if ($configuration.ProtectedExtensions -contains ([string]$entry.Extension).ToLowerInvariant()) { continue }
+                if ($patterns.Count -gt 0) {
+                    $matchesPattern = $false
+                    foreach ($pattern in $patterns) { if ($entry.Name -like $pattern) { $matchesPattern = $true; break } }
+                    if (-not $matchesPattern) { continue }
+                }
+                if ($allowedExtensions.Count -gt 0 -and $patterns.Count -gt 0) {
+                    if ($allowedExtensions -notcontains $entry.Extension) { continue }
+                } elseif ($configuration.ProtectedExtensions -contains ([string]$entry.Extension).ToLowerInvariant()) {
+                    # Source code and potentially personal content are never cleanup candidates.
+                    continue
+                }
                 if (-not $seen.Add($entry.FullName)) { continue }
                 $files.Add([pscustomobject]@{ Category=$target.Id; CategoryName=$target.Name; Path=$entry.FullName; Root=$target.Path; Process=$target.Process; Bytes=[long]$entry.Length; ModifiedUtc=$entry.LastWriteTimeUtc; Selected=$true })
                 $bytes += $entry.Length; $count++
             }
         }
-        $categories.Add([pscustomobject]@{ Selected=$true; Id=$target.Id; Name=$target.Name; Count=$count; Bytes=$bytes; Size=(Format-OptimizerSize $bytes) })
+        $categories.Add([pscustomobject]@{ Selected=$true; Id=$target.Id; Name=$target.Name; Count=$count; Bytes=$bytes; Size=(Format-OptimizerSize $bytes); RequiresAdmin=$requiresAdmin; Risk=[string](Get-OptimizerTargetValue $target 'Risk' 'Baixo'); Note=[string](Get-OptimizerTargetValue $target 'Note' '') })
     }
+    if ($skippedAdmin.Count -gt 0) { $warnings.Add(('Categorias que exigem administrador foram ignoradas: {0}. Use o botão "Abrir como administrador" ou reabra a interface elevada para analisá-las.' -f ($skippedAdmin -join ', '))) }
     [pscustomobject]@{ CreatedUtc=[DateTime]::UtcNow; CutoffUtc=$cutoff; Files=$files.ToArray(); Categories=$categories.ToArray(); Warnings=$warnings.ToArray(); Cancelled=[bool]$State.Cancel; Bytes=(Get-OptimizerByteSum $files) }
 }
 
@@ -298,6 +346,8 @@ function Invoke-OptimizerCleanup {
     if (([DateTime]::UtcNow - [DateTime]$Scan.CreatedUtc).TotalMinutes -gt 30) { throw 'A análise expirou após 30 minutos. Analise novamente.' }
     $results = New-Object 'System.Collections.Generic.List[object]'
     $allowed = @{}; foreach ($target in $Targets) { $allowed[$target.Id] = $target }
+    $elevated = $false
+    if (Get-Command -Name 'Test-OptimizerElevated' -ErrorAction SilentlyContinue) { $elevated = [bool](Test-OptimizerElevated) }
     $selectedFiles = @($Scan.Files | Where-Object { $_.Category -in $CategoryIds })
     $State.Total = $selectedFiles.Count
     $State.Processed = 0
@@ -308,8 +358,9 @@ function Invoke-OptimizerCleanup {
         try {
             if (-not $allowed.ContainsKey($file.Category)) { throw 'Categoria fora da lista permitida.' }
             $target = $allowed[$file.Category]
+            if ([bool](Get-OptimizerTargetValue $target 'RequiresAdmin' $false) -and -not $elevated) { throw 'Esta categoria exige administrador.' }
             if (-not (Test-OptimizerPath -Path $file.Path -Root $target.Path)) { throw 'Arquivo protegido, removido ou caminho alterado.' }
-            if ($target.Process -and (Get-Process -Name $target.Process -ErrorAction SilentlyContinue)) { throw 'Navegador aberto. Feche-o e analise novamente.' }
+            if ($target.Process -and (Get-Process -Name $target.Process -ErrorAction SilentlyContinue)) { throw 'Aplicativo aberto. Feche-o e analise novamente.' }
             $current = Get-Item -LiteralPath $file.Path -Force -ErrorAction Stop
             if ($current.PSIsContainer -or $current.Length -ne $file.Bytes -or $current.LastWriteTimeUtc -ne [DateTime]$file.ModifiedUtc -or $current.LastWriteTimeUtc -ge [DateTime]$Scan.CutoffUtc) { throw 'Arquivo alterado desde a análise.' }
             if ($PSCmdlet.ShouldProcess($file.Path, 'Excluir arquivo temporário analisado')) {
