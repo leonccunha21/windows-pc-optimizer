@@ -412,6 +412,16 @@ $timer.Add_Tick({
                 $ui.DriverSummary.Text = "$applied drivers atualizados • $($failed.Count) falhas."
                 if ($failed.Count -gt 0) { $ui.DriverSummary.Text += ' ' + (@($failed | Select-Object -First 3 | ForEach-Object { "$($_.Title): $($_.Detail)" }) -join ' | ') }
                 $ui.Status.Text = 'Atualização de drivers concluída. Revise o resultado.'
+                $rebootRequired = @($results | Where-Object { $_.Detail -match 'Reinicialização|reboot' }).Count -gt 0
+                if ($rebootRequired) {
+                    $answer = [Windows.MessageBox]::Show($window, "Algumas atualizações de driver exigem reinicialização.`n`nReiniciar o computador agora?`n`nEscolha Não para reiniciar depois.", 'Reinicialização necessária', 'YesNo', 'Question', 'No')
+                    if ($answer -eq 'Yes') {
+                        $ui.Status.Text = 'Reinicializando em 30 segundos. Salve seu trabalho.'
+                        try { Start-Process -FilePath 'shutdown.exe' -ArgumentList '/r','/t','30' -ErrorAction Stop } catch { [void][Windows.MessageBox]::Show($window, $_.Exception.Message, 'Não foi possível reiniciar', 'OK', 'Warning') }
+                    } else {
+                        $ui.Status.Text = 'Reinicialização adiada pelo usuário. Reinicie antes de considerar a atualização concluída.'
+                    }
+                }
             }
             'ProgramUpdates' {
                 $programResult = $script:state.Result

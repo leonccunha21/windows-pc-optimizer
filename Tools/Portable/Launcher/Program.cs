@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -28,6 +29,11 @@ namespace PcOptimizerPortable
                     "Extraia novamente o ZIP completo e execute o PC-Optimizer.exe a partir da pasta extraída.",
                     silent);
                 return 2;
+            }
+
+            if (!silent && ShouldAutoElevate(args) && !IsAdministrator())
+            {
+                return ElevateCurrentProcess(root, args, silent);
             }
 
             string powerShell = FindPowerShell();
@@ -97,6 +103,63 @@ namespace PcOptimizerPortable
                         "Consulte Dados\\Logs\\portable-launcher.log para detalhes.",
                         false);
                 }
+                return 1;
+            }
+        }
+
+        private static bool IsAdministrator()
+        {
+            try
+            {
+                using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+                {
+                    WindowsPrincipal principal = new WindowsPrincipal(identity);
+                    return principal.IsInRole(WindowsBuiltInRole.Administrator);
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool ShouldAutoElevate(string[] args)
+        {
+            if (string.Equals(Environment.GetEnvironmentVariable("PC_OPTIMIZER_ELEVATED"), "1", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            if (string.Equals(Environment.GetEnvironmentVariable("PC_OPTIMIZER_NO_ELEVATE"), "1", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            return !HasArgument(args, "--no-elevate");
+        }
+
+        private static int ElevateCurrentProcess(string root, string[] args, bool silent)
+        {
+            try
+            {
+                ProcessStartInfo elevateInfo = new ProcessStartInfo();
+                elevateInfo.FileName = Process.GetCurrentProcess().MainModule.FileName;
+                elevateInfo.Arguments = BuildArguments(new List<string>(args));
+                elevateInfo.WorkingDirectory = root;
+                elevateInfo.UseShellExecute = true;
+                elevateInfo.Verb = "runas";
+                elevateInfo.EnvironmentVariables["PC_OPTIMIZER_ELEVATED"] = "1";
+                using (Process elevated = Process.Start(elevateInfo))
+                {
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                WriteLauncherLog(root, string.Empty, ex.ToString());
+                ShowError(
+                    "Elevação cancelada ou indisponível.",
+                    "O PC Optimizer foi configurado para abrir como administrador. A elevação foi cancelada ou bloqueada pela política do Windows segurança." + Environment.NewLine +
+                    "Use PC-Optimizer.exe --no-elevate para abrir sem elevação.",
+                    silent);
                 return 1;
             }
         }

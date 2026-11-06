@@ -139,11 +139,13 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Tools\Diagnostico-Even
 
 São somente leitura e não exigem a interface.
 
-### Elevação sob demanda
+### Elevação automática
 
-O botão **Abrir como administrador** na aba Limpeza reinicia a interface elevada
-com confirmação. Categorias administrativas são ignoradas enquanto a sessão não
-for elevada.
+O `PC-Optimizer.exe` abre como administrador por padrão: se a sessão não estiver elevada, ele se relança com UAC antes de abrir a interface. Self-test e validação (`-SelfTest`, `-ValidateUI`) não elevam. Para abrir sem elevação, use `PC-Optimizer.exe --no-elevate`. Se a elevação for cancelada, o programa não abre.
+
+### Reinicialização
+
+Quando uma atualização de driver exige reboot, a interface pergunta se o usuário quer reiniciar agora (30 segundos) ou depois. Nada reinicia sem essa escolha.
 
 ---
 
