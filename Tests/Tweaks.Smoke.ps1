@@ -29,3 +29,4 @@ if (-not $simulated.Success) {
 }
 
 Write-Output "Módulo Optimizer.Tweaks validado com sucesso ($($catalog.Count) ajustes catalogados)."
+

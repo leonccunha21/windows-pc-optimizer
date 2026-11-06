@@ -346,3 +346,4 @@ function Invoke-OptimizerTweak {
 }
 
 Export-ModuleMember -Function Get-OptimizerTweakCatalog, Invoke-OptimizerTweak
+

@@ -39,3 +39,4 @@ if (-not $simulated.Success) {
 }
 
 Write-Output "Módulo Optimizer.Privacy validado com sucesso ($($catalog.Count) ações catalogadas)."
+

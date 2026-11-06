@@ -556,3 +556,4 @@ function Invoke-OptimizerPrivacyAction {
 }
 
 Export-ModuleMember -Function Get-OptimizerPrivacyCatalog, Get-OptimizerPrivacyPreset, Invoke-OptimizerPrivacyAction
+

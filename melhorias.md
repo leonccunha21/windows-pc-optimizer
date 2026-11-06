@@ -11,17 +11,17 @@
 
 | Item | Entrega desta rodada |
 |---|---|
-| 7 | **Ampliado** — `Tests/Core.Smoke.ps1` passou a 50 verificações: descoberta de perfil Chrome em `LOCALAPPDATA` descartável, carregamento do `config/optimizer.psd1`, configuração customizada e fallback seguro para configuração inválida. Cenários de WMI/bateria indisponível seguem pendentes. |
+| 7 | **Ampliado** — `Tests/Core.Smoke.ps1` passou a 51 verificações: descoberta de perfil Chrome em `LOCALAPPDATA` descartável, carregamento do `config/optimizer.psd1`, configuração customizada e fallback seguro para configuração inválida. Cenários de WMI/bateria indisponível seguem pendentes. |
 | 8 | **Concluído** — comment-based help em `Get-OptimizerTargets`, `Test-OptimizerPath`, `Get-OptimizerScan`, `Get-OptimizerDiagnostics` e `Export-OptimizerReport`; `[CmdletBinding()]` adicionado ao helper `Get-OptimizerByteSum`. |
-| 9 | **Concluído** — `config/optimizer.psd1` externaliza retenção mínima, navegadores, subpastas de cache, extensões protegidas, pastas protegidas e marcadores de projeto. O carregador valida tipos, caminhos relativos, ids e limites; qualquer valor fora da política volta aos padrões embutidos. |
+| 9 | **Concluído** — `config/optimizer.psd1` externaliza retenção mínima, navegadores, subpastas de cache, extensões protegidas, pastas protegidas e marcadores de projeto. O carregador valida tipos, caminhos relativos, ids e limites, lê o arquivo como dados no PS 5.1 (sem executar código) e volta aos padrões embutidos para qualquer valor fora da política. |
 | 12 | **Concluído** — `Write-Progress` adicionado às rotinas longas do legado (`Optimize-Disk`, caches de navegadores/pacotes/aplicativos, `Disable-Services`, `Disable-Bloatware`), com conclusão explícita do progresso. |
 | 17 | **Quase concluído** — `AutomationProperties.Name` em todos os `DataGrid`, `ScanWarnings`, `AppxBloatOnly` e `TabControl`; ordem de tabulação explícita (`TabIndex` 1–8) na navegação lateral; testes estáticos verificam a presença. Falta apenas ensaio manual com Narrador/NVDA, Alto Contraste do Windows e DPI variados. |
 | 18 | **Concluído com limite de privacidade** — a seleção de categorias é restaurada após nova análise e gravada em `SelectedCategories` (schema 2). A pasta de destino é memorizada **apenas durante a sessão**; não é gravada em disco para não registrar caminhos do cliente. |
 | 19 | **Concluído** — a janela de resultado detalhado ganhou filtro por categoria/caminho/status/detalhe (botão, Enter e limpar). A exportação CSV já havia sido restaurada na integração da bancada e permanece opcional, com aviso de privacidade. |
 
-**Testes executados nesta rodada:** `Validate-Syntax.ps1`, `Core.Smoke.ps1` (50 verificações), `Preferences.Smoke.ps1`, `UI.UX.Smoke.ps1`, `Optimizer.Tests.ps1`, `Network.Smoke.ps1`, `Events.Smoke.ps1`, `Technician.Smoke.ps1`, PSScriptAnalyzer nos arquivos modificados e `Otimizador-GUI.ps1 -ValidateUI` com captura de prévia no Windows PowerShell 5.1. Todos passaram.
+**Testes executados nesta rodada:** `Validate-Syntax.ps1`, `Core.Smoke.ps1` (51 verificações), `Preferences.Smoke.ps1`, `UI.UX.Smoke.ps1`, `Optimizer.Tests.ps1`, `Network.Smoke.ps1`, `Events.Smoke.ps1`, `Technician.Smoke.ps1`, PSScriptAnalyzer nos arquivos modificados e `Otimizador-GUI.ps1 -ValidateUI` com captura de prévia no Windows PowerShell 5.1. Todos passaram.
 
-**Ainda bloqueado ou fora desta rodada:** item 10 (logs estruturados no legado), item 13 (assinatura Authenticode exige certificado), item 14 (Release real exige tag/push), item 23 (GIF exige gravação manual) e item 24 (i18n é decisão de produto). A validação manual de acessibilidade também continua pendente. Os módulos não rastreados `Optimizer.Privacy.psm1` e `Optimizer.Tweaks.psm1` não foram alterados por esta rodada.
+**Ainda bloqueado ou fora desta rodada:** item 10 (logs estruturados no legado), item 13 (assinatura Authenticode exige certificado), item 14 (Release real exige tag/push), item 23 (GIF exige gravação manual) e item 24 (i18n é decisão de produto). A validação manual de acessibilidade também continua pendente. Os módulos `Optimizer.Privacy.psm1` e `Optimizer.Tweaks.psm1` pertencem à frente paralela de privacidade/ajustes e não tiveram sua lógica alterada por esta rodada.
 
 ---
 
@@ -166,8 +166,8 @@
 |---|---|
 | P0 1–5 | **Concluído**: menu, CHANGELOG, atualização/Git automáticos desativados, HTML escapado, administrador exigido somente no console legado |
 | P1 6 | **Concluído**: job `lint` bloqueante no CI com PSScriptAnalyzer |
-| P1 7 | **Parcial**: 50 verificações, incluindo config e perfil de navegador; cenários WMI/bateria ausente seguem pendentes |
-| P1 8 | **Concluído**: `[CmdletBinding()]` em todo o núcleo e comment-based help nas funções principais |
+| P1 7 | **Parcial**: 51 verificações, incluindo config e perfil de navegador; cenários WMI/bateria ausente seguem pendentes |
+| P1 8 | **Concluído**: `[CmdletBinding()]` nas funções públicas do núcleo e comment-based help nas funções principais |
 | P1 9 | **Concluído**: `config/optimizer.psd1` com validação e fallback seguro |
 | P1 10 | **Pendente**: logs legados estruturados |
 | P1 11 | **Concluído**: relatório HTML válido e JSON opcional sem caminhos de arquivos excluídos |
@@ -265,12 +265,12 @@ Regras desativadas com justificativa: verbos/substantivos de domínio, `Write-Ho
 
 ### 7. Ampliar a cobertura do núcleo — **Parcialmente resolvido**
 
-Já cobertos (50 verificações no total):
+Já cobertos (51 verificações no total):
 
 - `Format-OptimizerSize` (B, KB, MB, GB e zero).
 - `Get-OptimizerByteSum` (lista vazia, soma e propriedade ausente).
 - `Get-OptimizerTargets` (pasta Temp, descoberta de perfil Chrome e subpastas de cache vindas da configuração).
-- `Get-OptimizerConfiguration` (arquivo embarcado, configuração customizada e fallback seguro).
+- `Get-OptimizerConfiguration` (arquivo embarcado, configuração customizada, fallback seguro e rejeição de expressão dinâmica sem execução).
 - `Export-OptimizerReport` sem limpeza, com `<head>`/`<body>`, acentos escapados e exportação JSON sem caminhos privados.
 
 Ainda faltam casos para `Get-OptimizerDiagnostics` (WMI indisponível, bateria ausente, Defender desligado).
@@ -409,7 +409,7 @@ O restante é de outro domínio (agentes, social, web) ou já está marcado como
 ## Critérios de aceite
 
 - [x] `Tests/Validate-Syntax.ps1` continua detectando zero duplicatas.
-- [x] `Tests/Core.Smoke.ps1` verde em Windows PowerShell 5.1 e PowerShell 7 (50 verificações).
+- [x] `Tests/Core.Smoke.ps1` verde em Windows PowerShell 5.1 e PowerShell 7 (51 verificações).
 - [x] `config/optimizer.psd1` validado com fallback seguro para valores fora da política.
 - [x] PSScriptAnalyzer sem Warning/Error com as settings do repo.
 - [x] Menu legado sem opções repetidas.
@@ -429,9 +429,9 @@ O restante é de outro domínio (agentes, social, web) ou já está marcado como
 | Definições `function` no legado | 72 |
 | Nomes únicos | 72 |
 | Duplicatas | 0 |
-| Linhas de `Optimizer.Core.psm1` | 790 |
-| Funções de `Optimizer.Core.psm1` | 25 |
-| `[CmdletBinding()]` no núcleo | 21 de 25 funções |
+| Linhas de `Optimizer.Core.psm1` | 813 |
+| Funções de `Optimizer.Core.psm1` | 26 |
+| `[CmdletBinding()]` no núcleo | 22 de 26 funções |
 | `[CmdletBinding()]` no legado | 3 (rotinas destrutivas) |
 | `Write-Progress` no legado | 12 ocorrências em 6 rotinas longas |
 | Opções do menu legado | 48 (sem duplicatas) |
