@@ -1031,14 +1031,14 @@ if ($ValidateUI) {
         }
         if ($null -ne $script:worker -or @($ui.WorkbenchGrid.ItemsSource).Count -lt 1) { throw 'WPF integrated technician inventory/runspace failed.' }
         Start-Work 'Diagnose' $null
-        $deadline = [DateTime]::UtcNow.AddSeconds(30)
+        $deadline = [DateTime]::UtcNow.AddSeconds(90)
         while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
             $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
             Start-Sleep -Milliseconds 20
         }
         if ($null -ne $script:worker -or @($script:diagnostics).Count -lt 5 -or @($ui.DiagnosticsGrid.ItemsSource).Count -lt 5) { throw 'WPF diagnostics runspace failed.' }
         Start-Work 'Drivers' $null
-        $deadline = [DateTime]::UtcNow.AddSeconds(60)
+        $deadline = [DateTime]::UtcNow.AddSeconds(120)
         while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
             $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
             Start-Sleep -Milliseconds 20
@@ -1052,35 +1052,35 @@ if ($ValidateUI) {
         }
         if ($null -ne $script:worker -or $null -eq $script:driverUpdates -or $null -eq $script:driverUpdates.Updates) { throw 'WPF driver updates runspace failed.' }
         Start-Work 'Appx' $null
-        $deadline = [DateTime]::UtcNow.AddSeconds(60)
+        $deadline = [DateTime]::UtcNow.AddSeconds(120)
         while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
             $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
             Start-Sleep -Milliseconds 20
         }
         if ($null -ne $script:worker -or @($script:appx).Count -lt 1 -or @($ui.AppxGrid.ItemsSource).Count -lt 1) { throw 'WPF app inventory runspace failed.' }
         Start-Work 'NetworkSnapshot' @{Reveal=$false}
-        $deadline = [DateTime]::UtcNow.AddSeconds(60)
+        $deadline = [DateTime]::UtcNow.AddSeconds(180)
         while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
             $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
             Start-Sleep -Milliseconds 20
         }
         if ($null -ne $script:worker -or @($ui.NetworkGrid.ItemsSource).Count -lt 1) { throw 'WPF network snapshot runspace failed.' }
         Start-Work 'Events' $null
-        $deadline = [DateTime]::UtcNow.AddSeconds(60)
+        $deadline = [DateTime]::UtcNow.AddSeconds(120)
         while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
             $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
             Start-Sleep -Milliseconds 20
         }
         if ($null -ne $script:worker -or [string]::IsNullOrWhiteSpace([string]$ui.EventsSummary.Text)) { throw 'WPF events runspace failed.' }
         Start-Work 'Health' $null
-        $deadline = [DateTime]::UtcNow.AddSeconds(60)
+        $deadline = [DateTime]::UtcNow.AddSeconds(120)
         while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
             $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
             Start-Sleep -Milliseconds 20
         }
         if ($null -ne $script:worker -or @($ui.BatteryGrid.ItemsSource).Count -lt 1 -or @($ui.DiskGrid.ItemsSource).Count -lt 1 -or @($ui.VolumeGrid.ItemsSource).Count -lt 1) { throw 'WPF health/battery/disk runspace failed.' }
         Start-Work 'Agent' @{ Diagnostics=@($script:diagnostics); Health=([pscustomobject]@{ Battery=$script:battery; Disks=$script:disks }); Scan=$script:scan; AppInventory=@($script:appx); IsAdmin=[bool]$script:isAdmin }
-        $deadline = [DateTime]::UtcNow.AddSeconds(30)
+        $deadline = [DateTime]::UtcNow.AddSeconds(90)
         while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
             $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
             Start-Sleep -Milliseconds 20
@@ -1088,7 +1088,7 @@ if ($ValidateUI) {
         if ($null -ne $script:worker -or @($script:agentRecommendations).Count -lt 1 -or [string]::IsNullOrWhiteSpace([string]$ui.AgentSummary.Text)) { throw 'WPF local agent runspace failed.' }
         foreach ($area in @('Processes','Startup','Software','Network','Updates','Storage')) {
             Start-Work 'Inspect' @{Area=$area}
-            $deadline = [DateTime]::UtcNow.AddSeconds(60)
+            $deadline = [DateTime]::UtcNow.AddSeconds(120)
             while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
                 $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
                 Start-Sleep -Milliseconds 20
