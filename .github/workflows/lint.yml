@@ -33,6 +33,9 @@ jobs:
       - name: Parse scripts and check duplicate definitions
         shell: pwsh
         run: ./Tests/Validate-Syntax.ps1
+      - name: Portable package build, checksums and self-test
+        shell: pwsh
+        run: ./Tests/Portable.Smoke.ps1
       - name: PSScriptAnalyzer advisory - core and interface
         shell: pwsh
         continue-on-error: true

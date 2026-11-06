@@ -76,6 +76,20 @@ function Copy-PortableDirectory {
     Copy-Item -LiteralPath $source -Destination $destination -Recurse -Force
 }
 
+function Get-Sha256 {
+    param([Parameter(Mandatory)][string]$Path)
+    $algorithm = [System.Security.Cryptography.SHA256]::Create()
+    $stream = $null
+    try {
+        $stream = [IO.File]::OpenRead($Path)
+        $hash = $algorithm.ComputeHash($stream)
+        return ([BitConverter]::ToString($hash) -replace '-', '').ToLowerInvariant()
+    } finally {
+        if ($null -ne $stream) { $stream.Dispose() }
+        $algorithm.Dispose()
+    }
+}
+
 function Test-PortableTree {
     param([Parameter(Mandatory)][string]$Stage)
     $required = @(
@@ -215,7 +229,7 @@ Requires: Windows 10/11 + Windows PowerShell 5.1 or PowerShell 7
     foreach ($file in @(Get-ChildItem -LiteralPath $script:StageDirectory -Recurse -File | Sort-Object FullName)) {
         if ($file.Name -eq 'SHA256SUMS.txt') { continue }
         $relative = $file.FullName.Substring($script:StageDirectory.Length).TrimStart([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar) -replace '\\', '/'
-        $hash = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        $hash = Get-Sha256 -Path $file.FullName
         $hashLines.Add("$hash  $relative")
     }
     [IO.File]::WriteAllText((Join-Path $script:StageDirectory 'SHA256SUMS.txt'), ($hashLines -join [Environment]::NewLine) + [Environment]::NewLine, (New-Object System.Text.UTF8Encoding($false)))
@@ -237,7 +251,7 @@ Requires: Windows 10/11 + Windows PowerShell 5.1 or PowerShell 7
         $zipPath = Join-Path $OutputDirectory "$stageName.zip"
         if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
         Compress-Archive -LiteralPath $script:StageDirectory -DestinationPath $zipPath -CompressionLevel Optimal -Force
-        $zipHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        $zipHash = Get-Sha256 -Path $zipPath
         [IO.File]::WriteAllText(($zipPath + '.sha256'), "$zipHash  $stageName.zip" + [Environment]::NewLine, (New-Object System.Text.ASCIIEncoding))
         $zipInfo = Get-Item -LiteralPath $zipPath
         Write-Output ''

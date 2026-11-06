@@ -11,6 +11,20 @@ function Assert-Portable([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw $Message }
 }
 
+function Get-Sha256 {
+    param([Parameter(Mandatory)][string]$Path)
+    $algorithm = [System.Security.Cryptography.SHA256]::Create()
+    $stream = $null
+    try {
+        $stream = [IO.File]::OpenRead($Path)
+        $hash = $algorithm.ComputeHash($stream)
+        return ([BitConverter]::ToString($hash) -replace '-', '').ToLowerInvariant()
+    } finally {
+        if ($null -ne $stream) { $stream.Dispose() }
+        $algorithm.Dispose()
+    }
+}
+
 try {
     & (Join-Path $root 'Tools/Build-Portable.ps1') -Version $version -OutputDirectory $temporary -SkipTests -SkipUiValidation | Out-Null
     $stage = Join-Path $temporary $stageName
@@ -48,7 +62,7 @@ try {
         Assert-Portable ($parts.Count -eq 2) 'Malformed SHA256SUMS.txt line.'
         $file = Join-Path $stage ($parts[1] -replace '/', [IO.Path]::DirectorySeparatorChar)
         Assert-Portable (Test-Path -LiteralPath $file -PathType Leaf) "Checksum references a missing file: $($parts[1])"
-        $actual = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+        $actual = Get-Sha256 -Path $file
         Assert-Portable ($actual -eq $parts[0]) "Checksum mismatch: $($parts[1])"
     }
 
@@ -57,7 +71,7 @@ try {
     $shaFile = $zip + '.sha256'
     Assert-Portable (Test-Path -LiteralPath $shaFile -PathType Leaf) 'Portable ZIP checksum was not created.'
     $expectedHash = (Get-Content -LiteralPath $shaFile -Raw).Split(' ')[0]
-    $actualHash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+    $actualHash = Get-Sha256 -Path $zip
     Assert-Portable ($expectedHash -eq $actualHash) 'Portable ZIP checksum does not match.'
 
     if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {

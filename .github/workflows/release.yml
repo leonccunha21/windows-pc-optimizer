@@ -23,22 +23,20 @@ jobs:
           ./Tests/Preferences.Smoke.ps1
           powershell.exe -NoProfile -STA -File ./Otimizador-GUI.ps1 -ValidateUI
           if ($LASTEXITCODE -ne 0) { throw 'WPF validation failed' }
-      - name: Assemble release and SHA-256 checksum
+      - name: Build portable package and SHA-256 checksum
         shell: pwsh
         run: |
-          $name = "PC-Optimizer-$env:GITHUB_REF_NAME"
-          $stage = Join-Path $env:RUNNER_TEMP $name
-          New-Item -ItemType Directory -Path $stage -Force | Out-Null
-          $entries = @('Executar-Otimizador.bat','Otimizador-GUI.ps1','Otimizar-PC.ps1','Modules','Data','UI','Tools','config','README.md','LEIA-ME.txt','LICENSE','SECURITY.md')
-          foreach ($entry in $entries) { Copy-Item -LiteralPath $entry -Destination $stage -Recurse -Force }
-          $zip = Join-Path $env:GITHUB_WORKSPACE "$name.zip"
-          Compress-Archive -LiteralPath $stage -DestinationPath $zip -Force
-          $sha = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$sha  $name.zip" | Set-Content -LiteralPath ($zip + '.sha256') -Encoding ascii
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          ./Tools/Build-Portable.ps1 -Version $version -OutputDirectory $env:RUNNER_TEMP -SkipTests -SkipUiValidation
+          if ($LASTEXITCODE -ne 0) { throw 'Portable package build failed' }
       - name: Publish tagged GitHub Release
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $name = "PC-Optimizer-$env:GITHUB_REF_NAME"
-          gh release create "$env:GITHUB_REF_NAME" "$name.zip" "$name.zip.sha256" --verify-tag --generate-notes
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          $name = "PC-Optimizer-Portable-$version"
+          $zip = Join-Path $env:RUNNER_TEMP "$name.zip"
+          $sha = "$zip.sha256"
+          if (-not (Test-Path -LiteralPath $zip) -or -not (Test-Path -LiteralPath $sha)) { throw 'Portable release artifacts are missing' }
+          gh release create "$env:GITHUB_REF_NAME" $zip $sha --verify-tag --generate-notes
