@@ -6,10 +6,12 @@ Interface desktop em português para o dia a dia de manutenção de computadores
 
 ## Abrir
 
-1. Baixe o [ZIP do projeto](https://github.com/leonccunha21/windows-pc-optimizer/archive/refs/heads/main.zip).
+1. Baixe o **pacote portátil** `PC-Optimizer-Portable-4.5.zip` na página de releases ou o [ZIP do projeto](https://github.com/leonccunha21/windows-pc-optimizer/archive/refs/heads/main.zip) para desenvolvimento.
 2. **Extraia a pasta inteira**, mantendo `Modules`, `Data` e `UI` ao lado dos scripts.
-3. Abra `Executar-Otimizador.bat`. A interface comum **não exige administrador**.
+3. Abra `Iniciar-PC-Optimizer.bat` (pacote portátil) ou `Executar-Otimizador.bat` (repositório). A interface comum **não exige administrador**.
 4. Faça o diagnóstico, analise a limpeza, revise os arquivos e confirme as categorias desejadas.
+
+O pacote portátil não precisa do repositório, de instalação ou de rede. Preferências e logs ficam em `Dados/` quando a pasta é gravável; em mídia somente leitura, o fallback é `%TEMP%\PCOptimizer-Portable`. Consulte [README-PORTABLE.md](README-PORTABLE.md).
 
 Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil analisado. Em computadores gerenciados, respeite a política de execução da organização. Não execute o BAT dentro do ZIP. Windows 10/11 com interface desktop; a compatibilidade do aplicativo não altera o ciclo de suporte do Windows.
 

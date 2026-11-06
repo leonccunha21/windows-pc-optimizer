@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comment-based help em `Get-OptimizerTargets`, `Test-OptimizerPath`, `Get-OptimizerScan`, `Get-OptimizerDiagnostics`, `Export-OptimizerReport` e `Get-OptimizerConfiguration`.
 - `Write-Progress` com contadores e conclusão nas rotinas longas do console legado.
 - Logs estruturados no console legado em JSON Lines, com rotação de 5 MB e redação de caminhos absolutos/UNC, IPs, e-mails e tokens longos antes da gravação.
+- Pacote portátil autônomo `PC-Optimizer-Portable`: launcher próprio, `Dados/` para preferências/logs, self-test, `VERSION.txt`, `SHA256SUMS.txt`, ZIP com checksum e build reproduzível por `Tools/Build-Portable.ps1`.
 - Persistência da seleção de categorias de limpeza em `SelectedCategories` (schema 2), mantendo leitura de arquivos schema 1.
 - Filtro por categoria, caminho, status ou detalhe na janela de resultado detalhado.
 - Rótulos de automação em grids, abas, avisos e caixa de sugestões, além de ordem de tabulação explícita na navegação lateral.
