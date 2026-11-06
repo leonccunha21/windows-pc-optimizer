@@ -29,44 +29,6 @@ jobs:
           $version = $env:GITHUB_REF_NAME -replace '^v', ''
           ./Tools/Build-Portable.ps1 -Version $version -OutputDirectory $env:RUNNER_TEMP -SkipTests -SkipUiValidation
           if ($LASTEXITCODE -ne 0) { throw 'Portable package build failed' }
-      - name: Upload unsigned executable for SignPath
-        if: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
-        id: upload-unsigned
-        uses: actions/upload-artifact@v4
-        with:
-          name: unsigned-PC-Optimizer-${{ github.ref_name }}
-          path: ${{ runner.temp }}/PC-Optimizer-Portable-*/PC-Optimizer.exe
-          if-no-files-found: error
-      - name: Submit signing request to SignPath
-        if: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
-        id: signpath
-        uses: signpath/github-action-submit-signing-request@v3
-        with:
-          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
-          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
-          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
-          wait-for-completion: true
-          output-artifact-directory: ${{ runner.temp }}/signpath-signed
-      - name: Replace signed executable and rebuild ZIP
-        if: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
-        shell: pwsh
-        run: |
-          $version = $env:GITHUB_REF_NAME -replace '^v', ''
-          $name = "PC-Optimizer-Portable-$version"
-          $stage = Join-Path $env:RUNNER_TEMP $name
-          $signedExe = Get-ChildItem -LiteralPath (Join-Path $env:RUNNER_TEMP 'signpath-signed') -Recurse -Filter PC-Optimizer.exe -File | Select-Object -First 1
-          if ($null -eq $signedExe) { throw 'Signed PC-Optimizer.exe was not returned by SignPath.' }
-          Copy-Item -LiteralPath $signedExe.FullName -Destination (Join-Path $stage 'PC-Optimizer.exe') -Force
-          $zip = Join-Path $env:RUNNER_TEMP "$name.zip"
-          if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
-          Compress-Archive -LiteralPath $stage -DestinationPath $zip -CompressionLevel Optimal -Force
-          $algorithm = [System.Security.Cryptography.SHA256]::Create()
-          $stream = [IO.File]::OpenRead($zip)
-          try { $hash = ([BitConverter]::ToString($algorithm.ComputeHash($stream)) -replace '-', '').ToLowerInvariant() } finally { $stream.Dispose(); $algorithm.Dispose() }
-          [IO.File]::WriteAllText(($zip + '.sha256'), "$hash  $name.zip" + [Environment]::NewLine, (New-Object System.Text.ASCIIEncoding))
       - name: Publish tagged GitHub Release
         shell: pwsh
         env:
