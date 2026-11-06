@@ -238,6 +238,7 @@ function Test-PortableTree {
         'Otimizar-PC.ps1',
         'Modules/Optimizer.Core.psm1',
         'Modules/Optimizer.Agent.psm1',
+        'Modules/Optimizer.ProgramUpdates.psm1',
         'Modules/Optimizer.CleanupCatalog.psm1',
         'UI/MainWindow.xaml',
         'Data/cleanup-rules.json',

@@ -176,8 +176,9 @@
       <Button x:Name="NavBench" TabIndex="6" Style="{StaticResource SidebarNavButton}" Content="Bancada técnica" ToolTip="Ctrl+B" AutomationProperties.Name="Bancada técnica" />
       <Button x:Name="NavPrivacy" TabIndex="7" Style="{StaticResource SidebarNavButton}" Content="Privacidade &amp; IA" ToolTip="Ctrl+P" AutomationProperties.Name="Privacidade &amp; IA" />
       <Button x:Name="NavTweaks" TabIndex="8" Style="{StaticResource SidebarNavButton}" Content="Ajustes &amp; Gaming" ToolTip="Ctrl+T" AutomationProperties.Name="Ajustes &amp; Gaming" />
-      <Button x:Name="NavSettings" TabIndex="9" Style="{StaticResource SidebarNavButton}" Content="Preferências" ToolTip="Ctrl+7" AutomationProperties.Name="Preferências de leitura e acessibilidade"/>
-      <Button x:Name="NavReport" TabIndex="10" Style="{StaticResource SidebarNavButton}" Content="Relatório" ToolTip="Ctrl+6" AutomationProperties.Name="Relatório" />
+      <Button x:Name="NavPrograms" TabIndex="9" Style="{StaticResource SidebarNavButton}" Content="Programas" AutomationProperties.Name="Atualizações de programas" />
+      <Button x:Name="NavSettings" TabIndex="10" Style="{StaticResource SidebarNavButton}" Content="Preferências" ToolTip="Ctrl+7" AutomationProperties.Name="Preferências de leitura e acessibilidade"/>
+      <Button x:Name="NavReport" TabIndex="11" Style="{StaticResource SidebarNavButton}" Content="Relatório" ToolTip="Ctrl+6" AutomationProperties.Name="Relatório" />
       <Border Background="{DynamicResource UiColor203C50}" CornerRadius="10" Padding="13" Margin="0,20,0,0">
        <StackPanel>
         <TextBlock Text="SEGURANÇA EM PRIMEIRO LUGAR" FontSize="{DynamicResource UiFont10}" FontWeight="SemiBold" Foreground="{DynamicResource UiColor6DE0D0}"/>
@@ -378,6 +379,7 @@
         <WrapPanel>
          <Button x:Name="DriverScanButton" Content="Listar drivers instalados" AutomationProperties.Name="Listar drivers instalados" />
          <Button x:Name="DriverUpdatesButton" Content="Procurar atualizações de driver" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Procurar atualizações de driver" />
+         <Button x:Name="DriverInstallButton" Content="Atualizar drivers encontrados" Background="{DynamicResource UiColorC0392B}" AutomationProperties.Name="Atualizar drivers encontrados" />
          <Button x:Name="DriverUpdateTool" Content="Abrir Windows Update" AutomationProperties.Name="Abrir Windows Update" />
          <Button x:Name="DeviceManagerTool" Content="Gerenciador de dispositivos" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Gerenciador de dispositivos" />
         </WrapPanel>
@@ -596,6 +598,26 @@
          </DataGrid.Columns>
         </DataGrid>
         <TextBlock x:Name="TweaksNote" Grid.Row="3" Text="Alterações de interface (ex.: menu clássico ou extensões) podem requerer reiniciar o Explorador de Arquivos." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,10,0,0"/>
+       </Grid>
+      </TabItem>
+      <TabItem Header="Programas">
+       <Grid Margin="0,16,0,0">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <WrapPanel>
+         <Button x:Name="ProgramUpdatesButton" Content="Verificar atualizações de programas" AutomationProperties.Name="Verificar atualizações de programas instalados" />
+         <Button x:Name="ProgramInstallButton" Content="Atualizar selecionados" Background="{DynamicResource UiColorC0392B}" AutomationProperties.Name="Atualizar programas selecionados" />
+        </WrapPanel>
+        <TextBlock x:Name="ProgramSummary" Grid.Row="1" Text="Verifica atualizações via winget. Marque apenas o que deseja atualizar; a instalação pede confirmação e pode exigir elevação." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,4,0,12"/>
+        <DataGrid x:Name="ProgramGrid" Grid.Row="2" AutomationProperties.Name="Atualizações de programas disponíveis">
+         <DataGrid.Columns>
+          <DataGridCheckBoxColumn Header="Atualizar" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="85"/>
+          <DataGridTextColumn Header="Programa" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
+          <DataGridTextColumn Header="ID (winget)" Binding="{Binding Id}" Width="240" IsReadOnly="True"/>
+          <DataGridTextColumn Header="Versão" Binding="{Binding Version}" Width="120" IsReadOnly="True"/>
+          <DataGridTextColumn Header="Disponível" Binding="{Binding AvailableVersion}" Width="120" IsReadOnly="True"/>
+         </DataGrid.Columns>
+        </DataGrid>
+        <TextBlock x:Name="ProgramNote" Grid.Row="3" Text="A listagem é somente leitura. Atualizar instala a versão mais recente via winget e pode reiniciar/portar configurações do instalador." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,10,0,0"/>
        </Grid>
       </TabItem>
      </TabControl>

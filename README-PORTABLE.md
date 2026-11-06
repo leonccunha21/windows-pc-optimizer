@@ -71,7 +71,7 @@ PC-Optimizer-Portable-4.5/
 ├─ README-PORTABLE.md            <- este documento
 ├─ VERSION.txt                   <- versão, data e commit de origem
 ├─ SHA256SUMS.txt                <- hashes dos arquivos do pacote
-├─ Modules/                      <- núcleo, limpeza, privacidade, ajustes e assistente local
+├─ Modules/                      <- núcleo, limpeza, privacidade, ajustes, assistente e atualizadores
 ├─ UI/                           <- layout WPF
 ├─ Data/cleanup-rules.json       <- catálogo declarativo de limpeza
 ├─ config/optimizer.psd1         <- políticas de retenção e proteção

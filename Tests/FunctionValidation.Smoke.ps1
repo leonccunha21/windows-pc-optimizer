@@ -13,6 +13,7 @@ Import-Module (Join-Path $root 'Modules/Optimizer.Events.psm1') -Force
 Import-Module (Join-Path $root 'Modules/Optimizer.Privacy.psm1') -Force
 Import-Module (Join-Path $root 'Modules/Optimizer.Tweaks.psm1') -Force
 Import-Module (Join-Path $root 'Modules/Optimizer.Agent.psm1') -Force
+Import-Module (Join-Path $root 'Modules/Optimizer.ProgramUpdates.psm1') -Force
 
 function Assert-Validation([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw $Message }
@@ -40,6 +41,14 @@ if ($PSVersionTable.PSEdition -eq 'Desktop') {
 }
 $driverUpdates = Get-OptimizerDriverUpdates
 Assert-Validation ($null -ne $driverUpdates -and $null -ne $driverUpdates.Updates) 'Driver updates shape invalid.'
+$driverInstallWhatIf = @(Invoke-OptimizerDriverUpdates -WhatIf)
+Assert-Validation (@($driverInstallWhatIf | Where-Object { $_.Status -notin @('Simulado','Ignorado') }).Count -eq 0) 'Driver install WhatIf did not simulate safely.'
+$programUpdates = Get-OptimizerProgramUpdates
+Assert-Validation ($null -ne $programUpdates -and $null -ne $programUpdates.Updates) 'Program updates shape invalid.'
+if (@($programUpdates.Updates).Count -gt 0) {
+    $programWhatIf = Invoke-OptimizerProgramUpdates -Ids @($programUpdates.Updates[0].Id) -WhatIf
+    Assert-Validation ($programWhatIf.Status -eq 'Simulado') 'Program update WhatIf did not simulate safely.'
+}
 $validationDirectory = Join-Path ([IO.Path]::GetTempPath()) ('optimizer-function-validation-' + [guid]::NewGuid().ToString('N'))
 [void](New-Item -ItemType Directory -Path $validationDirectory -Force)
 try {

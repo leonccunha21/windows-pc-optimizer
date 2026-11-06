@@ -737,6 +737,57 @@ function Get-OptimizerDriverUpdates {
     return $result
 }
 
+function Invoke-OptimizerDriverUpdates {
+    <#
+    .SYNOPSIS
+    Installs pending driver updates found by the Windows Update Agent.
+    .DESCRIPTION
+    Read-only search first; only after explicit confirmation (-Confirm:$false
+    from the GUI is still gated by its own MessageBox) does it download/install.
+    Supports -WhatIf for safe validation. Requires elevation in most systems.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+    $results = New-Object 'System.Collections.Generic.List[object]'
+    if ($env:OS -ne 'Windows_NT') {
+        $results.Add([pscustomobject]@{ Title='Driver'; Status='Falhou'; Detail='Disponível apenas no Windows.' })
+        return $results.ToArray()
+    }
+    $session = $null
+    try {
+        $session = New-Object -ComObject Microsoft.Update.Session
+        $searcher = $session.CreateUpdateSearcher()
+        $found = $searcher.Search("IsInstalled=0 and Type='Driver'")
+        foreach ($update in @($found.Updates)) {
+            $title = [string]$update.Title
+            $status = 'Ignorado'
+            $detail = ''
+            try {
+                if (-not $PSCmdlet.ShouldProcess($title, 'Baixar e instalar atualização de driver')) {
+                    $status = 'Simulado'
+                } else {
+                    if (-not [bool]$update.EulaAccepted) { $update.AcceptEula() }
+                    if (-not [bool]$update.IsDownloaded) { $update.Download() }
+                    $update.Install()
+                    $status = 'Aplicado'
+                    $detail = if ([bool]$update.RebootRequired) { 'Reinicialização necessária.' } else { 'Instalada.' }
+                }
+            } catch {
+                $status = 'Falhou'
+                $detail = $_.Exception.Message
+            }
+            $results.Add([pscustomobject]@{ Title=$title; Status=$status; Detail=$detail })
+        }
+    } catch {
+        $results.Add([pscustomobject]@{ Title='Driver'; Status='Falhou'; Detail=$_.Exception.Message })
+    } finally {
+        if ($null -ne $session) {
+            try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($session) } catch { Write-Verbose 'Falha ao liberar COM do Windows Update.' }
+        }
+    }
+    return $results.ToArray()
+}
+
 function Get-OptimizerBloatCatalog {
     [CmdletBinding()]
     param()
@@ -868,4 +919,33 @@ function Invoke-OptimizerOptimization {
     return $results.ToArray()
 }
 
-Export-ModuleMember -Function Format-OptimizerSize, Get-OptimizerTargets, Test-OptimizerPath, Get-OptimizerScan, Invoke-OptimizerCleanup, Get-OptimizerDiagnostics, Export-OptimizerReport, ConvertFrom-OptimizerBatteryReportXml, Get-OptimizerHealthRating, Get-OptimizerBatteryHealth, Save-OptimizerBatteryReport, Get-OptimizerDiskHealth, Get-OptimizerDrivers, Get-OptimizerDriverUpdates, Get-OptimizerBloaTCatalog, Get-OptimizerAppInventory, Invoke-OptimizerAppRemoval, Get-OptimizerOptimizations, Invoke-OptimizerOptimization
+
+function New-OptimizerRestorePoint {
+    <#
+    .SYNOPSIS
+    Cria um ponto de restauração do sistema Windows com tratamento de erros e ShouldProcess.
+    .DESCRIPTION
+    Invoca Checkpoint-Computer caso a proteção de sistema esteja disponível,
+    garantindo ponto de recuperação antes de alterações.
+    .PARAMETER Description
+    Descrição para identificar o ponto no Windows.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [string]$Description = 'Ponto pré-otimização PC Optimizer'
+    )
+    if ($PSCmdlet.ShouldProcess("Sistema", "Criar ponto de restauração '$Description'")) {
+        try {
+            $sysDrive = [IO.Path]::GetPathRoot($env:SystemRoot)
+            Enable-ComputerRestore -Drive $sysDrive -ErrorAction SilentlyContinue
+            Checkpoint-Computer -Description $Description -RestorePointType 'MODIFY_SETTINGS' -ErrorAction Stop
+            return [pscustomobject]@{ Success = $true; Message = "Ponto de restauração '$Description' criado com sucesso." }
+        } catch {
+            return [pscustomobject]@{ Success = $false; Message = "Não foi possível criar ponto de restauração: $($_.Exception.Message)" }
+        }
+    }
+    return [pscustomobject]@{ Success = $true; Message = 'Simulado com sucesso (-WhatIf)' }
+}
+
+
+Export-ModuleMember -Function New-OptimizerRestorePoint, Format-OptimizerSize, Get-OptimizerTargets, Test-OptimizerPath, Get-OptimizerScan, Invoke-OptimizerCleanup, Get-OptimizerDiagnostics, Export-OptimizerReport, ConvertFrom-OptimizerBatteryReportXml, Get-OptimizerHealthRating, Get-OptimizerBatteryHealth, Save-OptimizerBatteryReport, Get-OptimizerDiskHealth, Get-OptimizerDrivers, Get-OptimizerDriverUpdates, Invoke-OptimizerDriverUpdates, Get-OptimizerBloaTCatalog, Get-OptimizerAppInventory, Invoke-OptimizerAppRemoval, Get-OptimizerOptimizations, Invoke-OptimizerOptimization

@@ -7,6 +7,7 @@ Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Preferences.psm1') -Fo
 Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Privacy.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Tweaks.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Agent.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.ProgramUpdates.psm1') -Force
 [xml]$layout = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'UI\MainWindow.xaml') -Raw -Encoding UTF8
 $reader = New-Object System.Xml.XmlNodeReader $layout
 $window = [Windows.Markup.XamlReader]::Load($reader)
@@ -17,7 +18,7 @@ foreach ($node in $layout.SelectNodes('//*[@x:Name]', $namespaces)) {
     $ui[$node.GetAttribute('Name','http://schemas.microsoft.com/winfx/2006/xaml')] = $window.FindName($node.GetAttribute('Name','http://schemas.microsoft.com/winfx/2006/xaml'))
 }
 $script:scan = $null; $script:cleanup = $null; $script:diagnostics = @(); $script:worker = $null
-$script:battery = $null; $script:disks = $null; $script:appx = @(); $script:optimizations = @(); $script:driverUpdates = $null; $script:agentRecommendations = @()
+$script:battery = $null; $script:disks = $null; $script:appx = @(); $script:optimizations = @(); $script:driverUpdates = $null; $script:agentRecommendations = @(); $script:programUpdates = @()
 $script:lastSaveDirectory = ''
 $script:state = [hashtable]::Synchronized(@{Cancel=$false; Message=''; Result=$null; Error=$null; Total=0; Processed=0})
 $script:modulePath = Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1'
@@ -27,6 +28,7 @@ $script:eventsPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Events.psm1'
 $script:privacyPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Privacy.psm1'
 $script:tweaksPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Tweaks.psm1'
 $script:agentPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Agent.psm1'
+$script:programPath = Join-Path $PSScriptRoot 'Modules\Optimizer.ProgramUpdates.psm1'
 $script:isAdmin = $false
 try {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -187,7 +189,7 @@ function Save-OptimizerDialogDirectory($Dialog) {
 }
 
 function Set-Busy([bool]$Busy) {
-    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','ElevateButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','OptimizationRunButton','PreferenceApplyButton','PreferenceResetButton','HealthShortcut','MaintenanceShortcut','WorkbenchShortcut','AgentButton','AgentApplyButton','InvProcessesButton','InvStartupButton','InvSoftwareButton','InvNetworkButton','InvUpdatesButton','InvStorageButton','NetworkSnapshotButton','NetworkRevealButton','NetworkProbeButton','EventsAnalyzeButton','SfcVerifyButton','DismScanButton','ChkdskScanButton','SfcRepairButton','DismRepairButton')) { $ui[$name].IsEnabled = -not $Busy }
+    foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','ElevateButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverInstallButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','ProgramUpdatesButton','ProgramInstallButton','OptimizationRunButton','PreferenceApplyButton','PreferenceResetButton','HealthShortcut','MaintenanceShortcut','WorkbenchShortcut','AgentButton','AgentApplyButton','InvProcessesButton','InvStartupButton','InvSoftwareButton','InvNetworkButton','InvUpdatesButton','InvStorageButton','NetworkSnapshotButton','NetworkRevealButton','NetworkProbeButton','EventsAnalyzeButton','SfcVerifyButton','DismScanButton','ChkdskScanButton','SfcRepairButton','DismRepairButton')) { $ui[$name].IsEnabled = -not $Busy }
     $ui.CleanButton.IsEnabled = -not $Busy -and $null -ne $script:scan -and -not $script:scan.Cancelled -and @($script:scan.Files).Count -gt 0
     $ui.DetailsButton.IsEnabled = -not $Busy -and ($null -ne $script:scan -or $null -ne $script:cleanup)
     $ui.ExportResultsButton.IsEnabled = -not $Busy -and $null -ne $script:cleanup
@@ -260,7 +262,7 @@ function Start-Work([string]$Operation, $Payload) {
     $script:state.Cancel = $false; $script:state.Error = $null; $script:state.Result = $null; $script:state.Message = 'Preparando...'; $script:state.Processed = 0; $script:state.Total = 0
     $script:worker = [PowerShell]::Create()
     [void]$script:worker.AddScript({
-        param($ModulePath, $TechnicianPath, $NetworkPath, $EventsPath, $PrivacyPath, $TweaksPath, $AgentPath, $Operation, $Payload, $State)
+        param($ModulePath, $TechnicianPath, $NetworkPath, $EventsPath, $PrivacyPath, $TweaksPath, $AgentPath, $ProgramPath, $Operation, $Payload, $State)
         try {
             Import-Module $ModulePath -Force -ErrorAction Stop
             Import-Module $TechnicianPath -Force -ErrorAction Stop
@@ -269,6 +271,7 @@ function Start-Work([string]$Operation, $Payload) {
             Import-Module $PrivacyPath -Force -ErrorAction Stop
             Import-Module $TweaksPath -Force -ErrorAction Stop
             Import-Module $AgentPath -Force -ErrorAction Stop
+            Import-Module $ProgramPath -Force -ErrorAction Stop
             switch ($Operation) {
                 'Scan' {
                     if ($null -ne $Payload -and $null -ne $Payload.Targets) { $State.Result = Get-OptimizerScan -State $State -Targets $Payload.Targets }
@@ -283,6 +286,9 @@ function Start-Work([string]$Operation, $Payload) {
                 }
                 'Drivers' { $State.Message = 'Inventariando drivers...'; $State.Result = @(Get-OptimizerDrivers) }
                 'DriverUpdates' { $State.Message = 'Consultando drivers no Windows Update...'; $State.Result = Get-OptimizerDriverUpdates }
+                'InstallDriverUpdates' { $State.Message = 'Instalando atualizações de driver...'; $State.Result = @(Invoke-OptimizerDriverUpdates -Confirm:$false) }
+                'ProgramUpdates' { $State.Message = 'Consultando atualizações de programas via winget...'; $State.Result = Get-OptimizerProgramUpdates }
+                'InstallPrograms' { $State.Message = 'Atualizando programas selecionados...'; $State.Result = @(Invoke-OptimizerProgramUpdates -Ids $Payload.Ids -Confirm:$false) }
                 'Appx' { $State.Message = 'Listando aplicativos instalados...'; $State.Result = @(Get-OptimizerAppInventory) }
                 'Inspect' { $State.Result = @(Get-OptimizerTechnicalInventory -Area ([string]$Payload.Area) -State $State) }
                 'NetworkSnapshot' { $State.Result = @(Get-OptimizerNetworkSnapshot -IncludeAddresses:([bool]$Payload.Reveal) -State $State) }
@@ -312,7 +318,7 @@ function Start-Work([string]$Operation, $Payload) {
                 }
             }
         } catch { $State.Error = $_.Exception.Message }
-    }).AddArgument($script:modulePath).AddArgument($script:technicianPath).AddArgument($script:networkPath).AddArgument($script:eventsPath).AddArgument($script:privacyPath).AddArgument($script:tweaksPath).AddArgument($script:agentPath).AddArgument($Operation).AddArgument($Payload).AddArgument($script:state)
+    }).AddArgument($script:modulePath).AddArgument($script:technicianPath).AddArgument($script:networkPath).AddArgument($script:eventsPath).AddArgument($script:privacyPath).AddArgument($script:tweaksPath).AddArgument($script:agentPath).AddArgument($script:programPath).AddArgument($Operation).AddArgument($Payload).AddArgument($script:state)
     $script:handle = $script:worker.BeginInvoke()
     Set-Busy $true
     $timer.Start()
@@ -399,6 +405,39 @@ $timer.Add_Tick({
                     $ui.Status.Text = 'Consulta de drivers concluída. Nada foi instalado.'
                 }
             }
+            'InstallDriverUpdates' {
+                $results = @($script:state.Result)
+                $applied = @($results | Where-Object Status -eq 'Aplicado').Count
+                $failed = @($results | Where-Object Status -eq 'Falhou')
+                $ui.DriverSummary.Text = "$applied drivers atualizados • $($failed.Count) falhas."
+                if ($failed.Count -gt 0) { $ui.DriverSummary.Text += ' ' + (@($failed | Select-Object -First 3 | ForEach-Object { "$($_.Title): $($_.Detail)" }) -join ' | ') }
+                $ui.Status.Text = 'Atualização de drivers concluída. Revise o resultado.'
+            }
+            'ProgramUpdates' {
+                $programResult = $script:state.Result
+                $script:programUpdates = @($programResult.Updates)
+                $ui.ProgramGrid.ItemsSource = $script:programUpdates
+                if ($programResult.Error) {
+                    $ui.ProgramSummary.Text = $programResult.Error
+                    $ui.Status.Text = 'Consulta de programas indisponível.'
+                } else {
+                    $ui.ProgramSummary.Text = "$($script:programUpdates.Count) atualizações de programas disponíveis via winget. Marque e confirme para atualizar."
+                    $ui.Status.Text = 'Consulta de programas concluída. Nada foi atualizado.'
+                }
+            }
+            'InstallPrograms' {
+                $results = @($script:state.Result)
+                $applied = @($results | Where-Object Status -eq 'Aplicado').Count
+                $failed = @($results | Where-Object Status -eq 'Falhou')
+                foreach ($result in $results) {
+                    $entry = @($script:programUpdates | Where-Object { $_.Id -eq $result.Id }) | Select-Object -First 1
+                    if ($null -ne $entry) { $entry.Selected = $false }
+                }
+                $ui.ProgramGrid.Items.Refresh()
+                $ui.ProgramSummary.Text = "$applied programas atualizados • $($failed.Count) falhas."
+                if ($failed.Count -gt 0) { $ui.ProgramNote.Text = (@($failed | Select-Object -First 4 | ForEach-Object { "$($_.Id): $($_.Detail)" }) -join ' | ') }
+                $ui.Status.Text = 'Atualização de programas concluída. Revise o resultado.'
+            }
             'Appx' {
                 $script:appx = @($script:state.Result)
                 Update-AppxGrid
@@ -480,12 +519,13 @@ function Update-SidebarSelection {
             if ([int]$ui.MaintenanceTabs.SelectedIndex -eq 4) { $current = 'NavBench' }
             elseif ([int]$ui.MaintenanceTabs.SelectedIndex -eq 5) { $current = 'NavPrivacy' }
             elseif ([int]$ui.MaintenanceTabs.SelectedIndex -eq 6) { $current = 'NavTweaks' }
+            elseif ([int]$ui.MaintenanceTabs.SelectedIndex -eq 7) { $current = 'NavPrograms' }
             else { $current = 'NavMaintenance' }
         }
         5 { $current = 'NavReport' }
         6 { $current = 'NavSettings' }
     }
-    foreach ($name in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavPrivacy','NavTweaks','NavReport','NavSettings')) {
+    foreach ($name in @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavPrivacy','NavTweaks','NavPrograms','NavReport','NavSettings')) {
         $ui[$name].Background = if ($name -eq $current) { $window.Resources['UiColor0E887A'] } else { [Windows.Media.Brushes]::Transparent }
     }
 }
@@ -497,7 +537,7 @@ function Open-OptimizerSection([int]$PageIndex, [int]$MaintenanceIndex = -1) {
 foreach ($navigation in @(
     @('NavOverview',0,-1),@('NavDiagnose',2,-1),@('NavHealth',3,-1),
     @('NavCleanup',1,-1),@('NavMaintenance',4,0),@('NavBench',4,4),
-    @('NavPrivacy',4,5),@('NavTweaks',4,6),
+    @('NavPrivacy',4,5),@('NavTweaks',4,6),@('NavPrograms',4,7),
     @('NavReport',5,-1),@('NavSettings',6,-1)
 )) {
     $ui[$navigation[0]].Tag = @([int]$navigation[1],[int]$navigation[2])
@@ -693,6 +733,24 @@ $ui.BatteryReportButton.Add_Click({
 })
 $ui.DriverScanButton.Add_Click({ $ui.Pages.SelectedIndex = 4; $ui.MaintenanceTabs.SelectedIndex = 0; Start-Work 'Drivers' $null })
 $ui.DriverUpdatesButton.Add_Click({ $ui.Pages.SelectedIndex = 4; $ui.MaintenanceTabs.SelectedIndex = 0; Start-Work 'DriverUpdates' $null })
+$ui.DriverInstallButton.Add_Click({
+    if ($null -ne $script:worker) { return }
+    $count = if ($null -ne $script:driverUpdates) { @($script:driverUpdates.Updates).Count } else { 0 }
+    if ($count -eq 0) { $ui.Status.Text = 'Nenhuma atualização de driver pendente para instalar.'; return }
+    $answer = [Windows.MessageBox]::Show($window, "Instalar $count atualizações de driver encontradas no Windows Update?`n`nIsso pode exigir administrador e/ou reinicialização. Confira backup e energia estável.", 'Confirmar instalação de drivers', 'YesNo', 'Warning', 'No')
+    if ($answer -eq 'Yes') { Start-Work 'InstallDriverUpdates' $null }
+})
+$ui.ProgramUpdatesButton.Add_Click({ Open-OptimizerSection -PageIndex 4 -MaintenanceIndex 7; Start-Work 'ProgramUpdates' $null })
+$ui.ProgramInstallButton.Add_Click({
+    [void]$ui.ProgramGrid.CommitEdit([Windows.Controls.DataGridEditingUnit]::Cell, $true)
+    [void]$ui.ProgramGrid.CommitEdit([Windows.Controls.DataGridEditingUnit]::Row, $true)
+    $selected = @($script:programUpdates | Where-Object Selected)
+    if ($selected.Count -eq 0) { $ui.Status.Text = 'Marque pelo menos um programa para atualizar.'; return }
+    $preview = (@($selected | Select-Object -First 8 | ForEach-Object { "$($_.Name) ($($_.Id))" }) -join "`n")
+    if ($selected.Count -gt 8) { $preview += ", +$($selected.Count - 8)" }
+    $answer = [Windows.MessageBox]::Show($window, "Atualizar $($selected.Count) programas via winget?`n`n$preview`n`nIsso instala a versão mais recente. Alguns instaladores podem exigir elevação.", 'Confirmar atualização de programas', 'YesNo', 'Warning', 'No')
+    if ($answer -eq 'Yes') { Start-Work 'InstallPrograms' @{ Ids=@($selected | ForEach-Object Id) } }
+})
 $ui.AppxScanButton.Add_Click({ $ui.Pages.SelectedIndex = 4; $ui.MaintenanceTabs.SelectedIndex = 1; Start-Work 'Appx' $null })
 $ui.AppxBloatOnly.Add_Checked({ Update-AppxGrid })
 $ui.AppxBloatOnly.Add_Unchecked({ Update-AppxGrid })
@@ -1072,6 +1130,13 @@ if ($ValidateUI) {
             Start-Sleep -Milliseconds 20
         }
         if ($null -ne $script:worker -or [string]::IsNullOrWhiteSpace([string]$ui.EventsSummary.Text)) { throw 'WPF events runspace failed.' }
+        Start-Work 'ProgramUpdates' $null
+        $deadline = [DateTime]::UtcNow.AddSeconds(120)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or [string]::IsNullOrWhiteSpace([string]$ui.ProgramSummary.Text)) { throw 'WPF program updates runspace failed.' }
         Start-Work 'Health' $null
         $deadline = [DateTime]::UtcNow.AddSeconds(120)
         while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
@@ -1109,7 +1174,7 @@ if ($ValidateUI) {
         $window.Close()
         if (Test-Path $fixture) { Remove-Item -LiteralPath $fixture -Recurse -Force }
     }
-    foreach ($required in @('CloseButton','ElevateButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','PrivacyGrid','TweaksGrid','HealthAnalyzeButton','BatteryReportButton','WorkbenchShortcut','PrivacyShortcut','TweaksShortcut','AgentButton','AgentApplyButton','AgentSummary','NavPrivacy','NavTweaks','WorkbenchGrid','InvProcessesButton','InvSoftwareButton','NetworkGrid','NetworkSnapshotButton','NetworkProbeButton','EventsGrid','EventsAnalyzeButton','SfcVerifyButton','ExportResultsButton')) {
+    foreach ($required in @('CloseButton','ElevateButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','DriverInstallButton','AppxGrid','OptimizationGrid','PrivacyGrid','TweaksGrid','ProgramGrid','ProgramUpdatesButton','ProgramInstallButton','HealthAnalyzeButton','BatteryReportButton','WorkbenchShortcut','PrivacyShortcut','TweaksShortcut','AgentButton','AgentApplyButton','AgentSummary','NavPrivacy','NavTweaks','NavPrograms','WorkbenchGrid','InvProcessesButton','InvSoftwareButton','NetworkGrid','NetworkSnapshotButton','NetworkProbeButton','EventsGrid','EventsAnalyzeButton','SfcVerifyButton','ExportResultsButton')) {
         if ($null -eq $ui[$required]) { throw "Controle ausente na interface: $required" }
     }
     $savedDisplay = $script:activePreferences
@@ -1137,7 +1202,7 @@ if ($ValidateUI) {
     }
     if (-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'Modules\Repair.Tools.ps1'))) { throw 'Repair.Tools.ps1 missing for repair buttons.' }
     if ([bool]$script:isAdmin -and [string]$ui.ElevateButton.Visibility -ne 'Collapsed') { throw 'Elevate button should be hidden when already admin.' }
-    foreach ($navCheck in @(@('NavOverview',0,-1),@('NavDiagnose',2,-1),@('NavHealth',3,-1),@('NavCleanup',1,-1),@('NavMaintenance',4,0),@('NavBench',4,4),@('NavPrivacy',4,5),@('NavTweaks',4,6),@('NavReport',5,-1),@('NavSettings',6,-1))) {
+    foreach ($navCheck in @(@('NavOverview',0,-1),@('NavDiagnose',2,-1),@('NavHealth',3,-1),@('NavCleanup',1,-1),@('NavMaintenance',4,0),@('NavBench',4,4),@('NavPrivacy',4,5),@('NavTweaks',4,6),@('NavPrograms',4,7),@('NavReport',5,-1),@('NavSettings',6,-1))) {
         $ui[$navCheck[0]].RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
         if ([int]$ui.Pages.SelectedIndex -ne [int]$navCheck[1]) { throw "Navigation failed: $($navCheck[0]) page" }
         if ([int]$navCheck[2] -ge 0 -and [int]$ui.MaintenanceTabs.SelectedIndex -ne [int]$navCheck[2]) { throw "Navigation failed: $($navCheck[0]) maintenance tab" }
