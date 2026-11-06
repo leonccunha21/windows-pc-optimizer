@@ -21,8 +21,14 @@ Creates only the staging folder, without the ZIP/checksum artifacts.
 .PARAMETER SkipTests
 Skips Tests/Validate-Syntax.ps1. Use only when the caller already validated.
 
-.PARAMETER SkipUiValidation
-Skips the portable self-test. Useful on non-Windows build agents.
+.PARAMETER SignSelfSigned
+Signs PC-Optimizer.exe with a local self-signed code-signing certificate.
+This is useful for development/integrity, but it is NOT trusted by SmartScreen.
+For a trusted release, use a CA-issued certificate with -CertificateThumbprint.
+
+.PARAMETER CertificateThumbprint
+Thumbprint of an existing code-signing certificate in Cert:\CurrentUser\My or
+Cert:\LocalMachine\My. Use this for a CA-issued Authenticode certificate.
 #>
 [CmdletBinding()]
 param(
@@ -30,7 +36,9 @@ param(
     [string]$OutputDirectory = '',
     [switch]$NoZip,
     [switch]$SkipTests,
-    [switch]$SkipUiValidation
+    [switch]$SkipUiValidation,
+    [switch]$SignSelfSigned,
+    [string]$CertificateThumbprint = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -175,6 +183,53 @@ function Build-NativeLauncher {
     }
 }
 
+function Sign-NativeLauncher {
+    param([Parameter(Mandatory)][string]$ExePath)
+    $requested = $SignSelfSigned -or -not [string]::IsNullOrWhiteSpace($CertificateThumbprint)
+    if (-not $requested) { return $false }
+    if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
+        throw 'A assinatura Authenticode do PC-Optimizer.exe exige Windows.'
+    }
+    try {
+        Import-Module Microsoft.PowerShell.Security -Force -ErrorAction Stop
+        Import-Module PKI -Force -ErrorAction Stop
+    } catch {
+        throw 'Não foi possível carregar os módulos de assinatura Authenticode. Execute o build com pwsh (PowerShell 7) no Windows.'
+    }
+    $certificate = $null
+    if (-not [string]::IsNullOrWhiteSpace($CertificateThumbprint)) {
+        $thumbprint = $CertificateThumbprint.Trim()
+        foreach ($store in @('Cert:\CurrentUser\My', 'Cert:\LocalMachine\My')) {
+            $found = Get-ChildItem -Path $store -ErrorAction SilentlyContinue | Where-Object { $_.Thumbprint -eq $thumbprint } | Select-Object -First 1
+            if ($null -ne $found) { $certificate = $found; break }
+        }
+        if ($null -eq $certificate) {
+            throw "Certificado de assinatura não encontrado com thumbprint $thumbprint"
+        }
+    } else {
+        $subject = 'CN=PC Optimizer Portable'
+        $existing = @(Get-ChildItem -Path 'Cert:\CurrentUser\My' -ErrorAction SilentlyContinue | Where-Object { $_.Subject -eq $subject -and $_.HasPrivateKey })
+        if ($existing.Count -gt 0) {
+            $certificate = $existing | Sort-Object NotAfter -Descending | Select-Object -First 1
+        } else {
+            $certificate = New-SelfSignedCertificate -Type CodeSigningCert -Subject $subject -CertStoreLocation 'Cert:\CurrentUser\My' -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 -KeyExportPolicy Exportable -KeyUsage DigitalSignature
+        }
+    }
+    $signature = Set-AuthenticodeSignature -FilePath $ExePath -Certificate $certificate -HashAlgorithm SHA256
+    if ($null -eq $signature.SignerCertificate) {
+        throw 'A assinatura Authenticode do PC-Optimizer.exe não foi aplicada.'
+    }
+    $verified = Get-AuthenticodeSignature -FilePath $ExePath
+    if ($null -eq $verified.SignerCertificate) {
+        throw 'A assinatura Authenticode do PC-Optimizer.exe não pôde ser verificada.'
+    }
+    Write-Host ("Assinatura: {0} ({1})" -f $verified.SignerCertificate.Subject, $verified.Status)
+    if ([string]::IsNullOrWhiteSpace($CertificateThumbprint)) {
+        Write-Warning 'Certificado self-signed: integridade assinada, mas o SmartScreen ainda mostrará editor desconhecido. Use um certificado de CA para confiança pública.'
+    }
+    return $true
+}
+
 function Test-PortableTree {
     param([Parameter(Mandatory)][string]$Stage)
     $required = @(
@@ -294,6 +349,11 @@ try {
         Copy-Item -LiteralPath $launcherSource -Destination (Join-Path $script:StageDirectory $launcher) -Force
     }
     $nativeLauncherBuilt = Build-NativeLauncher -Version $normalizedVersion
+    if ($nativeLauncherBuilt) {
+        $launcherExeForSigning = Join-Path $script:StageDirectory 'PC-Optimizer.exe'
+        $signed = Sign-NativeLauncher -ExePath $launcherExeForSigning
+        if ($signed) { Write-Step 'PC-Optimizer.exe assinado com Authenticode' }
+    }
     if ($nativeLauncherBuilt -and -not $SkipUiValidation -and [Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
         Write-Step 'Executando self-test do PC-Optimizer.exe'
         $launcherExe = Join-Path $script:StageDirectory 'PC-Optimizer.exe'

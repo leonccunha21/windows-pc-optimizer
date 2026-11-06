@@ -66,7 +66,9 @@ preferências ou nos logs estruturados.
 
 ## Limitações
 
-- O pacote não é assinado com Authenticode; o Windows pode exibir SmartScreen.
+- O pacote local não é assinado com certificado de CA; o Windows pode exibir SmartScreen.
+  O build suporta assinatura self-signed para desenvolvimento (`-SignSelfSigned`) e
+  certificado Authenticode de CA via thumbprint (`-CertificateThumbprint`).
 - Recursos que alteram o sistema continuam exigindo confirmação e, em alguns
   casos, elevação.
 - A pasta `dist/` é ignorada pelo Git e não deve ser versionada.

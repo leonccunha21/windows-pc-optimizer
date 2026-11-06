@@ -230,6 +230,12 @@ pwsh -File .\Tools\Build-Portable.ps1 -Version 4.5 -OutputDirectory .\dist -NoZi
 
 # Pular a validação de sintaxe do repositório (o release já roda os testes)
 pwsh -File .\Tools\Build-Portable.ps1 -SkipTests
+
+# Assinar o PC-Optimizer.exe com certificado self-signed local (desenvolvimento)
+pwsh -File .\Tools\Build-Portable.ps1 -SignSelfSigned
+
+# Assinar com certificado de código Authenticode já instalado (CA confiável)
+pwsh -File .\Tools\Build-Portable.ps1 -CertificateThumbprint SEU_THUMBPRINT
 ```
 
 Saídas em `dist/`:
@@ -254,8 +260,9 @@ Windows para incluir o executável. `dist/` é ignorado pelo Git.
 - Drivers e reparos que exigem reinicialização continuam dependendo do sistema
   hospedeiro e de elevação.
 - A temperatura/horas SMART podem ficar indisponíveis sem administrador.
-- Não há assinatura Authenticode neste pacote; o Windows pode exibir aviso de
-  origem desconhecida.
+- Não há assinatura Authenticode de CA neste pacote local; o Windows pode exibir aviso de
+  origem desconhecida. O build pode assinar com certificado self-signed para desenvolvimento
+  (`-SignSelfSigned`) ou com um certificado de CA já instalado (`-CertificateThumbprint`).
 - O pacote não substitui backup, antivírus ou julgamento profissional antes de
   operações destrutivas.
 
