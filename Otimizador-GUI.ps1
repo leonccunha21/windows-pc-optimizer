@@ -1030,6 +1030,48 @@ if ($ValidateUI) {
             Start-Sleep -Milliseconds 20
         }
         if ($null -ne $script:worker -or @($ui.WorkbenchGrid.ItemsSource).Count -lt 1) { throw 'WPF integrated technician inventory/runspace failed.' }
+        Start-Work 'Diagnose' $null
+        $deadline = [DateTime]::UtcNow.AddSeconds(30)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or @($script:diagnostics).Count -lt 5 -or @($ui.DiagnosticsGrid.ItemsSource).Count -lt 5) { throw 'WPF diagnostics runspace failed.' }
+        Start-Work 'Drivers' $null
+        $deadline = [DateTime]::UtcNow.AddSeconds(60)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or @($ui.DriverGrid.ItemsSource).Count -lt 1) { throw 'WPF drivers runspace failed.' }
+        Start-Work 'DriverUpdates' $null
+        $deadline = [DateTime]::UtcNow.AddSeconds(120)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or $null -eq $script:driverUpdates -or $null -eq $script:driverUpdates.Updates) { throw 'WPF driver updates runspace failed.' }
+        Start-Work 'Appx' $null
+        $deadline = [DateTime]::UtcNow.AddSeconds(60)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or @($script:appx).Count -lt 1 -or @($ui.AppxGrid.ItemsSource).Count -lt 1) { throw 'WPF app inventory runspace failed.' }
+        Start-Work 'NetworkSnapshot' @{Reveal=$false}
+        $deadline = [DateTime]::UtcNow.AddSeconds(60)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or @($ui.NetworkGrid.ItemsSource).Count -lt 1) { throw 'WPF network snapshot runspace failed.' }
+        Start-Work 'Events' $null
+        $deadline = [DateTime]::UtcNow.AddSeconds(60)
+        while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
+            $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Background, [Action]{})
+            Start-Sleep -Milliseconds 20
+        }
+        if ($null -ne $script:worker -or [string]::IsNullOrWhiteSpace([string]$ui.EventsSummary.Text)) { throw 'WPF events runspace failed.' }
         Start-Work 'Health' $null
         $deadline = [DateTime]::UtcNow.AddSeconds(60)
         while ($null -ne $script:worker -and [DateTime]::UtcNow -lt $deadline) {
@@ -1065,6 +1107,19 @@ if ($ValidateUI) {
     if (@($ui.OptimizationGrid.Items).Count -lt 5) { throw 'Catálogo de otimizações não foi carregado.' }
     if (@($ui.PrivacyGrid.Items).Count -lt 20) { throw 'Catálogo de privacidade não foi carregado.' }
     if (@($ui.TweaksGrid.Items).Count -lt 15) { throw 'Catálogo de ajustes não foi carregado.' }
+    $ui.PrivacyPresetBasicButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+    if (@($script:privacyCatalog | Where-Object Selected).Count -lt 1) { throw 'Privacy basic preset click did not select items.' }
+    $ui.PrivacySelectNoneButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+    if (@($script:privacyCatalog | Where-Object Selected).Count -ne 0) { throw 'Privacy select-none click did not clear items.' }
+    $ui.TweaksDnsCloudflareButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+    $selectedTweaks = @($script:tweaksCatalog | Where-Object Selected)
+    if ($selectedTweaks.Count -ne 1 -or $selectedTweaks[0].Id -ne 'SetDnsCloudflare') { throw 'Tweaks DNS click did not select only Cloudflare.' }
+    $ui.TweaksSelectNoneButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+    if (@($script:tweaksCatalog | Where-Object Selected).Count -ne 0) { throw 'Tweaks select-none click did not clear items.' }
+    foreach ($repairCheck in @(@('SfcVerifyButton','SFC-Verify'),@('DismScanButton','DISM-Scan'),@('ChkdskScanButton','CHKDSK-Scan'),@('SfcRepairButton','SFC-Repair'),@('DismRepairButton','DISM-Repair'))) {
+        if ([string]$ui[$repairCheck[0]].Tag -ne [string]$repairCheck[1]) { throw "Repair button wiring failed: $($repairCheck[0])" }
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'Modules\Repair.Tools.ps1'))) { throw 'Repair.Tools.ps1 missing for repair buttons.' }
     Write-Output 'WPF layout, accessible sidebar navigation, workbench tabs and async scan/cleanup passed.'
     return
 }
