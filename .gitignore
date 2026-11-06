@@ -4,3 +4,8 @@ OtimizadorPC_log.txt
 
 # Temp
 *.tmp
+
+# Binários e arquivos locais temporários
+*.exe
+Repositorios-Github
+optimizer-execution-results.md

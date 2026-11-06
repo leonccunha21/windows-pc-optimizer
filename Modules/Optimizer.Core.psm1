@@ -1,7 +1,149 @@
 ﻿#Requires -Version 5.1
 Set-StrictMode -Version 2.0
 
+$script:cachedConfiguration = $null
+
+function Get-OptimizerConfigurationDefaults {
+    return [pscustomobject]@{
+        MinimumAgeDays = 7
+        Browsers = @(
+            [pscustomobject]@{ Id='chrome'; Name='Google Chrome'; Folder='Google\Chrome\User Data'; Process='chrome' }
+            [pscustomobject]@{ Id='edge'; Name='Microsoft Edge'; Folder='Microsoft\Edge\User Data'; Process='msedge' }
+            [pscustomobject]@{ Id='brave'; Name='Brave'; Folder='BraveSoftware\Brave-Browser\User Data'; Process='brave' }
+        )
+        BrowserCacheFolders = @('Cache\Cache_Data', 'Code Cache', 'GPUCache')
+        ProtectedExtensions = @(
+            '.ps1', '.psm1', '.bat', '.cmd', '.py', '.js', '.ts', '.tsx', '.jsx',
+            '.cs', '.cpp', '.h', '.java', '.rs', '.go', '.sln', '.csproj',
+            '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.pdf',
+            '.jpg', '.jpeg', '.png', '.heic', '.mp4', '.zip', '.7z', '.rar',
+            '.sqlite', '.db', '.pst', '.ost'
+        )
+        ProtectedFolders = @('.git', 'Epic Games', 'EpicGames', 'Fortnite', 'FortniteGame')
+        ProjectMarkers = @('.git', 'package.json', 'pyproject.toml', 'Cargo.toml', 'go.mod', '.optimizer-protect')
+    }
+}
+
+function Test-OptimizerRelativePath {
+    param([string]$Value)
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $false }
+    if ([IO.Path]::IsPathRooted($Value)) { return $false }
+    foreach ($segment in @($Value -split '[\\/]')) {
+        if ($segment -eq '..') { return $false }
+    }
+    return $true
+}
+
+function Read-OptimizerConfigurationData {
+    <#
+    .SYNOPSIS
+    Reads a data-only .psd1 file on Windows PowerShell 5.1 and PowerShell 7.
+    .DESCRIPTION
+    Import-PowerShellDataFile is unavailable in Windows PowerShell 5.1. The
+    fallback parses the file and calls SafeGetValue, which rejects commands,
+    variables and any other dynamic expression instead of executing them.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path)
+    if ($null -ne (Get-Command -Name Import-PowerShellDataFile -ErrorAction SilentlyContinue)) {
+        return Import-PowerShellDataFile -LiteralPath $Path -ErrorAction Stop
+    }
+    $tokens = $null
+    $errors = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref]$tokens, [ref]$errors)
+    if ($null -ne $errors -and $errors.Count -gt 0) { throw 'Configuração inválida.' }
+    $statements = @($ast.EndBlock.Statements)
+    if ($statements.Count -ne 1) { throw 'Configuração inválida.' }
+    return $statements[0].SafeGetValue()
+}
+
+function Get-OptimizerConfiguration {
+    <#
+    .SYNOPSIS
+    Loads the non-code cleanup allowlist from config/optimizer.psd1.
+    .DESCRIPTION
+    The data file is optional. Missing, malformed or out-of-policy values fall
+    back to the embedded safe defaults so cleanup never broadens silently.
+    #>
+    [CmdletBinding()]
+    param([string]$Path = '')
+    $defaultPath = Join-Path (Split-Path $PSScriptRoot -Parent) 'config\optimizer.psd1'
+    $useCache = [string]::IsNullOrWhiteSpace($Path)
+    if ($useCache) {
+        if ($null -ne $script:cachedConfiguration) { return $script:cachedConfiguration }
+        $Path = $defaultPath
+    }
+    $defaults = Get-OptimizerConfigurationDefaults
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $defaults }
+    try {
+        $data = Read-OptimizerConfigurationData -Path $Path
+        if ($null -eq $data) { return $defaults }
+        $minimumAge = [int]$data.MinimumAgeDays
+        if ($minimumAge -lt 7) { return $defaults }
+
+        $browsers = New-Object 'System.Collections.Generic.List[object]'
+        foreach ($browser in @($data.Browsers)) {
+            if ($null -eq $browser) { return $defaults }
+            $id = [string]$browser.Id
+            $name = [string]$browser.Name
+            $folder = [string]$browser.Folder
+            $process = [string]$browser.Process
+            if ($id -notmatch '^[a-z0-9][a-z0-9-]{0,31}$') { return $defaults }
+            if ([string]::IsNullOrWhiteSpace($name)) { return $defaults }
+            if (-not (Test-OptimizerRelativePath $folder)) { return $defaults }
+            if ($process -and $process -notmatch '^[A-Za-z0-9._-]+$') { return $defaults }
+            $browsers.Add([pscustomobject]@{ Id=$id; Name=$name; Folder=$folder; Process=$process })
+        }
+
+        $cacheFolders = New-Object 'System.Collections.Generic.List[string]'
+        foreach ($folder in @($data.BrowserCacheFolders)) {
+            $value = [string]$folder
+            if (-not (Test-OptimizerRelativePath $value)) { return $defaults }
+            $cacheFolders.Add($value)
+        }
+
+        $extensions = New-Object 'System.Collections.Generic.List[string]'
+        foreach ($extension in @($data.ProtectedExtensions)) {
+            $value = [string]$extension
+            if ($value -notmatch '^\.[A-Za-z0-9]{1,16}$') { return $defaults }
+            $extensions.Add($value.ToLowerInvariant())
+        }
+
+        $folders = New-Object 'System.Collections.Generic.List[string]'
+        foreach ($folder in @($data.ProtectedFolders)) {
+            $value = [string]$folder
+            if ([string]::IsNullOrWhiteSpace($value) -or $value -match '[\\/]') { return $defaults }
+            $folders.Add($value)
+        }
+
+        $markers = New-Object 'System.Collections.Generic.List[string]'
+        foreach ($marker in @($data.ProjectMarkers)) {
+            $value = [string]$marker
+            if ([string]::IsNullOrWhiteSpace($value) -or $value -match '[\\/]') { return $defaults }
+            $markers.Add($value)
+        }
+
+        if ($browsers.Count -eq 0 -or $cacheFolders.Count -eq 0 -or $extensions.Count -eq 0 -or $folders.Count -eq 0 -or $markers.Count -eq 0) {
+            return $defaults
+        }
+
+        $configuration = [pscustomobject]@{
+            MinimumAgeDays = $minimumAge
+            Browsers = $browsers.ToArray()
+            BrowserCacheFolders = $cacheFolders.ToArray()
+            ProtectedExtensions = $extensions.ToArray()
+            ProtectedFolders = $folders.ToArray()
+            ProjectMarkers = $markers.ToArray()
+        }
+        if ($useCache) { $script:cachedConfiguration = $configuration }
+        return $configuration
+    } catch {
+        return $defaults
+    }
+}
+
 function Get-OptimizerByteSum {
+    [CmdletBinding()]
     param($Items, [string]$Property = 'Bytes')
     [long]$total = 0
     foreach ($item in $Items) {
@@ -23,21 +165,30 @@ function Format-OptimizerSize {
 }
 
 function Get-OptimizerTargets {
+    <#
+    .SYNOPSIS
+    Returns the allowlisted cache targets for the current user.
+    .DESCRIPTION
+    Browsers, cache subfolders and the retention floor come from
+    config/optimizer.psd1. Only the user temp folder and discovered browser
+    profiles are returned; no Documents, Downloads or registry paths.
+    .EXAMPLE
+    Get-OptimizerTargets | Select-Object Id, Name, Path
+    #>
     [CmdletBinding()]
     param()
     if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) { return @() }
+    $configuration = Get-OptimizerConfiguration
     # Explicit allowlist: no Documents, Downloads, registry, credentials or event logs.
     $targets = @([pscustomobject]@{ Id='temp'; Name='Temporários do usuário'; Path=(Join-Path $env:LOCALAPPDATA 'Temp'); Process='' })
-    foreach ($browser in @(
-        @{Id='chrome'; Name='Google Chrome'; Folder='Google\Chrome\User Data'; Process='chrome'},
-        @{Id='edge'; Name='Microsoft Edge'; Folder='Microsoft\Edge\User Data'; Process='msedge'},
-        @{Id='brave'; Name='Brave'; Folder='BraveSoftware\Brave-Browser\User Data'; Process='brave'}
-    )) {
-        $base = Join-Path $env:LOCALAPPDATA $browser.Folder
+    foreach ($browser in $configuration.Browsers) {
+        $relativeFolder = $browser.Folder -replace '[\\/]', [IO.Path]::DirectorySeparatorChar
+        $base = Join-Path $env:LOCALAPPDATA $relativeFolder
         if (-not (Test-Path -LiteralPath $base)) { continue }
         foreach ($profileDir in @(Get-ChildItem -LiteralPath $base -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'Default' -or $_.Name -match '^Profile \d+$' })) {
-            foreach ($cache in @('Cache\Cache_Data', 'Code Cache', 'GPUCache')) {
-                $targets += [pscustomobject]@{ Id="$($browser.Id)-$($profileDir.Name)-$cache"; Name="$($browser.Name) / $($profileDir.Name) / $cache"; Path=(Join-Path $profileDir.FullName $cache); Process=$browser.Process }
+            foreach ($cache in $configuration.BrowserCacheFolders) {
+                $relativeCache = $cache -replace '[\\/]', [IO.Path]::DirectorySeparatorChar
+                $targets += [pscustomobject]@{ Id="$($browser.Id)-$($profileDir.Name)-$cache"; Name="$($browser.Name) / $($profileDir.Name) / $cache"; Path=(Join-Path $profileDir.FullName $relativeCache); Process=$browser.Process }
             }
         }
     }
@@ -45,19 +196,35 @@ function Get-OptimizerTargets {
 }
 
 function Test-OptimizerPath {
+    <#
+    .SYNOPSIS
+    Checks whether a path is safe to treat as cleanup data.
+    .DESCRIPTION
+    Rejects paths outside the target root, reparse points, protected folders
+    and any directory containing a project marker. The allowlists are loaded
+    from config/optimizer.psd1 and revalidated for every file.
+    .PARAMETER Path
+    Full path of the candidate file or directory.
+    .PARAMETER Root
+    Allowlisted target root that must contain Path.
+    #>
     [CmdletBinding()]
     param([string]$Path, [string]$Root)
+    $configuration = Get-OptimizerConfiguration
     try {
         $full = [IO.Path]::GetFullPath($Path)
         $rootFull = [IO.Path]::GetFullPath($Root).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
         if (-not $full.StartsWith($rootFull + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { return $false }
-        if ($full -match '(?i)(^|[\\/])(\.git|Epic Games|EpicGames|Fortnite|FortniteGame)([\\/]|$)') { return $false }
+        if ($configuration.ProtectedFolders.Count -gt 0) {
+            $folderPattern = (@($configuration.ProtectedFolders | ForEach-Object { [regex]::Escape($_) }) -join '|')
+            if ($full -match "(?i)(^|[\\/])($folderPattern)([\\/]|$)") { return $false }
+        }
         # Revalidate every ancestor, including the allowlisted root (junctions must not escape it).
         $item = Get-Item -LiteralPath $full -Force -ErrorAction Stop
         while ($null -ne $item) {
             if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { return $false }
             if ($item -is [IO.DirectoryInfo]) {
-                foreach ($marker in @('.git', 'package.json', 'pyproject.toml', 'Cargo.toml', 'go.mod', '.optimizer-protect')) {
+                foreach ($marker in $configuration.ProjectMarkers) {
                     if (Test-Path -LiteralPath (Join-Path $item.FullName $marker)) { return $false }
                 }
                 $item = $item.Parent
@@ -68,8 +235,24 @@ function Test-OptimizerPath {
 }
 
 function Get-OptimizerScan {
+    <#
+    .SYNOPSIS
+    Scans allowlisted cache targets without deleting anything.
+    .DESCRIPTION
+    Returns candidate files older than the retention floor plus per-category
+    totals and warnings. The default retention comes from
+    config/optimizer.psd1 and can never be lower than seven days.
+    .PARAMETER Targets
+    Targets returned by Get-OptimizerTargets. Defaults to the current user.
+    .PARAMETER State
+    Synchronized cancellation/progress state used by the GUI.
+    .PARAMETER MinimumAgeDays
+    Retention in days. Omit to use the configuration value (minimum 7).
+    #>
     [CmdletBinding()]
-    param([object[]]$Targets = (Get-OptimizerTargets), [hashtable]$State = @{Cancel=$false; Message=''}, [int]$MinimumAgeDays = 7)
+    param([object[]]$Targets = (Get-OptimizerTargets), [hashtable]$State = @{Cancel=$false; Message=''}, [int]$MinimumAgeDays = -1)
+    $configuration = Get-OptimizerConfiguration
+    if ($MinimumAgeDays -lt 0) { $MinimumAgeDays = [int]$configuration.MinimumAgeDays }
     if ($MinimumAgeDays -lt 7) { throw 'A retenção mínima é de sete dias.' }
     $cutoff = [DateTime]::UtcNow.AddDays(-$MinimumAgeDays)
     $files = New-Object 'System.Collections.Generic.List[object]'
@@ -97,7 +280,7 @@ function Get-OptimizerScan {
                 if ($entry.PSIsContainer) { $stack.Push($entry.FullName); continue }
                 if ($entry.LastWriteTimeUtc -ge $cutoff) { continue }
                 # Source code and potentially personal content are never cleanup candidates.
-                if ($entry.Extension -match '^\.(ps1|psm1|bat|cmd|py|js|ts|tsx|jsx|cs|cpp|h|java|rs|go|sln|csproj|docx?|xlsx?|pptx?|pdf|jpe?g|png|heic|mp4|zip|7z|rar|sqlite|db|pst|ost)$') { continue }
+                if ($configuration.ProtectedExtensions -contains ([string]$entry.Extension).ToLowerInvariant()) { continue }
                 if (-not $seen.Add($entry.FullName)) { continue }
                 $files.Add([pscustomobject]@{ Category=$target.Id; CategoryName=$target.Name; Path=$entry.FullName; Root=$target.Path; Process=$target.Process; Bytes=[long]$entry.Length; ModifiedUtc=$entry.LastWriteTimeUtc; Selected=$true })
                 $bytes += $entry.Length; $count++
@@ -142,6 +325,14 @@ function Invoke-OptimizerCleanup {
 }
 
 function Get-OptimizerDiagnostics {
+    <#
+    .SYNOPSIS
+    Collects a read-only hardware and Windows diagnostics summary.
+    .DESCRIPTION
+    Queries CIM for system, memory, CPU, disk and battery data plus Defender
+    status. Unavailable providers become explanatory rows instead of errors.
+    No settings are changed and no data leaves the computer.
+    #>
     [CmdletBinding()]
     param()
     $rows = New-Object 'System.Collections.Generic.List[object]'
@@ -178,6 +369,25 @@ function Get-OptimizerDiagnostics {
 }
 
 function Export-OptimizerReport {
+    <#
+    .SYNOPSIS
+    Writes an HTML or JSON maintenance report.
+    .DESCRIPTION
+    HTML output is escaped and both formats omit personal cleanup paths and
+    serial numbers. JSON contains only aggregated cleanup counters.
+    .PARAMETER Path
+    Destination file. Parent directory must already exist unless created by the caller.
+    .PARAMETER Customer
+    Optional customer/attendance label.
+    .PARAMETER Notes
+    Optional technician notes.
+    .PARAMETER Diagnostics
+    Rows returned by Get-OptimizerDiagnostics.
+    .PARAMETER Cleanup
+    Optional cleanup result from Invoke-OptimizerCleanup.
+    .PARAMETER Format
+    HTML (default) or JSON.
+    #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Path, [string]$Customer, [string]$Notes, [object[]]$Diagnostics, $Cleanup, [ValidateSet('HTML','JSON')][string]$Format = 'HTML')
     $encode = { param($value) [System.Net.WebUtility]::HtmlEncode([string]$value) }

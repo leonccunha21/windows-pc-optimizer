@@ -4,6 +4,8 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Preferences.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Privacy.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'Modules\Optimizer.Tweaks.psm1') -Force
 [xml]$layout = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'UI\MainWindow.xaml') -Raw -Encoding UTF8
 $reader = New-Object System.Xml.XmlNodeReader $layout
 $window = [Windows.Markup.XamlReader]::Load($reader)
@@ -15,11 +17,14 @@ foreach ($node in $layout.SelectNodes('//*[@x:Name]', $namespaces)) {
 }
 $script:scan = $null; $script:cleanup = $null; $script:diagnostics = @(); $script:worker = $null
 $script:battery = $null; $script:disks = $null; $script:appx = @(); $script:optimizations = @(); $script:driverUpdates = $null
+$script:lastSaveDirectory = ''
 $script:state = [hashtable]::Synchronized(@{Cancel=$false; Message=''; Result=$null; Error=$null; Total=0; Processed=0})
 $script:modulePath = Join-Path $PSScriptRoot 'Modules\Optimizer.Core.psm1'
 $script:technicianPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Technician.psm1'
 $script:networkPath = Join-Path $PSScriptRoot 'Modules\Optimizer.NetworkDiagnostics.psm1'
 $script:eventsPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Events.psm1'
+$script:privacyPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Privacy.psm1'
+$script:tweaksPath = Join-Path $PSScriptRoot 'Modules\Optimizer.Tweaks.psm1'
 $script:isAdmin = $false
 try {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -144,6 +149,40 @@ $ui.PreferenceResetButton.Add_Click({
     }
 })
 
+# Cleanup category ids are generic names, never customer data or file paths.
+function Get-OptimizerSelectedCategoryIds {
+    if ($null -eq $script:scan) { return @() }
+    return @($script:scan.Categories | Where-Object Selected | ForEach-Object { [string]$_.Id })
+}
+function Save-OptimizerCategorySelection {
+    try {
+        $current = Read-OptimizerPreferences
+        $current.SelectedCategories = @(Get-OptimizerSelectedCategoryIds)
+        [void](Save-OptimizerPreferences -Preferences $current)
+    } catch { Write-Verbose ('Seleção de categorias não gravada: ' + $_.Exception.Message) }
+}
+function Restore-OptimizerCategorySelection($Scan) {
+    if ($null -eq $Scan) { return }
+    try {
+        if (-not (Test-Path -LiteralPath (Get-OptimizerPreferencesPath) -PathType Leaf)) { return }
+        $saved = @((Read-OptimizerPreferences).SelectedCategories)
+        foreach ($category in @($Scan.Categories)) {
+            $category.Selected = [string]$category.Id -in $saved
+        }
+    } catch { Write-Verbose ('Seleção anterior indisponível: ' + $_.Exception.Message) }
+}
+function Set-OptimizerDialogDirectory($Dialog) {
+    if ($script:lastSaveDirectory -and (Test-Path -LiteralPath $script:lastSaveDirectory -PathType Container)) {
+        $Dialog.InitialDirectory = $script:lastSaveDirectory
+    }
+}
+function Save-OptimizerDialogDirectory($Dialog) {
+    try {
+        $directory = [IO.Path]::GetDirectoryName([string]$Dialog.FileName)
+        if ($directory -and (Test-Path -LiteralPath $directory -PathType Container)) { $script:lastSaveDirectory = $directory }
+    } catch { Write-Verbose 'Pasta de destino não memorizada.' }
+}
+
 function Set-Busy([bool]$Busy) {
     foreach ($name in @('ScanButton','DiagnoseButton','DiagnoseHome','GoClean','ExportButton','SelectAllButton','SelectNoneButton','HealthAnalyzeButton','HealthHome','BatteryReportButton','DriverScanButton','DriverUpdatesButton','DriverUpdateTool','DeviceManagerTool','AppxScanButton','AppxRemoveButton','OptimizationRunButton','PreferenceApplyButton','PreferenceResetButton','HealthShortcut','MaintenanceShortcut','WorkbenchShortcut','InvProcessesButton','InvStartupButton','InvSoftwareButton','InvNetworkButton','InvUpdatesButton','InvStorageButton','NetworkSnapshotButton','NetworkRevealButton','NetworkProbeButton','EventsAnalyzeButton','SfcVerifyButton','DismScanButton','ChkdskScanButton','SfcRepairButton','DismRepairButton')) { $ui[$name].IsEnabled = -not $Busy }
     $ui.CleanButton.IsEnabled = -not $Busy -and $null -ne $script:scan -and -not $script:scan.Cancelled -and @($script:scan.Files).Count -gt 0
@@ -218,12 +257,14 @@ function Start-Work([string]$Operation, $Payload) {
     $script:state.Cancel = $false; $script:state.Error = $null; $script:state.Result = $null; $script:state.Message = 'Preparando...'; $script:state.Processed = 0; $script:state.Total = 0
     $script:worker = [PowerShell]::Create()
     [void]$script:worker.AddScript({
-        param($ModulePath, $TechnicianPath, $NetworkPath, $EventsPath, $Operation, $Payload, $State)
+        param($ModulePath, $TechnicianPath, $NetworkPath, $EventsPath, $PrivacyPath, $TweaksPath, $Operation, $Payload, $State)
         try {
             Import-Module $ModulePath -Force -ErrorAction Stop
             Import-Module $TechnicianPath -Force -ErrorAction Stop
             Import-Module $NetworkPath -Force -ErrorAction Stop
             Import-Module $EventsPath -Force -ErrorAction Stop
+            Import-Module $PrivacyPath -Force -ErrorAction Stop
+            Import-Module $TweaksPath -Force -ErrorAction Stop
             switch ($Operation) {
                 'Scan' { $State.Result = Get-OptimizerScan -State $State }
                 'Clean' { $State.Result = Invoke-OptimizerCleanup -Scan $Payload.Scan -CategoryIds $Payload.Ids -State $State -Confirm:$false }
@@ -242,9 +283,25 @@ function Start-Work([string]$Operation, $Payload) {
                 'Events' { $State.Result = Get-OptimizerEventSummary -Days 14 -State $State }
                 'RemoveAppx' { $State.Message = 'Removendo aplicativos selecionados...'; $State.Result = @(Invoke-OptimizerAppRemoval -PackageFullNames $Payload.Names -Confirm:$false) }
                 'Optimize' { $State.Message = 'Aplicando otimizações selecionadas...'; $State.Result = @(Invoke-OptimizerOptimization -Ids $Payload.Ids -Confirm:$false) }
+                'ApplyPrivacy' {
+                    $State.Message = 'Aplicando configurações de privacidade...'
+                    $list = New-Object System.Collections.Generic.List[object]
+                    foreach ($act in $Payload.Ids) {
+                        $list.Add((Invoke-OptimizerPrivacyAction -Action $act -Confirm:$false))
+                    }
+                    $State.Result = $list.ToArray()
+                }
+                'ApplyTweaks' {
+                    $State.Message = 'Aplicando ajustes de sistema selecionados...'
+                    $list = New-Object System.Collections.Generic.List[object]
+                    foreach ($act in $Payload.Ids) {
+                        $list.Add((Invoke-OptimizerTweak -Action $act -Confirm:$false))
+                    }
+                    $State.Result = $list.ToArray()
+                }
             }
         } catch { $State.Error = $_.Exception.Message }
-    }).AddArgument($script:modulePath).AddArgument($script:technicianPath).AddArgument($script:networkPath).AddArgument($script:eventsPath).AddArgument($Operation).AddArgument($Payload).AddArgument($script:state)
+    }).AddArgument($script:modulePath).AddArgument($script:technicianPath).AddArgument($script:networkPath).AddArgument($script:eventsPath).AddArgument($script:privacyPath).AddArgument($script:tweaksPath).AddArgument($Operation).AddArgument($Payload).AddArgument($script:state)
     $script:handle = $script:worker.BeginInvoke()
     Set-Busy $true
     $timer.Start()
@@ -263,6 +320,7 @@ $timer.Add_Tick({
             'Scan' {
                 $script:scan = $script:state.Result
                 $ui.Categories.ItemsSource = @($script:scan.Categories)
+                Restore-OptimizerCategorySelection $script:scan
                 $ui.ScanWarnings.Text = $script:scan.Warnings -join "`n"
                 $ui.ScanMetric.Text = Format-OptimizerSize $script:scan.Bytes
                 $ui.Status.Text = if ($script:scan.Cancelled) { 'Análise interrompida. Analise novamente para liberar a limpeza.' } else { 'Análise concluída. Revise as categorias e a lista de arquivos.' }
@@ -358,6 +416,32 @@ $timer.Add_Tick({
                 $ui.OptimizationSummary.Text = "$applied aplicadas • $($failed.Count) falhas. $details"
                 if ($failed.Count -gt 0) { $ui.OptimizationNote.Text = (@($failed | ForEach-Object { "$($_.Name): $($_.Detail)" }) -join ' | ') }
                 $ui.Status.Text = 'Otimizações concluídas. Revise o resultado antes de repetir.'
+            }
+            'ApplyPrivacy' {
+                $results = @($script:state.Result)
+                $applied = @($results | Where-Object Success).Count
+                $failed = @($results | Where-Object { -not $_.Success })
+                foreach ($res in $results) {
+                    $entry = @($script:privacyCatalog | Where-Object { $_.Id -eq $res.Action }) | Select-Object -First 1
+                    if ($null -ne $entry) { $entry.Selected = $false }
+                }
+                $ui.PrivacyGrid.Items.Refresh()
+                $ui.Status.Text = "$applied ações de privacidade aplicadas • $($failed.Count) falhas."
+                $ui.PrivacySummary.Text = "$applied de $($results.Count) configurações de privacidade aplicadas com sucesso."
+                if ($failed.Count -gt 0) { $ui.PrivacyNote.Text = (@($failed | ForEach-Object { "$($_.Action): $($_.Message)" }) -join ' | ') }
+            }
+            'ApplyTweaks' {
+                $results = @($script:state.Result)
+                $applied = @($results | Where-Object Success).Count
+                $failed = @($results | Where-Object { -not $_.Success })
+                foreach ($res in $results) {
+                    $entry = @($script:tweaksCatalog | Where-Object { $_.Id -eq $res.Action }) | Select-Object -First 1
+                    if ($null -ne $entry) { $entry.Selected = $false }
+                }
+                $ui.TweaksGrid.Items.Refresh()
+                $ui.Status.Text = "$applied ajustes aplicados • $($failed.Count) falhas."
+                $ui.TweaksSummary.Text = "$applied de $($results.Count) ajustes do sistema aplicados com sucesso."
+                if ($failed.Count -gt 0) { $ui.TweaksNote.Text = (@($failed | ForEach-Object { "$($_.Action): $($_.Message)" }) -join ' | ') }
             }
         }
     } catch {
@@ -501,7 +585,9 @@ $ui.ExportResultsButton.Add_Click({
     $dialog = New-Object Microsoft.Win32.SaveFileDialog
     $dialog.Filter = 'Resultado CSV (*.csv)|*.csv'
     $dialog.FileName = 'Resultado-Limpeza-' + (Get-Date -Format 'yyyyMMdd-HHmm') + '.csv'
+    Set-OptimizerDialogDirectory $dialog
     if (-not $dialog.ShowDialog($window)) { return }
+    Save-OptimizerDialogDirectory $dialog
     $warning = 'Este CSV detalhado contém caminhos de arquivos do computador. Salve somente em local autorizado.'
     $answer = [Windows.MessageBox]::Show($window,$warning,'Privacidade dos dados','YesNo','Warning','No')
     if ($answer -ne 'Yes') { return }
@@ -517,7 +603,9 @@ $ui.BatteryReportButton.Add_Click({
     $dialog = New-Object Microsoft.Win32.SaveFileDialog
     $dialog.Filter = 'Relatório de bateria (*.html)|*.html'
     $dialog.FileName = 'Bateria-' + $env:COMPUTERNAME + '-' + (Get-Date -Format 'yyyyMMdd-HHmm') + '.html'
+    Set-OptimizerDialogDirectory $dialog
     if ($dialog.ShowDialog($window)) {
+        Save-OptimizerDialogDirectory $dialog
         try {
             $saved = Save-OptimizerBatteryReport -Path $dialog.FileName
             $ui.Status.Text = 'Relatório de bateria salvo: ' + $saved
@@ -548,11 +636,77 @@ $ui.OptimizationRunButton.Add_Click({
     $answer = [Windows.MessageBox]::Show($window, "Aplicar as ações abaixo?`n`n$preview`n`nAções que exigem administrador podem falhar sem elevação.", 'Confirmar otimizações', 'YesNo', 'Warning', 'No')
     if ($answer -eq 'Yes') { Start-Work 'Optimize' @{ Ids=@($selected | ForEach-Object Id) } }
 })
+$ui.PrivacyApplyButton.Add_Click({
+    [void]$ui.PrivacyGrid.CommitEdit([Windows.Controls.DataGridEditingUnit]::Cell, $true)
+    [void]$ui.PrivacyGrid.CommitEdit([Windows.Controls.DataGridEditingUnit]::Row, $true)
+    $selected = @($script:privacyCatalog | Where-Object Selected)
+    if ($selected.Count -eq 0) { $ui.Status.Text = 'Selecione ao menos uma opção de privacidade.'; return }
+    $preview = (@($selected | ForEach-Object { $_.Name }) -join "`n")
+    $answer = [Windows.MessageBox]::Show($window, "Aplicar as $($selected.Count) ações de privacidade abaixo?`n`n$preview`n`nAções marcadas com 'Admin: Sim' requerem privilégios de administrador.", 'Confirmar Privacidade', 'YesNo', 'Warning', 'No')
+    if ($answer -eq 'Yes') { Start-Work 'ApplyPrivacy' @{ Ids=@($selected | ForEach-Object Id) } }
+})
+$ui.PrivacyPresetBasicButton.Add_Click({
+    $preset = @(Get-OptimizerPrivacyPreset -Preset 'Basic')
+    foreach ($item in $script:privacyCatalog) { $item.Selected = ($preset -contains $item.Id) }
+    $ui.PrivacyGrid.Items.Refresh()
+    $ui.Status.Text = "Predefinição Básica aplicada ($($preset.Count) ações marcadas)."
+})
+$ui.PrivacyPresetStrictButton.Add_Click({
+    $preset = @(Get-OptimizerPrivacyPreset -Preset 'Strict')
+    foreach ($item in $script:privacyCatalog) { $item.Selected = ($preset -contains $item.Id) }
+    $ui.PrivacyGrid.Items.Refresh()
+    $ui.Status.Text = "Predefinição Rígida aplicada ($($preset.Count) ações marcadas)."
+})
+$ui.PrivacyPresetExtremeButton.Add_Click({
+    $preset = @(Get-OptimizerPrivacyPreset -Preset 'Extreme')
+    foreach ($item in $script:privacyCatalog) { $item.Selected = ($preset -contains $item.Id) }
+    $ui.PrivacyGrid.Items.Refresh()
+    $ui.Status.Text = "Predefinição Extrema aplicada ($($preset.Count) ações marcadas)."
+})
+$ui.PrivacySelectNoneButton.Add_Click({
+    foreach ($item in $script:privacyCatalog) { $item.Selected = $false }
+    $ui.PrivacyGrid.Items.Refresh()
+    $ui.Status.Text = 'Todas as opções de privacidade foram desmarcadas.'
+})
+$ui.TweaksApplyButton.Add_Click({
+    [void]$ui.TweaksGrid.CommitEdit([Windows.Controls.DataGridEditingUnit]::Cell, $true)
+    [void]$ui.TweaksGrid.CommitEdit([Windows.Controls.DataGridEditingUnit]::Row, $true)
+    $selected = @($script:tweaksCatalog | Where-Object Selected)
+    if ($selected.Count -eq 0) { $ui.Status.Text = 'Selecione ao menos um ajuste para aplicar.'; return }
+    $preview = (@($selected | ForEach-Object { $_.Name }) -join "`n")
+    $answer = [Windows.MessageBox]::Show($window, "Aplicar os $($selected.Count) ajustes abaixo?`n`n$preview`n`nAções marcadas com 'Admin: Sim' requerem privilégios de administrador.", 'Confirmar Ajustes', 'YesNo', 'Warning', 'No')
+    if ($answer -eq 'Yes') { Start-Work 'ApplyTweaks' @{ Ids=@($selected | ForEach-Object Id) } }
+})
+$ui.TweaksSelectAllButton.Add_Click({
+    foreach ($item in $script:tweaksCatalog) { $item.Selected = $true }
+    $ui.TweaksGrid.Items.Refresh()
+    $ui.Status.Text = 'Todos os ajustes foram marcados.'
+})
+$ui.TweaksSelectNoneButton.Add_Click({
+    foreach ($item in $script:tweaksCatalog) { $item.Selected = $false }
+    $ui.TweaksGrid.Items.Refresh()
+    $ui.Status.Text = 'Todos os ajustes foram desmarcados.'
+})
+$ui.TweaksDnsGoogleButton.Add_Click({
+    foreach ($item in $script:tweaksCatalog) {
+        if ($item.Id -like 'SetDns*') { $item.Selected = ($item.Id -eq 'SetDnsGoogle') }
+    }
+    $ui.TweaksGrid.Items.Refresh()
+    $ui.Status.Text = 'DNS Google marcado.'
+})
+$ui.TweaksDnsCloudflareButton.Add_Click({
+    foreach ($item in $script:tweaksCatalog) {
+        if ($item.Id -like 'SetDns*') { $item.Selected = ($item.Id -eq 'SetDnsCloudflare') }
+    }
+    $ui.TweaksGrid.Items.Refresh()
+    $ui.Status.Text = 'DNS Cloudflare marcado.'
+})
 $ui.CleanButton.Add_Click({
     [void]$ui.Categories.CommitEdit([Windows.Controls.DataGridEditingUnit]::Cell, $true)
     [void]$ui.Categories.CommitEdit([Windows.Controls.DataGridEditingUnit]::Row, $true)
     $selected = @($script:scan.Categories | Where-Object Selected)
     if ($selected.Count -eq 0) { $ui.Status.Text = 'Selecione pelo menos uma categoria.'; return }
+    Save-OptimizerCategorySelection
     $size = Format-OptimizerSize (($selected | Measure-Object Bytes -Sum).Sum)
     $answer = [Windows.MessageBox]::Show($window, "Excluir permanentemente os arquivos analisados das $($selected.Count) categorias selecionadas ($size)?`n`nA exclusão não passa pela Lixeira. Arquivos em uso ou alterados serão ignorados.", 'Confirmar limpeza', 'YesNo', 'Warning', 'No')
     if ($answer -eq 'Yes') { Start-Work 'Clean' @{Scan=$script:scan; Ids=@($selected | ForEach-Object Id)} }
@@ -561,18 +715,50 @@ $ui.SelectAllButton.Add_Click({
     if ($null -eq $script:scan) { return }
     foreach ($category in $script:scan.Categories) { $category.Selected = $true }
     $ui.Categories.Items.Refresh()
+    Save-OptimizerCategorySelection
 })
 $ui.SelectNoneButton.Add_Click({
     if ($null -eq $script:scan) { return }
     foreach ($category in $script:scan.Categories) { $category.Selected = $false }
     $ui.Categories.Items.Refresh()
+    Save-OptimizerCategorySelection
 })
 $ui.DetailsButton.Add_Click({
     $detail = New-Object Windows.Window
     $detail.Title = if ($null -ne $script:scan) { 'Arquivos candidatos - prévia sem exclusão' } else { 'Resultado detalhado da limpeza' }
     $detail.Width = 1000; $detail.Height = 560; $detail.Owner = $window; $detail.WindowStartupLocation = 'CenterOwner'
+    $panel = New-Object Windows.Controls.DockPanel
+    $panel.LastChildFill = $true
+    $filterPanel = New-Object Windows.Controls.StackPanel
+    $filterPanel.Orientation = 'Horizontal'
+    $filterPanel.Margin = New-Object Windows.Thickness(0,0,0,10)
+    $filterLabel = New-Object Windows.Controls.TextBlock
+    $filterLabel.Text = 'Filtrar:'
+    $filterLabel.VerticalAlignment = 'Center'
+    $filterLabel.Margin = New-Object Windows.Thickness(0,0,8,0)
+    $filterBox = New-Object Windows.Controls.TextBox
+    $filterBox.Width = 420
+    $filterBox.Height = 28
+    [Windows.Automation.AutomationProperties]::SetName($filterBox, 'Filtrar resultado por categoria, caminho, status ou detalhe')
+    $filterButton = New-Object Windows.Controls.Button
+    $filterButton.Content = 'Aplicar filtro'
+    $filterButton.Margin = New-Object Windows.Thickness(8,0,0,0)
+    $filterButton.Padding = New-Object Windows.Thickness(12,2,12,2)
+    [Windows.Automation.AutomationProperties]::SetName($filterButton, 'Aplicar filtro ao resultado detalhado')
+    $clearButton = New-Object Windows.Controls.Button
+    $clearButton.Content = 'Limpar filtro'
+    $clearButton.Margin = New-Object Windows.Thickness(8,0,0,0)
+    $clearButton.Padding = New-Object Windows.Thickness(12,2,12,2)
+    [Windows.Automation.AutomationProperties]::SetName($clearButton, 'Limpar filtro do resultado detalhado')
+    [void]$filterPanel.Children.Add($filterLabel)
+    [void]$filterPanel.Children.Add($filterBox)
+    [void]$filterPanel.Children.Add($filterButton)
+    [void]$filterPanel.Children.Add($clearButton)
+    [Windows.Controls.DockPanel]::SetDock($filterPanel, 'Top')
+    [void]$panel.Children.Add($filterPanel)
     $grid = New-Object Windows.Controls.DataGrid
     $grid.IsReadOnly = $true; $grid.AutoGenerateColumns = $false; $grid.CanUserAddRows = $false
+    [Windows.Automation.AutomationProperties]::SetName($grid, 'Resultado detalhado filtrado')
     $rows = if ($null -ne $script:scan) { @($script:scan.Files) } else { @($script:cleanup.Results) }
     $cols = if ($null -ne $script:scan) {
         @(@('Categoria','CategoryName',210), @('Caminho','Path',620), @('Bytes','Bytes',100))
@@ -585,13 +771,42 @@ $ui.DetailsButton.Add_Click({
         $c.Width = $column[2]; [void]$grid.Columns.Add($c)
     }
     $grid.ItemsSource = $rows
-    $detail.Content = $grid
+    [void]$panel.Children.Add($grid)
+    $script:detailFilter = [pscustomobject]@{ Rows=$rows; Grid=$grid; Box=$filterBox }
+    $filterButton.Add_Click({
+        $context = $script:detailFilter
+        $term = ([string]$context.Box.Text).Trim()
+        if ([string]::IsNullOrWhiteSpace($term)) { $context.Grid.ItemsSource = $context.Rows; return }
+        $context.Grid.ItemsSource = @($context.Rows | Where-Object {
+            $text = @($_.PSObject.Properties | ForEach-Object { [string]$_.Value }) -join ' '
+            $text.IndexOf($term, [StringComparison]::OrdinalIgnoreCase) -ge 0
+        })
+    })
+    $clearButton.Add_Click({ $script:detailFilter.Box.Text = ''; $script:detailFilter.Grid.ItemsSource = $script:detailFilter.Rows })
+    $filterBox.Add_KeyDown({
+        param($keySender, $keyArgs)
+        if ($keyArgs.Key -ne [Windows.Input.Key]::Enter) { return }
+        $context = $script:detailFilter
+        $term = ([string]$context.Box.Text).Trim()
+        if ([string]::IsNullOrWhiteSpace($term)) { $context.Grid.ItemsSource = $context.Rows }
+        else {
+            $context.Grid.ItemsSource = @($context.Rows | Where-Object {
+                $text = @($_.PSObject.Properties | ForEach-Object { [string]$_.Value }) -join ' '
+                $text.IndexOf($term, [StringComparison]::OrdinalIgnoreCase) -ge 0
+            })
+        }
+        $keyArgs.Handled = $true
+    })
+    $detail.Content = $panel
     [void]$detail.ShowDialog()
+    $script:detailFilter = $null
 })
 $ui.ExportButton.Add_Click({
     $dialog = New-Object Microsoft.Win32.SaveFileDialog
     $dialog.Filter = 'Relatório HTML (*.html)|*.html|Dados JSON (*.json)|*.json'; $dialog.FileName = 'Manutencao-' + (Get-Date -Format 'yyyyMMdd-HHmm') + '.html'
+    Set-OptimizerDialogDirectory $dialog
     if ($dialog.ShowDialog($window)) {
+        Save-OptimizerDialogDirectory $dialog
         try {
             $format = if ($dialog.FilterIndex -eq 2) { 'JSON' } else { 'HTML' }
             $extension = if ($format -eq 'JSON') { '.json' } else { '.html' }
@@ -640,9 +855,34 @@ $script:optimizations = @(Get-OptimizerOptimizations | ForEach-Object {
     [pscustomobject]@{ Id=$_.Id; Name=$_.Name; Description=$_.Description; Admin=if ($_.RequiresAdmin) { 'Sim' } else { 'Não' }; Selected=$false }
 })
 $ui.OptimizationGrid.ItemsSource = $script:optimizations
+
+$script:privacyCatalog = @(Get-OptimizerPrivacyCatalog | ForEach-Object {
+    [pscustomobject]@{
+        Selected = $false
+        Id = $_.Id
+        Category = $_.Category
+        Name = $_.Name
+        Description = $_.Description
+        Admin = if ($_.RequiresElevation) { 'Sim' } else { 'Não' }
+    }
+})
+$ui.PrivacyGrid.ItemsSource = $script:privacyCatalog
+
+$script:tweaksCatalog = @(Get-OptimizerTweakCatalog | ForEach-Object {
+    [pscustomobject]@{
+        Selected = $false
+        Id = $_.Id
+        Category = $_.Category
+        Name = $_.Name
+        Description = $_.Description
+        Admin = if ($_.RequiresElevation) { 'Sim' } else { 'Não' }
+    }
+})
+$ui.TweaksGrid.ItemsSource = $script:tweaksCatalog
 Update-ConnectionNote
 $window.Add_Closing({
     param($closeSender, $closeArgs)
+    Save-OptimizerCategorySelection
     if ($null -eq $closeSender -or $null -eq $script:worker) { return }
     $answer = [Windows.MessageBox]::Show($window, 'Há uma operação em andamento. Deseja interromper e fechar?', 'Fechar PC Optimizer', 'YesNo', 'Warning', 'No')
     if ($answer -ne 'Yes') { $closeArgs.Cancel = $true; return }
@@ -712,7 +952,7 @@ if ($ValidateUI) {
         $window.Close()
         if (Test-Path $fixture) { Remove-Item -LiteralPath $fixture -Recurse -Force }
     }
-    foreach ($required in @('CloseButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','HealthAnalyzeButton','BatteryReportButton','WorkbenchShortcut','WorkbenchGrid','InvProcessesButton','InvSoftwareButton','NetworkGrid','NetworkSnapshotButton','NetworkProbeButton','EventsGrid','EventsAnalyzeButton','SfcVerifyButton','ExportResultsButton')) {
+    foreach ($required in @('CloseButton','BatteryGrid','DiskGrid','VolumeGrid','DriverGrid','DriverUpdateGrid','AppxGrid','OptimizationGrid','PrivacyGrid','TweaksGrid','HealthAnalyzeButton','BatteryReportButton','WorkbenchShortcut','WorkbenchGrid','InvProcessesButton','InvSoftwareButton','NetworkGrid','NetworkSnapshotButton','NetworkProbeButton','EventsGrid','EventsAnalyzeButton','SfcVerifyButton','ExportResultsButton')) {
         if ($null -eq $ui[$required]) { throw "Controle ausente na interface: $required" }
     }
     $savedDisplay = $script:activePreferences
@@ -724,6 +964,8 @@ if ($ValidateUI) {
     if ($ui.Pages.SelectedIndex -ne 6) { throw 'Preferences sidebar navigation failed.' }
     $ui.NavOverview.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
     if (@($ui.OptimizationGrid.Items).Count -lt 5) { throw 'Catálogo de otimizações não foi carregado.' }
+    if (@($ui.PrivacyGrid.Items).Count -lt 20) { throw 'Catálogo de privacidade não foi carregado.' }
+    if (@($ui.TweaksGrid.Items).Count -lt 15) { throw 'Catálogo de ajustes não foi carregado.' }
     Write-Output 'WPF layout, accessible sidebar navigation, workbench tabs and async scan/cleanup passed.'
     return
 }

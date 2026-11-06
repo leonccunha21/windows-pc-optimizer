@@ -102,14 +102,42 @@ try {
     Assert-True ((& $core { Get-OptimizerByteSum @([pscustomobject]@{Bytes=2},[pscustomobject]@{Bytes=3}) }) -eq 5) 'Byte sum adds values'
     # Linux CI does not define LOCALAPPDATA; use a disposable profile for this Windows-only path calculation.
     $originalLocalAppData = $env:LOCALAPPDATA
-    if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
-        $env:LOCALAPPDATA = Join-Path $testRoot 'local-app-data'
-        [void](New-Item -ItemType Directory -Path $env:LOCALAPPDATA -Force)
-    }
+    $env:LOCALAPPDATA = Join-Path $testRoot 'local-app-data'
+    [void](New-Item -ItemType Directory -Path $env:LOCALAPPDATA -Force)
     try {
         $defaultTargets = @(Get-OptimizerTargets)
         Assert-True ($defaultTargets.Count -ge 1 -and $defaultTargets[0].Id -eq 'temp') 'Default targets include the user temp folder'
+        $chromeProfile = Join-Path $env:LOCALAPPDATA (('Google\Chrome\User Data\Default') -replace '[\\/]', [IO.Path]::DirectorySeparatorChar)
+        [void](New-Item -ItemType Directory -Path $chromeProfile -Force)
+        $withChrome = @(Get-OptimizerTargets)
+        Assert-True (@($withChrome | Where-Object { $_.Id -like 'chrome-Default-*' }).Count -eq 3) 'Chrome Default profile caches are discovered'
+        Assert-True (@($withChrome | Where-Object { $_.Id -like '*-Code Cache' }).Count -ge 1) 'Browser cache subfolders come from configuration'
     } finally { $env:LOCALAPPDATA = $originalLocalAppData }
+    $defaultConfiguration = & $core { Get-OptimizerConfiguration }
+    Assert-True ($defaultConfiguration.MinimumAgeDays -eq 7 -and @($defaultConfiguration.Browsers).Count -eq 3) 'Shipped cleanup configuration loads safely'
+    $customConfig = Join-Path $testRoot 'optimizer.psd1'
+    @'
+@{
+    MinimumAgeDays = 14
+    Browsers = @(@{ Id='demo'; Name='Demo'; Folder='Demo\User Data'; Process='demo' })
+    BrowserCacheFolders = @('Cache')
+    ProtectedExtensions = @('.tmp2')
+    ProtectedFolders = @('.git')
+    ProjectMarkers = @('.git')
+}
+'@ | Set-Content -LiteralPath $customConfig -Encoding UTF8
+    $customConfiguration = & $core { param($file) Get-OptimizerConfiguration -Path $file } $customConfig
+    Assert-True ($customConfiguration.MinimumAgeDays -eq 14 -and @($customConfiguration.Browsers).Count -eq 1 -and $customConfiguration.ProtectedExtensions[0] -eq '.tmp2') 'Custom configuration is honored'
+    @'
+@{ MinimumAgeDays = 1; Browsers = @(); BrowserCacheFolders = @(); ProtectedExtensions = @(); ProtectedFolders = @(); ProjectMarkers = @() }
+'@ | Set-Content -LiteralPath $customConfig -Encoding UTF8
+    $rejectedConfiguration = & $core { param($file) Get-OptimizerConfiguration -Path $file } $customConfig
+    Assert-True ($rejectedConfiguration.MinimumAgeDays -eq 7 -and @($rejectedConfiguration.Browsers).Count -eq 3) 'Unsafe configuration falls back to safe defaults'
+    @'
+@{ MinimumAgeDays = (Get-Date).Day; Browsers = @(); BrowserCacheFolders = @(); ProtectedExtensions = @(); ProtectedFolders = @(); ProjectMarkers = @() }
+'@ | Set-Content -LiteralPath $customConfig -Encoding UTF8
+    $scriptConfiguration = & $core { param($file) Get-OptimizerConfiguration -Path $file } $customConfig
+    Assert-True ($scriptConfiguration.MinimumAgeDays -eq 7 -and @($scriptConfiguration.Browsers).Count -eq 3) 'Code in configuration is rejected without execution'
     $noCleanupReport = Join-Path $testRoot 'report-no-cleanup.html'
     Export-OptimizerReport -Path $noCleanupReport -Customer 'Teste' -Notes '' -Diagnostics @() -Cleanup $null
     Assert-True ((Get-Content $noCleanupReport -Raw) -match 'Nenhuma limpeza') 'Report without cleanup is explicit'

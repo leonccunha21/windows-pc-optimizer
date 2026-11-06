@@ -168,14 +168,14 @@
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,26,0,16" KeyboardNavigation.TabNavigation="Continue">
      <StackPanel>
       <TextBlock Text="NAVEGAÇÃO" FontSize="{DynamicResource UiFont10}" Foreground="{DynamicResource UiColor9BB5C7}" Margin="0,0,0,14" FontWeight="SemiBold"/>
-      <Button x:Name="NavOverview" Style="{StaticResource SidebarNavButton}" Background="{DynamicResource UiColor0E887A}" Content="Visão geral" ToolTip="Ctrl+1" AutomationProperties.Name="Visão geral" />
-      <Button x:Name="NavDiagnose" Style="{StaticResource SidebarNavButton}" Content="Diagnóstico" ToolTip="Ctrl+2" AutomationProperties.Name="Diagnóstico" />
-      <Button x:Name="NavHealth" Style="{StaticResource SidebarNavButton}" Content="Saúde e discos" ToolTip="Ctrl+3" AutomationProperties.Name="Saúde e discos" />
-      <Button x:Name="NavCleanup" Style="{StaticResource SidebarNavButton}" Content="Limpeza segura" ToolTip="Ctrl+4" AutomationProperties.Name="Limpeza segura" />
-      <Button x:Name="NavMaintenance" Style="{StaticResource SidebarNavButton}" Content="Manutenção" ToolTip="Ctrl+5" AutomationProperties.Name="Manutenção" />
-      <Button x:Name="NavBench" Style="{StaticResource SidebarNavButton}" Content="Bancada técnica" ToolTip="Ctrl+B" AutomationProperties.Name="Bancada técnica" />
-      <Button x:Name="NavSettings" Style="{StaticResource SidebarNavButton}" Content="Preferências" ToolTip="Ctrl+7" AutomationProperties.Name="Preferências de leitura e acessibilidade"/>
-      <Button x:Name="NavReport" Style="{StaticResource SidebarNavButton}" Content="Relatório" ToolTip="Ctrl+6" AutomationProperties.Name="Relatório" />
+      <Button x:Name="NavOverview" TabIndex="1" Style="{StaticResource SidebarNavButton}" Background="{DynamicResource UiColor0E887A}" Content="Visão geral" ToolTip="Ctrl+1" AutomationProperties.Name="Visão geral" />
+      <Button x:Name="NavDiagnose" TabIndex="2" Style="{StaticResource SidebarNavButton}" Content="Diagnóstico" ToolTip="Ctrl+2" AutomationProperties.Name="Diagnóstico" />
+      <Button x:Name="NavHealth" TabIndex="3" Style="{StaticResource SidebarNavButton}" Content="Saúde e discos" ToolTip="Ctrl+3" AutomationProperties.Name="Saúde e discos" />
+      <Button x:Name="NavCleanup" TabIndex="4" Style="{StaticResource SidebarNavButton}" Content="Limpeza segura" ToolTip="Ctrl+4" AutomationProperties.Name="Limpeza segura" />
+      <Button x:Name="NavMaintenance" TabIndex="5" Style="{StaticResource SidebarNavButton}" Content="Manutenção" ToolTip="Ctrl+5" AutomationProperties.Name="Manutenção" />
+      <Button x:Name="NavBench" TabIndex="6" Style="{StaticResource SidebarNavButton}" Content="Bancada técnica" ToolTip="Ctrl+B" AutomationProperties.Name="Bancada técnica" />
+      <Button x:Name="NavSettings" TabIndex="7" Style="{StaticResource SidebarNavButton}" Content="Preferências" ToolTip="Ctrl+7" AutomationProperties.Name="Preferências de leitura e acessibilidade"/>
+      <Button x:Name="NavReport" TabIndex="8" Style="{StaticResource SidebarNavButton}" Content="Relatório" ToolTip="Ctrl+6" AutomationProperties.Name="Relatório" />
       <Border Background="{DynamicResource UiColor203C50}" CornerRadius="10" Padding="13" Margin="0,20,0,0">
        <StackPanel>
         <TextBlock Text="SEGURANÇA EM PRIMEIRO LUGAR" FontSize="{DynamicResource UiFont10}" FontWeight="SemiBold" Foreground="{DynamicResource UiColor6DE0D0}"/>
@@ -200,7 +200,7 @@
     </StackPanel>
     <Button x:Name="CloseButton" Grid.Column="1" Content="Fechar" Background="{DynamicResource UiColorC0392B}" VerticalAlignment="Top" AutomationProperties.Name="Fechar aplicativo"/>
    </Grid>
-   <TabControl x:Name="Pages" Grid.Row="1" BorderThickness="0" Background="Transparent" KeyboardNavigation.TabNavigation="Continue">
+   <TabControl x:Name="Pages" Grid.Row="1" BorderThickness="0" Background="Transparent" KeyboardNavigation.TabNavigation="Continue" AutomationProperties.Name="Seções do aplicativo">
     <TabItem Header="Visão geral">
      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="0,20,0,0">
@@ -258,7 +258,7 @@
         <Button x:Name="SelectNoneButton" Content="Desmarcar tudo" AutomationProperties.Name="Desmarcar todas as categorias" Background="{DynamicResource UiColor40566C}"/><Button x:Name="ExportResultsButton" Content="Exportar CSV" AutomationProperties.Name="Exportar resultado da limpeza em CSV" Background="{DynamicResource UiColor40566C}" IsEnabled="False"/>
        </WrapPanel>
       </StackPanel>
-      <DataGrid x:Name="Categories" Grid.Row="1">
+      <DataGrid x:Name="Categories" Grid.Row="1" AutomationProperties.Name="Categorias de arquivos temporários com seleção">
        <DataGrid.Columns>
         <DataGridCheckBoxColumn Header="Limpar" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="65"/>
         <DataGridTextColumn Header="Categoria" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
@@ -266,7 +266,7 @@
         <DataGridTextColumn Header="Espaço" Binding="{Binding Size}" Width="100" IsReadOnly="True"/>
        </DataGrid.Columns>
       </DataGrid>
-      <TextBox x:Name="ScanWarnings" Grid.Row="2" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="95" VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="{DynamicResource UiColorFFF5DF}"/>
+      <TextBox x:Name="ScanWarnings" Grid.Row="2" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="95" VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="{DynamicResource UiColorFFF5DF}" AutomationProperties.Name="Avisos da análise"/>
       <TextBlock x:Name="CleanupSummary" Grid.Row="3" Text="A análise não apaga arquivos. A exclusão será confirmada antes de começar." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,8,0,10"/>
      </Grid>
     </TabItem>
@@ -274,7 +274,7 @@
      <Grid Margin="0,20,0,0">
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
       <WrapPanel Margin="0,0,0,18"><Button x:Name="DiagnoseButton" Content="Atualizar diagnóstico" AutomationProperties.Name="Atualizar diagnóstico" /><TextBlock Text="Consulta sem alterar configurações" VerticalAlignment="Center" Foreground="{DynamicResource UiColor526B80}"/></WrapPanel>
-      <DataGrid x:Name="DiagnosticsGrid" Grid.Row="1" IsReadOnly="True">
+      <DataGrid x:Name="DiagnosticsGrid" Grid.Row="1" IsReadOnly="True" AutomationProperties.Name="Diagnóstico do equipamento">
        <DataGrid.Columns>
         <DataGridTextColumn Header="Área" Binding="{Binding Area}" Width="130"/>
         <DataGridTextColumn Header="Item" Binding="{Binding Item}" Width="190"/>
@@ -301,7 +301,7 @@
        <Border Style="{StaticResource Card}">
         <StackPanel>
          <TextBlock Text="Bateria" FontSize="{DynamicResource UiFont18}" FontWeight="SemiBold" Margin="0,0,0,12"/>
-         <DataGrid x:Name="BatteryGrid" Height="210" IsReadOnly="True">
+         <DataGrid x:Name="BatteryGrid" Height="210" IsReadOnly="True" AutomationProperties.Name="Saúde da bateria">
           <DataGrid.Columns>
            <DataGridTextColumn Header="Item" Binding="{Binding Item}" Width="240"/>
            <DataGridTextColumn Header="Resultado" Binding="{Binding Value}" Width="*"/>
@@ -312,7 +312,7 @@
        <Border Style="{StaticResource Card}">
         <StackPanel>
          <TextBlock Text="Discos físicos" FontSize="{DynamicResource UiFont18}" FontWeight="SemiBold" Margin="0,0,0,12"/>
-         <DataGrid x:Name="DiskGrid" Height="180" IsReadOnly="True">
+         <DataGrid x:Name="DiskGrid" Height="180" IsReadOnly="True" AutomationProperties.Name="Saúde dos discos">
           <DataGrid.Columns>
            <DataGridTextColumn Header="Dispositivo" Binding="{Binding Device}" Width="*"/>
            <DataGridTextColumn Header="Mídia" Binding="{Binding Media}" Width="90"/>
@@ -328,7 +328,7 @@
        <Border Style="{StaticResource Card}">
         <StackPanel>
          <TextBlock Text="Volumes" FontSize="{DynamicResource UiFont18}" FontWeight="SemiBold" Margin="0,0,0,12"/>
-         <DataGrid x:Name="VolumeGrid" Height="150" IsReadOnly="True">
+         <DataGrid x:Name="VolumeGrid" Height="150" IsReadOnly="True" AutomationProperties.Name="Volumes e espaço livre">
           <DataGrid.Columns>
            <DataGridTextColumn Header="Unidade" Binding="{Binding Letter}" Width="80"/>
            <DataGridTextColumn Header="Rótulo" Binding="{Binding Label}" Width="*"/>
@@ -345,7 +345,7 @@
      </ScrollViewer>
     </TabItem>
     <TabItem Header="Manutenção">
-     <TabControl x:Name="MaintenanceTabs" Margin="0,20,0,0" BorderThickness="0" Background="Transparent">
+     <TabControl x:Name="MaintenanceTabs" Margin="0,20,0,0" BorderThickness="0" Background="Transparent" AutomationProperties.Name="Ferramentas de manutenção">
       <TabItem Header="Drivers">
        <Grid Margin="0,16,0,0">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -356,7 +356,7 @@
          <Button x:Name="DeviceManagerTool" Content="Gerenciador de dispositivos" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Gerenciador de dispositivos" />
         </WrapPanel>
         <TextBlock x:Name="DriverSummary" Grid.Row="1" Text="Nenhum inventário carregado. A consulta não instala nada." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,4,0,12"/>
-        <DataGrid x:Name="DriverGrid" Grid.Row="2" IsReadOnly="True">
+        <DataGrid x:Name="DriverGrid" Grid.Row="2" IsReadOnly="True" AutomationProperties.Name="Drivers instalados">
          <DataGrid.Columns>
           <DataGridTextColumn Header="Classe" Binding="{Binding Class}" Width="130"/>
           <DataGridTextColumn Header="Dispositivo" Binding="{Binding Device}" Width="*"/>
@@ -367,7 +367,7 @@
          </DataGrid.Columns>
         </DataGrid>
         <TextBlock Grid.Row="3" Text="Atualizações de driver encontradas no Windows Update" FontSize="{DynamicResource UiFont15}" FontWeight="SemiBold" Margin="0,14,0,8"/>
-        <DataGrid x:Name="DriverUpdateGrid" Grid.Row="4" Height="140" IsReadOnly="True">
+        <DataGrid x:Name="DriverUpdateGrid" Grid.Row="4" Height="140" IsReadOnly="True" AutomationProperties.Name="Atualizações de driver no Windows Update">
          <DataGrid.Columns>
           <DataGridTextColumn Header="Atualização" Binding="{Binding Title}" Width="*"/>
           <DataGridTextColumn Header="Fabricante" Binding="{Binding Manufacturer}" Width="160"/>
@@ -382,10 +382,10 @@
         <WrapPanel>
          <Button x:Name="AppxScanButton" Content="Listar aplicativos instalados" AutomationProperties.Name="Listar aplicativos instalados" />
          <Button x:Name="AppxRemoveButton" Content="Remover selecionados" Background="{DynamicResource UiColorC0392B}" AutomationProperties.Name="Remover selecionados" />
-         <CheckBox x:Name="AppxBloatOnly" Content="Mostrar só sugestões" VerticalAlignment="Center" Margin="8,0,0,10"/>
+         <CheckBox x:Name="AppxBloatOnly" Content="Mostrar só sugestões" VerticalAlignment="Center" Margin="8,0,0,10" AutomationProperties.Name="Mostrar apenas aplicativos sugeridos para remoção"/>
         </WrapPanel>
         <TextBlock x:Name="AppxSummary" Grid.Row="1" Text="A lista mostra aplicativos da Microsoft Store do usuário atual. A remoção é confirmada e pode ser desfeita reinstalando pela Store." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,4,0,12"/>
-        <DataGrid x:Name="AppxGrid" Grid.Row="2">
+        <DataGrid x:Name="AppxGrid" Grid.Row="2" AutomationProperties.Name="Aplicativos instalados com seleção para remoção">
          <DataGrid.Columns>
           <DataGridCheckBoxColumn Header="Remover" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="75"/>
           <DataGridTextColumn Header="Aplicativo" Binding="{Binding Label}" Width="*" IsReadOnly="True"/>
@@ -401,7 +401,7 @@
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <WrapPanel><Button x:Name="OptimizationRunButton" Content="Aplicar selecionadas" AutomationProperties.Name="Aplicar selecionadas" /></WrapPanel>
         <TextBlock x:Name="OptimizationSummary" Grid.Row="1" Text="Marque apenas o que faz sentido para este equipamento. Toda ação pede confirmação." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,4,0,12"/>
-        <DataGrid x:Name="OptimizationGrid" Grid.Row="2">
+        <DataGrid x:Name="OptimizationGrid" Grid.Row="2" AutomationProperties.Name="Otimizações disponíveis com seleção">
          <DataGrid.Columns>
           <DataGridCheckBoxColumn Header="Aplicar" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
           <DataGridTextColumn Header="Ação" Binding="{Binding Name}" Width="230" IsReadOnly="True"/>
@@ -525,6 +525,52 @@
          </ScrollViewer>
         </TabItem>
        </TabControl>
+      </TabItem>
+      <TabItem Header="Privacidade">
+       <Grid Margin="0,16,0,0">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <WrapPanel>
+         <Button x:Name="PrivacyApplyButton" Content="Aplicar selecionadas" AutomationProperties.Name="Aplicar configurações de privacidade selecionadas" />
+         <Button x:Name="PrivacyPresetBasicButton" Content="Predefinição Básica" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Selecionar predefinição básica" />
+         <Button x:Name="PrivacyPresetStrictButton" Content="Predefinição Rígida" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Selecionar predefinição rígida" />
+         <Button x:Name="PrivacyPresetExtremeButton" Content="Predefinição Extrema" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Selecionar predefinição extrema" />
+         <Button x:Name="PrivacySelectNoneButton" Content="Desmarcar tudo" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Desmarcar todas as ações de privacidade" />
+        </WrapPanel>
+        <TextBlock x:Name="PrivacySummary" Grid.Row="1" Text="Remova recursos de IA (Copilot, Recall), bloqueie telemetria do Windows/apps e restrinja permissões invasivas." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,4,0,12"/>
+        <DataGrid x:Name="PrivacyGrid" Grid.Row="2" AutomationProperties.Name="Opções de privacidade e telemetria disponíveis">
+         <DataGrid.Columns>
+          <DataGridCheckBoxColumn Header="Aplicar" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
+          <DataGridTextColumn Header="Categoria" Binding="{Binding Category}" Width="110" IsReadOnly="True"/>
+          <DataGridTextColumn Header="Ação" Binding="{Binding Name}" Width="260" IsReadOnly="True"/>
+          <DataGridTextColumn Header="Descrição" Binding="{Binding Description}" Width="*" IsReadOnly="True"/>
+          <DataGridTextColumn Header="Admin" Binding="{Binding Admin}" Width="70" IsReadOnly="True"/>
+         </DataGrid.Columns>
+        </DataGrid>
+        <TextBlock x:Name="PrivacyNote" Grid.Row="3" Text="Ações de sistema são reversíveis. Operações com 'Admin: Sim' necessitam de privilégios elevados para surtir efeito." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,10,0,0"/>
+       </Grid>
+      </TabItem>
+      <TabItem Header="Ajustes">
+       <Grid Margin="0,16,0,0">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <WrapPanel>
+         <Button x:Name="TweaksApplyButton" Content="Aplicar selecionados" AutomationProperties.Name="Aplicar ajustes selecionados" />
+         <Button x:Name="TweaksSelectAllButton" Content="Selecionar tudo" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Selecionar todos os ajustes" />
+         <Button x:Name="TweaksSelectNoneButton" Content="Desmarcar tudo" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Desmarcar todos os ajustes" />
+         <Button x:Name="TweaksDnsGoogleButton" Content="DNS Google" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Marcar DNS Google" />
+         <Button x:Name="TweaksDnsCloudflareButton" Content="DNS Cloudflare" Background="{DynamicResource UiColor40566C}" AutomationProperties.Name="Marcar DNS Cloudflare" />
+        </WrapPanel>
+        <TextBlock x:Name="TweaksSummary" Grid.Row="1" Text="Ajustes de DNS, redução de latência, desativação de MPO para jogos, modo escuro e menu de contexto clássico." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,4,0,12"/>
+        <DataGrid x:Name="TweaksGrid" Grid.Row="2" AutomationProperties.Name="Ajustes de sistema e desempenho disponíveis">
+         <DataGrid.Columns>
+          <DataGridCheckBoxColumn Header="Aplicar" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
+          <DataGridTextColumn Header="Categoria" Binding="{Binding Category}" Width="100" IsReadOnly="True"/>
+          <DataGridTextColumn Header="Ajuste" Binding="{Binding Name}" Width="250" IsReadOnly="True"/>
+          <DataGridTextColumn Header="Descrição" Binding="{Binding Description}" Width="*" IsReadOnly="True"/>
+          <DataGridTextColumn Header="Admin" Binding="{Binding Admin}" Width="70" IsReadOnly="True"/>
+         </DataGrid.Columns>
+        </DataGrid>
+        <TextBlock x:Name="TweaksNote" Grid.Row="3" Text="Alterações de interface (ex.: menu clássico ou extensões) podem requerer reiniciar o Explorador de Arquivos." TextWrapping="Wrap" Foreground="{DynamicResource UiColor526B80}" Margin="0,10,0,0"/>
+       </Grid>
       </TabItem>
      </TabControl>
     </TabItem>

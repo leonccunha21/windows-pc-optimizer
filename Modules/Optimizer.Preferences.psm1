@@ -6,13 +6,21 @@ function Get-OptimizerPreferenceDefaults {
     [CmdletBinding()]
     param()
     return [pscustomobject]@{
-        SchemaVersion = 1
+        SchemaVersion = 2
         HighContrast = $false
         TextScale = 100
+        SelectedCategories = @()
     }
 }
 
 function Test-OptimizerPreferenceValues {
+    <#
+    .SYNOPSIS
+    Validates the strictly allowlisted preference schema.
+    .DESCRIPTION
+    Schema 1 files remain readable. Schema 2 adds an optional list of generic
+    cleanup category ids; only generic names without path traversal are accepted.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][AllowNull()][object]$Preferences
@@ -23,10 +31,20 @@ function Test-OptimizerPreferenceValues {
         if ($null -eq $properties[$required]) { return $false }
     }
     if ($Preferences.SchemaVersion -isnot [int] -and $Preferences.SchemaVersion -isnot [long]) { return $false }
-    if ([int]$Preferences.SchemaVersion -ne 1) { return $false }
+    $version = [int]$Preferences.SchemaVersion
+    if ($version -notin @(1,2)) { return $false }
     if ($Preferences.HighContrast -isnot [bool]) { return $false }
     if ($Preferences.TextScale -isnot [int] -and $Preferences.TextScale -isnot [long]) { return $false }
     if ([int]$Preferences.TextScale -notin @(100,115,125)) { return $false }
+    if ($version -ge 2 -and $null -ne $properties['SelectedCategories']) {
+        $selected = @($Preferences.SelectedCategories)
+        if ($selected.Count -gt 64) { return $false }
+        foreach ($item in $selected) {
+            if ($item -isnot [string]) { return $false }
+            if ($item -notmatch '^[A-Za-z0-9 ._\\-]{1,128}$') { return $false }
+            if ($item.Contains('..')) { return $false }
+        }
+    }
     return $true
 }
 
@@ -59,10 +77,15 @@ function Read-OptimizerPreferences {
         if ([string]::IsNullOrWhiteSpace($raw)) { return $defaults }
         $preferences = ConvertFrom-Json -InputObject $raw -ErrorAction Stop
         if (-not (Test-OptimizerPreferenceValues -Preferences $preferences)) { return $defaults }
+        $selected = @()
+        if ($null -ne $preferences.PSObject.Properties['SelectedCategories']) {
+            $selected = @($preferences.SelectedCategories | Where-Object { $_ -is [string] } | Sort-Object -Unique)
+        }
         return [pscustomobject]@{
-            SchemaVersion=1
+            SchemaVersion=2
             HighContrast=[bool]$preferences.HighContrast
             TextScale=[int]$preferences.TextScale
+            SelectedCategories=@($selected)
         }
     } catch {
         return $defaults
@@ -74,8 +97,9 @@ function Save-OptimizerPreferences {
     .SYNOPSIS
     Writes strictly validated non-sensitive settings with an atomic replace.
     .DESCRIPTION
-    Only SchemaVersion, HighContrast and TextScale are ever serialized; any
-    additional input members (such as customer details) are ignored.
+    Only SchemaVersion, HighContrast, TextScale and generic cleanup category
+    ids are ever serialized; any additional input members (such as customer
+    details) are ignored.
     #>
     [CmdletBinding()]
     param(
@@ -83,7 +107,7 @@ function Save-OptimizerPreferences {
         [string]$Path = ''
     )
     if (-not (Test-OptimizerPreferenceValues -Preferences $Preferences)) {
-        throw 'Preferências inválidas. Use HighContrast (booleano) e TextScale (100, 115 ou 125).'
+        throw 'Preferências inválidas. Use HighContrast (booleano), TextScale (100, 115 ou 125) e categorias seguras.'
     }
     if ([string]::IsNullOrWhiteSpace($Path)) { $Path = Get-OptimizerPreferencesPath }
     $fullPath = [IO.Path]::GetFullPath($Path)
@@ -94,12 +118,17 @@ function Save-OptimizerPreferences {
     if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
         [void](New-Item -ItemType Directory -Path $directory -Force -ErrorAction Stop)
     }
+    $selected = @()
+    if ($null -ne $Preferences.PSObject.Properties['SelectedCategories']) {
+        $selected = @($Preferences.SelectedCategories | Where-Object { $_ -is [string] } | Sort-Object -Unique)
+    }
     $clean = [ordered]@{
-        SchemaVersion=1
+        SchemaVersion=2
         HighContrast=[bool]$Preferences.HighContrast
         TextScale=[int]$Preferences.TextScale
+        SelectedCategories=@($selected)
     }
-    $json = ConvertTo-Json -InputObject $clean -Depth 2
+    $json = ConvertTo-Json -InputObject $clean -Depth 3
     $temporary = Join-Path $directory ('.preferences-' + [guid]::NewGuid().ToString('N') + '.tmp')
     $backup = ''
     try {

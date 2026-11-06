@@ -23,6 +23,8 @@ Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil 
 | Rede | Diagnóstico local de adaptadores, IPv4, gateway, DNS e perfis; testes DNS/TCP com destino explícito |
 | Saúde | Bateria com relatório oficial do Windows (powercfg), capacidade de projeto e ciclos; discos físicos com contadores SMART, temperatura, desgaste e volumes |
 | Manutenção | Drivers instalados com status (assinatura/idosidade), atualizações de driver via Windows Update; aplicativos instalados com sugestões de remoção e exclusão confirmada; otimizações seguras (plano de energia, Sensor de Armazenamento, cache de entrega, Lixeira) |
+| Privacidade & IA | Desativação de Copilot, Recall e pacotes de IA; bloqueio de telemetria do Windows/Office e de apps de terceiros (NVIDIA, VS Code, PowerShell, CCleaner); restrição de permissões (localização, microfone, câmera) e predefinições Básica, Rígida e Extrema baseadas no WinScript |
+| Ajustes do sistema | Troca rápida de perfis DNS (Google, Cloudflare, Quad9, AdGuard), redução de latência/mouse delay, desativação de MPO para evitar stuttering em jogos, modo escuro e restauração do menu de contexto clássico |
 | Bancada integrada | Inventário de processos, inicialização, programas, adaptadores, atualizações e unidades; diagnóstico local de rede; testes DNS/TCP autorizados; histórico de falhas de disco/WHEA/NTFS/desligamento; ferramentas SFC, DISM e CHKDSK com confirmação e UAC |
 | Atalhos do Windows | Inicialização, aplicativos, armazenamento, segurança, otimização de unidades, restauração, eventos, tarefas, recursos opcionais, dispositivos, energia, Windows Update, informações de sistema |
 | Relatório | Cliente/OS, observações, diagnóstico e resultado; HTML imprimível em PDF ou JSON sem caminhos de arquivos excluídos |
@@ -35,15 +37,21 @@ A partir da edição 4.4, a barra lateral é **navegável por clique** e indica 
 
 Atalhos para navegar: **Ctrl+1** Visão geral, **Ctrl+2** Diagnóstico, **Ctrl+3** Saúde, **Ctrl+4** Limpeza, **Ctrl+5** Manutenção, **Ctrl+6** Relatório, **Ctrl+7** Preferências e **Ctrl+B** Bancada. Permanecem **F5** para análise de limpeza, **Esc** para solicitar interrupção e **Ctrl+E** para relatório.
 
-Todos os botões visíveis receberam rótulos de automação, e a navegação lateral possui destaque para foco de teclado. As principais combinações de texto/fundo foram ajustadas para contraste mínimo de 4,5:1; uma validação estática é executada no CI. Isso **não equivale a certificação completa de acessibilidade**: leitor de tela, temas de alto contraste e resoluções com DPI acima de 100% ainda exigem testes manuais no Windows.
+Todos os botões visíveis, grids, abas e avisos receberam rótulos de automação, e a navegação lateral possui ordem de tabulação explícita e destaque para foco de teclado. As principais combinações de texto/fundo foram ajustadas para contraste mínimo de 4,5:1; uma validação estática é executada no CI. Isso **não equivale a certificação completa de acessibilidade**: leitor de tela, temas de alto contraste e resoluções com DPI acima de 100% ainda exigem testes manuais no Windows.
 
 ## Preferências de leitura (4.5)
 
 Abra **Preferências** na barra lateral (ou **Ctrl+7**). Ative o modo de alto contraste e escolha texto em 100%, 115% ou 125%. **Aplicar e salvar** mantém a escolha nas próximas aberturas; **Restaurar padrão** retorna ao tema convencional e à escala de 100%. O Alto Contraste do Windows tem prioridade quando ativo.
 
-Somente as chaves `SchemaVersion`, `HighContrast` e `TextScale` são gravadas em `%LOCALAPPDATA%\PCOptimizer\preferences.json`. Nenhum dado de cliente, ordem de serviço, IP, inventário, caminho analisado ou resultado de limpeza é armazenado. Arquivos JSON inválidos, ausentes ou grandes demais retornam ao padrão. Não há telemetria nem sincronização externa.
+Somente as chaves `SchemaVersion`, `HighContrast`, `TextScale` e `SelectedCategories` são gravadas em `%LOCALAPPDATA%\PCOptimizer\preferences.json`. `SelectedCategories` guarda apenas identificadores genéricos de categoria (por exemplo, `temp`), nunca caminhos de arquivos. Nenhum dado de cliente, ordem de serviço, IP, inventário, caminho analisado ou resultado de limpeza é armazenado. Arquivos JSON inválidos, ausentes ou grandes demais retornam ao padrão. Não há telemetria nem sincronização externa.
+
+A seleção de categorias é restaurada na próxima análise, e a última pasta usada para salvar relatórios é lembrada apenas durante a sessão — ela não é gravada em disco. A janela de resultado detalhado permite filtrar por categoria, caminho, status ou detalhe.
 
 A paleta WPF usa recursos dinâmicos para botões, cartões, tabelas e textos, e o dimensionamento amplia também as linhas da grade. Testes automáticos cobrem a persistência, privacidade e aplicação visual. **Narrador/NVDA, combinações de tema do Windows e vários níveis de DPI ainda precisam validação manual.**
+
+## Configuração externa (4.5)
+
+A allowlist de limpeza fica em `config/optimizer.psd1`: retenção mínima, navegadores, subpastas de cache, extensões protegidas, pastas protegidas e marcadores de projeto. O arquivo é opcional; se estiver ausente, malformado ou fora da política (retenção abaixo de 7 dias, caminho absoluto, `..`, id inválido ou lista vazia), o núcleo usa os padrões seguros embutidos. Editar a configuração não amplia a limpeza para Documents, Downloads, Registro ou outras contas — apenas ajusta os limites já permitidos.
 
 ## Saúde e manutenção
 
@@ -79,7 +87,7 @@ A aba **Rede** consolida o diagnóstico local. A consulta usa apenas o ambiente 
 - Somente raízes permitidas do perfil atual. Não percorre Documents, Downloads ou outras contas.
 - Não apaga senhas, cookies ou histórico de navegação.
 - Navegadores abertos são ignorados na análise e verificados novamente na exclusão.
-- Preserva arquivos recentes, extensões comuns de código/documentos/mídia/arquivos compactados e pastas com marcadores de projeto (`.git`, `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`).
+- Preserva arquivos recentes, extensões comuns de código/documentos/mídia/arquivos compactados e pastas com marcadores de projeto (`.git`, `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`). As listas vêm de `config/optimizer.psd1` e são revalidadas a cada arquivo.
 - Um arquivo vazio chamado `.optimizer-protect` protege a pasta e seus descendentes.
 - Não percorre junctions ou links simbólicos. Antes de excluir, verifica novamente os ancestrais, tamanho e data de modificação.
 - Apaga arquivos individuais, nunca diretórios recursivamente. Arquivos em uso ou sem permissão são registrados como ignorados.

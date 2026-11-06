@@ -5,6 +5,26 @@
 
 ---
 
+## Rodada 4.5.1 — conclusão de pendências viáveis (06/11/2026)
+
+**Escopo executado:** revisão deste arquivo para concluir os itens que não dependem de certificado de assinatura, tag publicada ou gravação manual de tela. Nenhuma rotina destrutiva nova foi habilitada; a interface continua sem telemetria e sem persistir dados de clientes.
+
+| Item | Entrega desta rodada |
+|---|---|
+| 7 | **Ampliado** — `Tests/Core.Smoke.ps1` passou a 50 verificações: descoberta de perfil Chrome em `LOCALAPPDATA` descartável, carregamento do `config/optimizer.psd1`, configuração customizada e fallback seguro para configuração inválida. Cenários de WMI/bateria indisponível seguem pendentes. |
+| 8 | **Concluído** — comment-based help em `Get-OptimizerTargets`, `Test-OptimizerPath`, `Get-OptimizerScan`, `Get-OptimizerDiagnostics` e `Export-OptimizerReport`; `[CmdletBinding()]` adicionado ao helper `Get-OptimizerByteSum`. |
+| 9 | **Concluído** — `config/optimizer.psd1` externaliza retenção mínima, navegadores, subpastas de cache, extensões protegidas, pastas protegidas e marcadores de projeto. O carregador valida tipos, caminhos relativos, ids e limites; qualquer valor fora da política volta aos padrões embutidos. |
+| 12 | **Concluído** — `Write-Progress` adicionado às rotinas longas do legado (`Optimize-Disk`, caches de navegadores/pacotes/aplicativos, `Disable-Services`, `Disable-Bloatware`), com conclusão explícita do progresso. |
+| 17 | **Quase concluído** — `AutomationProperties.Name` em todos os `DataGrid`, `ScanWarnings`, `AppxBloatOnly` e `TabControl`; ordem de tabulação explícita (`TabIndex` 1–8) na navegação lateral; testes estáticos verificam a presença. Falta apenas ensaio manual com Narrador/NVDA, Alto Contraste do Windows e DPI variados. |
+| 18 | **Concluído com limite de privacidade** — a seleção de categorias é restaurada após nova análise e gravada em `SelectedCategories` (schema 2). A pasta de destino é memorizada **apenas durante a sessão**; não é gravada em disco para não registrar caminhos do cliente. |
+| 19 | **Concluído** — a janela de resultado detalhado ganhou filtro por categoria/caminho/status/detalhe (botão, Enter e limpar). A exportação CSV já havia sido restaurada na integração da bancada e permanece opcional, com aviso de privacidade. |
+
+**Testes executados nesta rodada:** `Validate-Syntax.ps1`, `Core.Smoke.ps1` (50 verificações), `Preferences.Smoke.ps1`, `UI.UX.Smoke.ps1`, `Optimizer.Tests.ps1`, `Network.Smoke.ps1`, `Events.Smoke.ps1`, `Technician.Smoke.ps1`, PSScriptAnalyzer nos arquivos modificados e `Otimizador-GUI.ps1 -ValidateUI` com captura de prévia no Windows PowerShell 5.1. Todos passaram.
+
+**Ainda bloqueado ou fora desta rodada:** item 10 (logs estruturados no legado), item 13 (assinatura Authenticode exige certificado), item 14 (Release real exige tag/push), item 23 (GIF exige gravação manual) e item 24 (i18n é decisão de produto). A validação manual de acessibilidade também continua pendente. Os módulos não rastreados `Optimizer.Privacy.psm1` e `Optimizer.Tweaks.psm1` não foram alterados por esta rodada.
+
+---
+
 ## Preferências locais e leitura ampliada — rodada 4.5 (04/11/2026)
 
 **Coordenação com agentes:** o commit `b716710` integrou o trabalho de rede/eventos na interface 4.4 e o CI da `main` está verde. Reservo a próxima evolução de **preferências locais e acessibilidade**. Alterarei `UI/MainWindow.xaml`, `Otimizador-GUI.ps1`, crierei `Modules/Optimizer.Preferences.psm1` e `Tests/Preferences.Smoke.ps1`, e atualizarei apenas CI/README/CHANGELOG e esta seção do `melhorias.md`. Não modificar `Modules/Optimizer.Core.psm1`, `Optimizer.NetworkDiagnostics.psm1`, `Optimizer.Events.psm1`, `Repair.Tools.ps1` ou lógica de remoção de aplicativos.
@@ -13,7 +33,7 @@
 
 **Testes:** cenários de padrões, arquivo ausente/inválido, validação de valores, persistência/releitura, privacidade e WPF com controles reais; sem tocar em configurações do Windows ou executar reparos. Não presumir que essas opções substituem ensaio manual com Narrador/NVDA ou certificação de acessibilidade.
 
-**Status:** em implementação. Consulte a issue #5 para a coordenação.
+**Status:** implementação concluída e publicada na `main`; os ajustes posteriores desta rodada estão descritos em 4.5.1, acima.
 
 **Correção de execução (04/11/2026, branch `feature/v4-5-local-preferences`):** `Save-OptimizerPreferences` usava `[IO.File]::Replace($temporary, $fullPath, $null)`; no .NET Framework do Windows PowerShell 5.1 o backup nulo é inválido e a sobrescrita de preferências existentes falhava. Corrigido com backup em arquivo temporário (`.preferences-backup-*.tmp`). `Tests/Preferences.Smoke.ps1` agora passa em PS 5.1 (persistência, privacidade, valores inválidos e fallback).
 
@@ -146,22 +166,23 @@
 |---|---|
 | P0 1–5 | **Concluído**: menu, CHANGELOG, atualização/Git automáticos desativados, HTML escapado, administrador exigido somente no console legado |
 | P1 6 | **Concluído**: job `lint` bloqueante no CI com PSScriptAnalyzer |
-| P1 7 | **Parcial**: cobertura adicional de bytes, exportação, nulos e acentos; cenários WMI e perfis adicionais seguem pendentes |
-| P1 8 | **Parcial**: funções principais com `[CmdletBinding()]`; help por função pendente |
-| P1 9–10 | **Pendente**: configuração externa e logs legados estruturados |
+| P1 7 | **Parcial**: 50 verificações, incluindo config e perfil de navegador; cenários WMI/bateria ausente seguem pendentes |
+| P1 8 | **Concluído**: `[CmdletBinding()]` em todo o núcleo e comment-based help nas funções principais |
+| P1 9 | **Concluído**: `config/optimizer.psd1` com validação e fallback seguro |
+| P1 10 | **Pendente**: logs legados estruturados |
 | P1 11 | **Concluído**: relatório HTML válido e JSON opcional sem caminhos de arquivos excluídos |
-| P1 12 | **Pendente**: `Write-Progress` no console antigo; a UI usa progresso por arquivos |
+| P1 12 | **Concluído**: `Write-Progress` nas rotinas longas do console antigo |
 | P2 13 | **Pendente**: assinatura Authenticode e gestão de certificados |
 | P2 14 | **Preparado**: workflow de tag gera ZIP e SHA-256; execução de Release real ainda não validada |
 | P2 15–16 | **Concluído**: `-Auto`, `-AutoPush` e `-Schedule` bloqueados; política `SECURITY.md` incluída |
-| P3 17 | **Parcial**: nomes de automação em controles principais e atalhos F5/Esc/Ctrl+E; faltam tabulação e alto contraste |
-| P3 18 | **Parcial**: selecionar tudo/nenhum; persistência de preferências pendente |
-| P3 19 | **Parcial**: removidos e ignorados visíveis na UI; exportação CSV de resultados pendente |
+| P3 17 | **Parcial**: nomes de automação e tabulação concluídos; validação manual com leitor de tela/DPI pendente |
+| P3 18 | **Concluído com limite**: seleção de categorias lembrada; pasta de destino apenas na sessão |
+| P3 19 | **Concluído**: resultado detalhado com filtro e exportação CSV opcional |
 | P3 20 | **Concluído**: progresso de arquivos processados na limpeza; análise permanece indeterminada |
 | P4 21–22 | **Concluído**: documentação de arquitetura, templates de issue e PR |
 | P4 23–24 | **Pendente**: GIF de demonstração e tradução, caso necessário |
 
-**Próxima prioridade:** configuração externa segura, acessibilidade de alto contraste, resultados CSV e testes de diagnósticos. Não habilitar operações destrutivas legadas para atingir paridade artificial com CCleaner.
+**Próxima prioridade:** logs estruturados no legado, assinatura Authenticode/Release por tag e validação manual de acessibilidade. Não habilitar operações destrutivas legadas para atingir paridade artificial com CCleaner.
 
 ---
 
@@ -244,33 +265,24 @@ Regras desativadas com justificativa: verbos/substantivos de domínio, `Write-Ho
 
 ### 7. Ampliar a cobertura do núcleo — **Parcialmente resolvido**
 
-Já cobertos (34 verificações no total):
+Já cobertos (50 verificações no total):
 
 - `Format-OptimizerSize` (B, KB, MB, GB e zero).
 - `Get-OptimizerByteSum` (lista vazia, soma e propriedade ausente).
-- `Get-OptimizerTargets` (inclui a pasta Temp do usuário).
+- `Get-OptimizerTargets` (pasta Temp, descoberta de perfil Chrome e subpastas de cache vindas da configuração).
+- `Get-OptimizerConfiguration` (arquivo embarcado, configuração customizada e fallback seguro).
 - `Export-OptimizerReport` sem limpeza, com `<head>`/`<body>`, acentos escapados e exportação JSON sem caminhos privados.
 
-Ainda faltam casos para `Get-OptimizerDiagnostics` (WMI indisponível, bateria ausente, Defender desligado) e para perfis `Default`/`Profile N` com navegador ausente.
+Ainda faltam casos para `Get-OptimizerDiagnostics` (WMI indisponível, bateria ausente, Defender desligado).
 
 
-### 8. Padronizar `[CmdletBinding()]` e help no núcleo — **Parcialmente resolvido**
+### 8. ~~Padronizar `[CmdletBinding()]` e help no núcleo~~ — **Resolvido**
 
-Sete das oito funções do núcleo já têm `[CmdletBinding()]`; falta apenas o helper interno `Get-OptimizerByteSum`. No legado, 3 funções destrutivas usam `[CmdletBinding(SupportsShouldProcess)]`.
+Todas as funções do núcleo têm `[CmdletBinding()]`. Comment-based help foi adicionado a `Get-OptimizerTargets`, `Test-OptimizerPath`, `Get-OptimizerScan`, `Get-OptimizerDiagnostics`, `Export-OptimizerReport` e ao carregador `Get-OptimizerConfiguration`. No legado, 3 funções destrutivas usam `[CmdletBinding(SupportsShouldProcess)]`.
 
-**Ação restante:** adicionar comment-based help em `Get-OptimizerScan`, `Get-OptimizerTargets`, `Test-OptimizerPath`, `Export-OptimizerReport` e `Get-OptimizerDiagnostics`.
+### 9. ~~Externalizar configuração~~ — **Resolvido**
 
-### 9. Externalizar configuração
-
-`Get-OptimizerTargets` fixa Temp + Chrome/Edge/Brave; as extensões preservadas e os marcadores de projeto estão no código.
-
-**Ação:** mover para `config/optimizer.psd1`:
-- navegadores e subpastas de cache;
-- extensões protegidas;
-- marcadores de projeto (`.git`, `package.json`, ...);
-- retenção mínima (hoje travada em 7 dias).
-
-Isso permite ajustar sem editar o módulo e facilita testar.
+`config/optimizer.psd1` concentra navegadores, subpastas de cache, extensões protegidas, pastas protegidas, marcadores de projeto e retenção mínima. `Get-OptimizerConfiguration` valida o arquivo e volta aos padrões embutidos se ele estiver ausente, malformado ou fora da política (retenção < 7 dias, caminho absoluto, `..`, id inválido ou lista vazia).
 
 ### 10. Logs estruturados no legado
 
@@ -282,11 +294,9 @@ O núcleo não grava log persistente (bom para privacidade). O legado ainda usa 
 
 O HTML agora tem `<head>`/`<body>` válidos, CSS de impressão e escape de acentos. A interface exporta também JSON, sem serializar caminhos pessoais. Falta apenas um botão explícito "Imprimir" no HTML.
 
-### 12. `Write-Progress` no legado
+### 12. ~~`Write-Progress` no legado~~ — **Resolvido**
 
-A UI já tem progresso real na limpeza. O legado continua com **0** ocorrências de `Write-Progress`; SFC/DISM/Defender no console ficam sem feedback por muito tempo.
-
-**Ação (somente se o legado continuar):** adicionar `Write-Progress` nas rotinas longas do console.
+A UI mantém progresso real na limpeza. O console legado agora usa `Write-Progress` com contadores e conclusão explícita em `Optimize-Disk`, `Clean-BrowserCaches`, `Clean-PackageCaches`, `Clean-AppCaches`, `Disable-Services` e `Disable-Bloatware`.
 
 ---
 
@@ -322,22 +332,22 @@ Criado com política de relato privado, escopo, limites de segurança e orienta�
 
 Já implementado:
 - atalhos F5 (analisar), Esc (interromper) e Ctrl+E (exportar);
-- `AutomationProperties.Name` nos botões principais, de limpeza, cancelamento e seleção em massa.
+- `AutomationProperties.Name` em botões, grids, avisos, abas e caixa de seleção de sugestões;
+- ordem de tabulação explícita (`TabIndex` 1–8) na navegação lateral;
+- preferências de alto contraste e escala de texto aplicadas dinamicamente.
 
-Ainda faltam:
-- `AutomationProperties.Name` nos grids e campos restantes;
-- ordem de tabulação explícita;
-- tema de alto contraste validado em bancada.
+Ainda falta: ensaio manual com Narrador/NVDA, Alto Contraste do Windows e monitores/DPI variados. A verificação estática não equivale a certificação WCAG.
 
-### 18. Seleção em massa e memória de preferências — **Parcialmente resolvido**
+### 18. Seleção em massa e memória de preferências — **Resolvido com limite**
 
 - Botões "Selecionar tudo/desmarcar tudo" implementados.
-- Categorias já mostram contagem e bytes antes de limpar.
-- Ainda falta lembrar a última seleção e a última pasta de relatório.
+- Categorias mostram contagem e bytes antes de limpar.
+- A seleção de categorias é restaurada após nova análise e gravada em `SelectedCategories` (schema 2).
+- A última pasta de destino dos relatórios é memorizada **somente durante a sessão**; não vai para disco para não registrar caminhos do cliente.
 
-### 19. Resultado detalhado na UI — **Parcialmente resolvido**
+### 19. ~~Resultado detalhado na UI~~ — **Resolvido**
 
-A janela "Prévia / resultado" agora exibe removidos e ignorados com categoria, status, bytes e detalhe. Ainda faltam filtro e exportação CSV.
+A janela "Prévia / resultado" exibe removidos e ignorados com categoria, status, bytes e detalhe, agora com filtro por texto (botão, Enter e limpar). A exportação CSV continua opcional e avisa que inclui caminhos.
 
 ### 20. ~~Progresso real~~ — **Resolvido**
 
@@ -390,22 +400,24 @@ O restante é de outro domínio (agentes, social, web) ou já está marcado como
 | Etapa | Escopo | Entrega | Status |
 |---|---|---|---|
 | 1 | P0 (itens 1–5) | Menu sem duplicata, CHANGELOG padronizado, legado sem self-update inseguro, relatório legado escapado | **Concluído** |
-| 2 | P1 (itens 6–12) | PSScriptAnalyzer no CI, cobertura extra, config externa, relatório com `<head>`/JSON | 6, 7 e 11 concluídos; 8 parcial; 9, 10 e 12 pendentes |
+| 2 | P1 (itens 6–12) | PSScriptAnalyzer no CI, cobertura extra, config externa, relatório com `<head>`/JSON | 6, 8, 9, 11 e 12 concluídos; 7 ampliado; 10 pendente |
 | 3 | P2 (itens 13–16) | Release assinado, workflow de tag, `-Auto` revisado, `SECURITY.md` | 15 e 16 concluídos; 13 e 14 pendentes |
-| 4 | P3/P4 (itens 17–24) | Acessibilidade, seleção em massa, progresso real, docs de arquitetura e templates | 20, 21 e 22 concluídos; 17–19 parciais; 23 e 24 pendentes |
+| 4 | P3/P4 (itens 17–24) | Acessibilidade, seleção em massa, progresso real, docs de arquitetura e templates | 18, 19, 20, 21 e 22 concluídos; 17 parcial; 23 e 24 pendentes |
 
 ---
 
 ## Critérios de aceite
 
 - [x] `Tests/Validate-Syntax.ps1` continua detectando zero duplicatas.
-- [x] `Tests/Core.Smoke.ps1` verde em Windows PowerShell 5.1 e PowerShell 7 (34 verificações).
+- [x] `Tests/Core.Smoke.ps1` verde em Windows PowerShell 5.1 e PowerShell 7 (50 verificações).
+- [x] `config/optimizer.psd1` validado com fallback seguro para valores fora da política.
 - [x] PSScriptAnalyzer sem Warning/Error com as settings do repo.
 - [x] Menu legado sem opções repetidas.
 - [x] CHANGELOG com a 4.0.1 no formato Keep a Changelog.
 - [x] Relatório do legado escapa o log (ou o gerador legado é removido).
 - [x] Self-update foi desativado no legado e não sobrescreve nenhum código.
 - [ ] Publicação de Release real com ZIP + SHA-256 validada (workflow preparado).
+- [ ] Validação manual de acessibilidade (leitor de tela, Alto Contraste e DPI).
 
 ---
 
@@ -417,12 +429,14 @@ O restante é de outro domínio (agentes, social, web) ou já está marcado como
 | Definições `function` no legado | 72 |
 | Nomes únicos | 72 |
 | Duplicatas | 0 |
-| Linhas de `Optimizer.Core.psm1` | 215 |
-| `[CmdletBinding()]` no núcleo | 7 de 8 funções |
+| Linhas de `Optimizer.Core.psm1` | 790 |
+| Funções de `Optimizer.Core.psm1` | 25 |
+| `[CmdletBinding()]` no núcleo | 21 de 25 funções |
 | `[CmdletBinding()]` no legado | 3 (rotinas destrutivas) |
-| `Write-Progress` no legado | 0 |
+| `Write-Progress` no legado | 12 ocorrências em 6 rotinas longas |
 | Opções do menu legado | 48 (sem duplicatas) |
-| Verificações em `Core.Smoke.ps1` | 34 |
-| Abas da UI 4.0 | 5 (Visão geral, Limpeza, Diagnóstico, Ferramentas, Relatório) |
+| Verificações em `Core.Smoke.ps1` | 50 |
+| Abas da UI 4.5 | 7 (Visão geral, Limpeza, Diagnóstico, Saúde, Manutenção, Relatório, Preferências) |
+| Configuração externa | `config/optimizer.psd1` com validação e fallback |
 | PSScriptAnalyzer no CI | job `lint` bloqueante |
 | Matriz do CI | Ubuntu + Windows; PS 5.1; validação WPF |

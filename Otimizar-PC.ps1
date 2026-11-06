@@ -242,7 +242,11 @@ function Set-Pagefile {
 
 function Optimize-Disk {
     Write-Log "=== Otimizacao de disco ==="
-    foreach ($drive in $Drives.Split(",")) {
+    $driveList = @($Drives.Split(","))
+    $driveIndex = 0
+    foreach ($drive in $driveList) {
+        $driveIndex++
+        Write-Progress -Activity "Otimizando discos" -Status "Unidade $drive ($driveIndex de $($driveList.Count))" -PercentComplete ([math]::Min(100, [math]::Round(100 * ($driveIndex - 1) / [math]::Max(1, $driveList.Count))))
         $drive = $drive.Trim().ToUpper()
         $driveType = Get-DriveType $drive
         Write-Log "  Drive $drive`: tipo $driveType"
@@ -253,6 +257,7 @@ function Optimize-Disk {
             try { Optimize-Volume -DriveLetter $drive -Defrag -Verbose 2>&1 | Out-Null; Write-Log "  Desfrag concluido ($drive HDD)" } catch { Write-Log "  Aviso defrag: $_" "WARN" }
         }
     }
+    Write-Progress -Activity "Otimizando discos" -Completed
     try {
         DISM /Online /Cleanup-Image /StartComponentCleanup 2>&1 | Out-Null
         Write-Log "  WinSxS component cleanup concluido"
@@ -325,12 +330,16 @@ function Disable-Services {
     Write-Log "=== Desativacao de servicos (Aggressive) ==="
     if ($DryRun) { Write-Log "  [DRY-RUN] Servicos seriam desativados"; return }
     $services = @("Fax","XblAuthManager","XblGameSave","MapsBroker","RetailDemo","SharedAccess","icssvc","lfsvc","WMPNetworkSvc","RemoteRegistry")
+    $serviceIndex = 0
     foreach ($s in $services) {
+        $serviceIndex++
+        Write-Progress -Activity "Desativando serviços" -Status "$s ($serviceIndex de $($services.Count))" -PercentComplete ([math]::Min(100, [math]::Round(100 * ($serviceIndex - 1) / [math]::Max(1, $services.Count))))
         $svc = Get-Service $s -EA 0
         if ($svc) {
             try { Stop-Service $s -Force -EA 0; Set-Service $s -StartupType Disabled -EA 0; Write-Log "  $s desativado" } catch { Write-Log "  ${s}: $_" "WARN" }
         }
     }
+    Write-Progress -Activity "Desativando serviços" -Completed
 }
 
 function Disable-Bloatware {
@@ -349,12 +358,16 @@ function Disable-Bloatware {
         "ShazamEntertainmentLtd.Shazam","PandoraMediaInc.29680B314EFC2","Facebook.Facebook",
         "Flipboard.Flipboard","Twitter.Twitter","SpotifyAB.SpotifyMusic"
     )
+    $bloatwareIndex = 0
     foreach ($app in $bloatware) {
+        $bloatwareIndex++
+        Write-Progress -Activity "Removendo bloatware" -Status "$app ($bloatwareIndex de $($bloatware.Count))" -PercentComplete ([math]::Min(100, [math]::Round(100 * ($bloatwareIndex - 1) / [math]::Max(1, $bloatware.Count))))
         $pkg = Get-AppxPackage -Name $app -EA 0
         if ($pkg) {
             try { Remove-AppxPackage -Package $pkg.PackageFullName -EA 0; Write-Log "  Removido: $app" } catch { Write-Log "  Falha ao remover $app : $_" "WARN" }
         }
     }
+    Write-Progress -Activity "Removendo bloatware" -Completed
     Write-Log "  Bloatware removido (reinstalavel pela Store)"
 }
 
@@ -431,7 +444,10 @@ function Clean-BrowserCaches {
         @{ Name="Opera"; Paths=@("$env:APPDATA\Opera Software\Opera Stable\Cache","$env:APPDATA\Opera Software\Opera GX Stable\Cache") },
         @{ Name="Vivaldi"; Paths=@("$env:LOCALAPPDATA\Vivaldi\User Data\*\Cache") }
     )
+    $browserIndex = 0
     foreach ($b in $browsers) {
+        $browserIndex++
+        Write-Progress -Activity "Limpando caches de navegadores" -Status "$($b.Name) ($browserIndex de $($browsers.Count))" -PercentComplete ([math]::Min(100, [math]::Round(100 * ($browserIndex - 1) / [math]::Max(1, $browsers.Count))))
         foreach ($pattern in $b.Paths) {
             $resolved = Resolve-Path $pattern -EA 0
             foreach ($r in $resolved) {
@@ -446,6 +462,7 @@ function Clean-BrowserCaches {
             }
         }
     }
+    Write-Progress -Activity "Limpando caches de navegadores" -Completed
 }
 
 function Clean-PackageCaches {
@@ -462,7 +479,10 @@ function Clean-PackageCaches {
         @{ Path = "$env:USERPROFILE\go\pkg\mod\cache"; Name = "go" },
         @{ Path = "$env:USERPROFILE\.nuget\packages"; Name = "nuget" }
     )
+    $cacheIndex = 0
     foreach ($c in $caches) {
+        $cacheIndex++
+        Write-Progress -Activity "Limpando caches de pacotes" -Status "$($c.Name) ($cacheIndex de $($caches.Count))" -PercentComplete ([math]::Min(100, [math]::Round(100 * ($cacheIndex - 1) / [math]::Max(1, $caches.Count))))
         if (Is-Protected $c.Path) { Write-Log "  [PROTEGIDO] Pulando: $($c.Path)" "WARN"; continue }
         if (Test-Path $c.Path) {
             $sz = Get-FolderSize $c.Path
@@ -475,6 +495,7 @@ function Clean-PackageCaches {
             }
         }
     }
+    Write-Progress -Activity "Limpando caches de pacotes" -Completed
 }
 
 function Clean-AppCaches {
@@ -489,7 +510,10 @@ function Clean-AppCaches {
         @{ Path = "$env:APPDATA\Code\Cache"; Name = "VS Code Cache" },
         @{ Path = "$env:APPDATA\Code\CachedData"; Name = "VS Code CachedData" }
     )
+    $appIndex = 0
     foreach ($a in $appCaches) {
+        $appIndex++
+        Write-Progress -Activity "Limpando caches de aplicativos" -Status "$($a.Name) ($appIndex de $($appCaches.Count))" -PercentComplete ([math]::Min(100, [math]::Round(100 * ($appIndex - 1) / [math]::Max(1, $appCaches.Count))))
         $resolved = Resolve-Path $a.Path -EA 0
         foreach ($r in $resolved) {
             $sz = Get-FolderSize $r.Path
@@ -502,6 +526,7 @@ function Clean-AppCaches {
             }
         }
     }
+    Write-Progress -Activity "Limpando caches de aplicativos" -Completed
 }
 
 function Optimize-Startup {

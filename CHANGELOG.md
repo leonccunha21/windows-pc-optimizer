@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5] - 2026-11-06
+
+### Added
+- Integração completa das funcionalidades de otimização, telemetria e privacidade reversas do WinScript v2.28.0 (`flick9000/winscript`).
+- Novo módulo `Modules/Optimizer.Privacy.psm1`: 39 ações catalogadas abrangendo desativação de IA (Copilot, Recall, AI AppX), bloqueio de telemetria do Windows/apps (NVIDIA, VS Code, PowerShell, CCleaner), controle de permissões de aplicativos e predefinições (Básica, Rígida e Extrema).
+- Novo módulo `Modules/Optimizer.Tweaks.psm1`: 30 ajustes catalogados para configuração de DNS (Google, Cloudflare, Quad9, AdGuard, DHCP), redução de latência, desativação de MPO para gaming, modo escuro, menu de contexto clássico e exibição de arquivos/extensões.
+- Novas subabas interativas na Central Técnica ("Privacidade" e "Ajustes") com seleção individual, ações em lote, suporte a -WhatIf e avisos de privilégio de administrador.
+- Novos testes automatizados: `Tests/Privacy.Smoke.ps1` e `Tests/Tweaks.Smoke.ps1`.
+- Configuração externa `config/optimizer.psd1` para navegadores, subpastas de cache, extensões/pastas protegidas, marcadores de projeto e retenção mínima, com validação estrita e fallback seguro.
+- Comment-based help em `Get-OptimizerTargets`, `Test-OptimizerPath`, `Get-OptimizerScan`, `Get-OptimizerDiagnostics`, `Export-OptimizerReport` e `Get-OptimizerConfiguration`.
+- `Write-Progress` com contadores e conclusão nas rotinas longas do console legado.
+- Persistência da seleção de categorias de limpeza em `SelectedCategories` (schema 2), mantendo leitura de arquivos schema 1.
+- Filtro por categoria, caminho, status ou detalhe na janela de resultado detalhado.
+- Rótulos de automação em grids, abas, avisos e caixa de sugestões, além de ordem de tabulação explícita na navegação lateral.
+- Testes de configuração externa, descoberta de perfil de navegador e schema 2 de preferências; suíte do núcleo agora com 50 verificações.
+
+### Changed
+- `Get-OptimizerScan` usa a retenção da configuração por padrão; valores explícitos abaixo de 7 dias continuam rejeitados.
+- A última pasta de destino dos relatórios é lembrada somente durante a sessão, sem gravar caminhos em disco.
+- O ZIP de release inclui a pasta `config`.
+
+### Fixed
+- `[CmdletBinding()]` adicionado ao helper `Get-OptimizerByteSum`.
+
 ## [4.4] - 2026-11-04
 
 ### Added

@@ -25,10 +25,15 @@ $unnamed = @($buttons | Where-Object {
     $_.GetAttribute('Content') -and -not $_.GetAttribute('AutomationProperties.Name')
 })
 Assert-OptimizerUx ($unnamed.Count -eq 0) 'Some buttons lack accessible AutomationProperties.Name.'
-$navButtonNames = @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavReport','NavSettings')
-foreach ($name in $navButtonNames) {
+$dataGrids = @($layout.SelectNodes("//*[local-name()='DataGrid']"))
+$unnamedGrids = @($dataGrids | Where-Object { -not $_.GetAttribute('AutomationProperties.Name') })
+Assert-OptimizerUx ($unnamedGrids.Count -eq 0) 'Some data grids lack accessible AutomationProperties.Name.'
+$navButtonNames = @('NavOverview','NavDiagnose','NavHealth','NavCleanup','NavMaintenance','NavBench','NavSettings','NavReport')
+for ($index = 0; $index -lt $navButtonNames.Count; $index++) {
+    $name = $navButtonNames[$index]
     $btn = $layout.SelectSingleNode("//*[@x:Name='$name']", $ns)
     Assert-OptimizerUx ($btn.GetAttribute('Style') -match 'SidebarNavButton') "Missing keyboard-focusable navigation style: $name"
+    Assert-OptimizerUx ($btn.GetAttribute('TabIndex') -eq [string]($index + 1)) "Explicit tab order missing for navigation: $name"
 }
 # Contrast calculations follow WCAG relative luminance, checking the app's primary color pairs.
 function Get-OptimizerUxLuminance([string]$Hex) {
@@ -78,7 +83,7 @@ $settingsTab = @($layout.SelectNodes("//*[local-name()='TabItem']") | Where-Obje
 Assert-OptimizerUx ($settingsTab.Count -eq 1) 'Preferences must have exactly one main tab.'
 Assert-OptimizerUx ($dynamicReferences.Count -ge 90) 'Theme resources not used consistently.'
 $gui = Get-Content -LiteralPath (Join-Path $root 'Otimizador-GUI.ps1') -Raw -Encoding UTF8
-foreach ($marker in @('function Open-OptimizerSection','Update-SidebarSelection','[Windows.Input.Key]::B','NavBench.RaiseEvent','WorkbenchTabs.SelectedIndex')) {
+foreach ($marker in @('function Open-OptimizerSection','Update-SidebarSelection','[Windows.Input.Key]::B','NavBench.RaiseEvent','WorkbenchTabs.SelectedIndex','Aplicar filtro','Restore-OptimizerCategorySelection','Save-OptimizerCategorySelection','Set-OptimizerDialogDirectory')) {
     Assert-OptimizerUx ($gui.Contains($marker)) "Missing functional keyboard/navigation binding: $marker"
 }
 Write-Output 'UX structural navigation, accessibility names and contrast checks passed.'
