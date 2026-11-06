@@ -13,6 +13,10 @@ Interface desktop em português para o dia a dia de manutenção de computadores
 
 O pacote portátil não precisa do repositório, de instalação ou de rede. Preferências e logs ficam em `Dados/` quando a pasta é gravável; em mídia somente leitura, o fallback é `%TEMP%\PCOptimizer-Portable`. Consulte [README-PORTABLE.md](README-PORTABLE.md).
 
+## Assinatura de código
+
+Assinatura gratuita preparada via SignPath Foundation para open source. Consulte [CODE_SIGNING.md](CODE_SIGNING.md). Até a aprovação, o pacote local usa self-signed apenas para integridade de desenvolvimento.
+
 Use na conta do cliente: elevar com credenciais de outro usuário muda o perfil analisado. Em computadores gerenciados, respeite a política de execução da organização. Não execute o programa dentro do ZIP sem extrair a pasta. Windows 10/11 com interface desktop; a compatibilidade do aplicativo não altera o ciclo de suporte do Windows.
 
 ## O que a edição 4.5 oferece
